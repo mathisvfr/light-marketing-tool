@@ -1,0 +1,18 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Status colors" subtitle="Muted feedback — used only for status" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>
+  body{margin:0;padding:20px;background:var(--color-bg);font-family:var(--font-body);}
+  .row{display:flex;gap:16px;}
+  .sw{flex:1;display:flex;align-items:center;gap:12px;border:1px solid var(--color-border);border-radius:var(--radius-md);padding:12px;}
+  .dot{width:34px;height:34px;border-radius:var(--radius-sm);flex:none;}
+  .name{font-family:var(--font-display);font-weight:700;font-size:13px;color:var(--color-text);}
+  .hex{font-family:var(--font-mono);font-size:11.5px;color:var(--color-text-muted);margin-top:2px;}
+</style></head>
+<body>
+  <div class="row">
+    <div class="sw"><span class="dot" style="background:var(--green)"></span><div><div class="name">Success</div><div class="hex">--green · #2f8f4e</div></div></div>
+    <div class="sw"><span class="dot" style="background:var(--amber)"></span><div><div class="name">Attention</div><div class="hex">--amber · #c9882f</div></div></div>
+    <div class="sw"><span class="dot" style="background:var(--blue)"></span><div><div class="name">Info</div><div class="hex">--blue · #2f6f9f</div></div></div>
+    <div class="sw"><span class="dot" style="background:var(--light-red)"></span><div><div class="name">Error</div><div class="hex">--light-red · #be1e2d</div></div></div>
+  </div>
+</body></html>

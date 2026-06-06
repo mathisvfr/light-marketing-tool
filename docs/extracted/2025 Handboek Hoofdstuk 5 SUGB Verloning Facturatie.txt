@@ -1,0 +1,591 @@
+﻿
+
+
+ 
+
+
+Loonadministratie 
+Procedure Gelijkwaardige beloning
+
+Uitvraag Arbeidsvoorwaarden, gelijkwaardge beloningpag. 49
+Verstrekken van arbeidsvoorwaarden door opdrachtgeverpag. 50
+Vaststellen gelijkwaardige beloningpag. 50
+Bevestiging aan de flexwerker /  Gegevens bevestiging flexwerkerpag. 50
+Gegevens loonstrook flexwerker pag. 50 - 51
+Informatieverzoek flexwerkerpag. 51
+Inlog CAO wijzerpag. 51
+
+Tewerkstellenpag. 52 – 53 
+
+Verlonen en Factureren
+
+Processen verloning / factureringpag. 56 – 60
+Vastlegging ondersteunende documentenpag. 61
+Berekenen ADVpag. 62
+Doorvoeren feestdagdoorbetalingpag. 63
+Doorvoeren eindejaarsuitkeringpag. 64 - 65
+Doorvoeren loonsverhogingenpag. 66
+Aanpassen tarievenpag. 67 - 70
+Berekenen Bruto jaarloonpag. 70
+Aanpassen template loonstrokenpag. 71
+
+Bijlage
+Overzicht WKR Posten
+
+
+
+Procedures aanvullend op https://handboek.easyflex.net/handboek
+
+Procedure Gelijkwaardige Beloning
+
+Uitvraag Arbeidsvoorwaarden, gelijkwaardige beloning
+De gelijkwaardige beloning moet worden vastgesteld per functie/functiegroep bij de opdrachtgever. Dit betekent het in kaart brengen van alle arbeidsvoorwaarden die gelden voor de vaste medewerker die een gelijke of vergelijkbare functie heeft als onze flexwerker. Dit gebeurt met behulp van het formulier Standaard Uitvraag Gelijkwaardige Beloning (SUGB) www.wijzerbelonen.nl. Gebaseerd op de SETU standaard. Om dit te doen zijn er twee opties mogelijk:
+Optie 1: Opdrachtgever levert zelf het SUGB formulier aan.
+Optie 2: Wij doen navraag bij de opdrachtgever m.b.v. het SUGB formulier.
+De standaard uitvraag kan voor één uitzendkracht worden ingevuld of voor meerdere uitzendkrachten tegelijk. Als de standaard uitvraag voor meerdere uitzendkrachten tegelijk wordt ingevuld, dan zijn er een aantal aandachtspunten:
+1. Je kan één standaard uitvraag gebruiken als de opdrachtgever werkt vanuit meerdere ondernemingen (met verschillende KvK- of OIN-nummers) die dezelfde cao of arbeidsvoorwaardenregelingen toepassen. 
+2. Als er binnen de verschillende ondernemingen van de opdrachtgever verschillende cao’s of arbeidsvoorwaardenregelingen van toepassing zijn, dan moet er per cao of regeling een aparte standaard uitvraag worden ingevuld. Dit geldt ook als binnen één onderneming meerdere cao’s of regelingen gelden.
+3. Per doelgroep wordt een aparte standaard uitvraag ingevuld als de opdrachtgever specifieke arbeidsvoorwaarden hanteert voor bepaalde doelgroepen (bijvoorbeeld: vakantiekrachten of mensen met een arbeidsbeperking). Dit geldt als het relevant is voor de inzet van uitzendkrachten in die doelgroep.
+4. Niet alle arbeidsvoorwaarden gelden voor elke medewerker. Daarom wordt in de standaard uitvraag gevraagd naar de voorwaarden die gelden bij een bepaalde arbeidsvoorwaarde. Bijvoorbeeld: een overwerktoeslag die alleen geldt tot een bepaalde functiegroep, of een eindejaarsuitkering waarvoor iemand het hele jaar in dienst moet zijn geweest.
+
+ 
+
+Verstrekken van arbeidsvoorwaarden door opdrachtgever
+Na ontvangst van het ingevulde en ondertekende SUGB formulier van de opdrachtgever, moet er een controle van de ingevulde informatie plaatsvinden. Waar nodig moet er navraag worden gedaan voor een goed en duidelijk beeld van o.a. loon, toeslagen, verlof en andere arbeidsvoorwaarden. Volgens de ABUcao is onderscheid gemaakt tussen essentiële voorwaarden: loon, uren, vakantiedagen, werktijden, toeslagen, feestdagen, arbeidstijden etc. en nietessentiële voorwaarden bijvoorbeeld de pensioenregeling. 
+Vaststellen gelijkwaardige beloning
+Zodra het SUGB formulier geheel duidelijk is moet deze worden vergeleken  met de geldende CAO. www.caowijzer.nl. Zodra deze overeen komen kan  de gelijkwaardige beloning voor de uitzendkracht definitief worden vastgesteld. Onze flexwerker moet zodanig worden betaald/voorzien dat de waarde van het pakket vergelijkbaar is. Dat kan via loon, toeslagen, IKB (individueel keuzebudget) of andere vergoedingen. Het SUGB formulier en evt. bijzonderheden besproken met de opdrachtgever of bijzonderheden geldende CAO moeten worden gearchiveerd in Easyflex bij de opdrachtgever in het documentenarchief. 
+Aantoonbaar wordt door ons aangegeven dat, als er tussentijds  of periodieke wijzigingen zijn, de opdrachtgever verplicht is om deze wijzigingen tijdig aan ons door te geven. Dit betreft alle denkbare wijzigen van de voorwaarden wat betreft loon, pensioenregeling, toeslag, extra vergoedingen of andere van toepassing zijnde arbeidsvoorwaarden. Hierna moet de beloning van onze flexwerkers opnieuw worden getoetst.
+Bevestiging aan de flexwerker
+Na het doorvoeren van het vastgestelde loon en alle andere geldende voorwaarden moet onze flexwerkers schriftelijk een bevestiging ontvangen met alle informatie over deze beloning. Deze bevestiging wordt vastgelegd in het documentenarchief van de flexwerker. Zodra de beloning na toetsing van de nieuw aangeleverde gegevens en raadplegen CAO wijzer worden aangepast moeten deze aangepaste arbeidsvoorwaarden opnieuw worden bevestigd en gearchiveerd. 
+Gegevens bevestiging flexwerker 
+De bevestiging moet de volgende gegevens minimaal bevatten:
+de verwachte ingangsdatum van het werk bij de opdrachtgever;
+de naam en contactgegevens van de opdrachtgever, waaronder mogelijk een contactpersoon en het werkadres;
+de (algemene) functienaam en, als dit beschikbaar is, de functienaam volgens de beloningsregeling bij de opdrachtgever;
+de functie-inschaling en -trede volgens de beloningsregeling opdrachtgever (indien beschikbaar);
+de overeengekomen arbeidsduur;
+als dit geldt, de vermoedelijke einddatum van het werk bij de opdrachtgever;
+de cao/beloningsregeling van de opdrachtgever;
+het bruto feitelijk (uur)loon;
+de arbeidsvoorwaarden die gelden. Dit gaat over de arbeidsvoorwaarden van de gelijkwaardige beloning, zoals de uitzendonderneming die bij de uitzendkracht toepast.
+
+Gegevens loonstrook flexwerker 
+Op de loonstrook moet minimaal worden vermeld:
+bruto uurloon
+bedragen waaruit het loon is samengesteld
+toeslagen
+inhoudingen grondslagen (dit mag ook in de plaatsingsbevestiging)
+Gegevensverzoek flexwerker
+De flexwerker mag een verzoek doen om informatie te ontvangen die de opdrachtgever ons heeft aangeleverd over de geldende CAO of arbeidsvoorwaardenregelingen.
+Ook zijn wij verplicht op verzoek een toelichting te geven over de manier waarop de gelijkwaardigheid is vastgesteld.
+Inlog CAO Wijzer:
+left-300100
+
+
+
+
+
+
+
+
+Tewerkstellen 
+Voor het verlonen moet de flexwerker worden tewerkgesteld. Door het aanmaken een plaatsing wordt er een urendeclaratie aangemaakt waardoor de gewerkte uren kunnen worden verwerkt, verloond en gefactureerd:
+-2499617064200Relatie – aanvraag en plaatsingen – plaatsingen – nieuw
+
+
+
+
+
+
+
+
+
+
+left21844000Periode en locatie
+
+
+-56694017941700
+
+
+
+
+
+
+
+
+Status: Definitief
+Aanvangsdatum is verwachte startdatum werkzaamheden, hierna opslaan.
+Werk en personeel
+4033809158986700
+Flexwerker selecteren
+Opslaan
+
+Lonen en tarieven
+Verwachte ingangsdatum is startdatum locatie
+Sector selecteren
+
+
+
+-125793515025000Overeenkomst 
+In tab lonen en tarieven is het mogelijk de overeenkomst te genereren. Ingangsdatum ingeven hierna bij contractopties – contactadvies - opvragen.  
+
+Na het opvragen van het contractadvies kiezen voor overeenkomst met beding.
+1041400115443000459913289004597413429000
+
+
+181737019050000
+
+
+
+
+
+
+Aandachtspunten zijn: 
+Loondagen per 4 weken: onregelmatig 
+Basisloon het loon per week
+Aantal uren per week invoeren
+Uurloon wat door Easyflex wordt berekend moet overeenkomen met afgesproken loon op de overeenkomst.
+Sector risicogroep selecteren.
+right5542
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+right63534200Selecteer de sector met de actuele loon- en tariefafspraken die bij deze plaatsing van toepassing zijn, deze worden automatisch aan de plaatsing toegekend. Hierna de plaatsing accorderen, het werkbriefje is terug te vinden bij urendeclaraties.
+
+
+
+
+
+
+                                                                                                                               
+Wekelijks worden de gewerkte uren van de flexwerkers door de verschillende opdrachtgevers per mail bevestigd. Zodra de uren binnen zijn moet de opdrachtgever worden afgevinkt op de overzicht wat in het bakje te verwerken uren ligt. Op deze manier is het mogelijk na te gaan welke urendeclaraties nog ontbreken. 
+Verlonen
+ Frontoffice - Urendeclaraties
+
+In dit scherm zijn alle werkbriefjes (urendeclaraties) te vinden. Er zijn hier diverse filters mogelijk die het vinden vergemakkelijken. Zoals het weeknummer, opdrachtgever, aanvraag, flexwerker en actieve plaatsing. Selecteer de juiste declaratie kies voor bewerken en vul de gewerkte uren in.
+left5276200
+
+
+
+
+
+
+
+
+
+
+In de verschillende tabbladen zijn de vergoedingen, inhoudingen en reserveringen in te geven. Na het invoeren altijd kiezen voor ok. Om de invoer te controleren als de declaratie is afgesloten is in plaats van bewerken de optie raadplegen beschikbaar.
+
+Voor volledige informatie wat betreft de declaraties is in het informatiecentrum van EasyFlex een volledig naslag te vinden via HELP.
+
+
+
+
+
+
+
+
+
+
+
+
+Controle Urendeclaraties
+Voor de verloning van de ingevoerde uren moeten de urendeclaraties worden gecontroleerd:
+Nadat via backoffice overzicht 1 is gemaakt, moet deze in exporteren-printen worden uitgeprint.
+Hierna wordt er per flexwerker invoer van de uren, loon, overwerkpercentages en tarief  gecontroleerd. Bijzonderheden moeten gearceerd en indien nodig worden gecorrigeerd. Het totaal aantal ingevoerde uren moet 1 op 1 overeenkomen met het totaal van de door de opdrachtgever bevestigde gewerkte uren.
+Bij tweede keer generen van het overzicht 1 urendeclaraties is het mogelijk door middel van inzien het document na te lopen zonder deze weer helemaal uit te moeten printen.
+Voor volledige informatie wat betreft het invoeren en controleren van de urendeclaraties is in het informatiecentrum van EasyFlex een volledig naslag te vinden via HELP. 
+
+
+
+
+
+
+Relatie – Facturen
+Door het aanvinken van de betrefde factuur, is het mogelijk hiervandaan het factuur in te zien, op te slaan of te printen.
+-58-1963
+
+
+
+
+
+
+
+
+
+Verloning
+right13825600
+
+
+
+
+
+
+
+Backoffice – Overzichten 
+-1252855-5270500Na controle uren de volgende stappen uitvoeren.
+De uit te draaien overzichten staan genummerd in EF overzichten: 
+Wijzigen opent het venster, hierna alleen aanpassen proces activeren ja.  
+Bij overzicht 2 en 5 wachten tot gereed voordat je verder gaat.
+
+
+NR
+NAAM
+ACTIE
+02
+Verlonen/Factureren
+WACHTEN TOT GEREED
+03
+Facturen RL
+X
+04
+Loonspecificaties FW
+X
+05
+Betalingen(saldilijst)
+WACHTEN TOT GEREED
+06
+Betalingen(aanmaken betaalopd.)
+X
+07
+Journaalposten lonen
+X
+08
+Exporteren Debiteuren
+X
+09
+Journaalposten Verkopen
+X
+
+Backoffice – Exporteren Printen
+NR
+NAAM
+ACTIE
+VERZAMELEN
+02
+Verlonen/Factureren
+Inzien
+X
+03
+Facturen RL
+Controleren / evt. printen 
+X
+04
+Loonspecificaties FW
+Controleren
+X
+05
+Betalingen(saldilijst)
+Controleren op kas / printen
+Henk
+06
+Betalingen (aanmaken van betaalopdachten.)
+Exporteren naar map 'Salarissen'
+Henk
+07
+Journaalposten lonen
+Exporteren naar map 'Lonen'
+Henk
+08
+Exporteren Debiteuren 
+
+Exporteren naar map 'Debiteuren'
+Alleen bij nieuwe debiteur
+Henk
+09
+Journaalposten Verkopen
+Exporteren naar map 'Verkopen'
+Henk
+
+Vastlegging ondersteunende documenten
+In het digitaal archief bij de opdrachtgever worden alle documenten rondom urenregistratie en facturatie gearchiveerd. Dit is de zelfde werkwijze als bij het invoeren van de opdrachtgever. 
+
+Frontoffice – Relaties – Documenten - Importeren
+Zodra de urendeclaraties zijn ingevoerd, inscannen en importeren.  Bestand benoemen dmw van jaar – weeknummer (bv. 2023-28). Bij het wegschrijven van de documenten een keuze maken in documentenmap. Gevolgd door opslaan.
+
+Alle onderbouwende documenten van bepaalde inhoudingen vergoedingen of uitgevoerde correcties bij inlener en betreffende uitzendkracht indien van toepassing importeren.
+
+Voor volledige informatie wat betreft het invoeren van de opdrachtgevers is in het informatiecentrum van EasyFlex een volledig naslag te vinden via HELP. 
+
+
+
+
+
+ADV BEREKENING
+
+
+
+Aantal ADV Dagen / Werkbare dagen – Feestdagen - Vakantiedagen
+
+Aantal ADV Dagen
+______________________
+Werkbare dagen -/- Feestdagen -/- Vakantiedagen -/- ADV
+
+
+
+
+Voorbeeld CAO Pluimvee
+15
+    _______________     = 6.98%
+215 (260 - 6 – 25 - 15)
+
+
+
+
+Instellen van afwijkende ADV dagen:
+
+Cao – overige / Bij reserveringen juiste sector selecteren (ZB 15 ATV) / flexwerker Afwijkend – juiste percentage ingeven.
+
+
+
+
+
+
+
+
+
+FEESTDAG DOORBETALING
+OverzichtAutomatisch uitbetalen
+Deze is gekoppeld aan match 641866
+VerwerkingswijzePro forma!!!
+Match Peildatum wijzigen
+Vanaf13 volle weken voorafgaande aan de feestdag
+Jaar/weekFeestdag, bij twee dagen twee lijsten 
+Niet uitbetalen bij minder dan 10 (indien per ongeluk op definitief dan wordt alsnog niets uitbetaald)
+
+ExportbestandUitprinten (bij kerst gecombineerde Excel maken)
+Handmatig invoeren
+ 
+1e Kerstdag
+ 
+ 
+2e Kerstdag
+Naam
+Gemiddeld
+ 
+Naam
+Gemiddeld
+xx
+03:00
+ 
+xx
+03:00
+xx
+08:00
+ 
+xx
+08:00
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Doorvoeren eindejaarsuitkering:
+467995224790Exit– naam in het documenten ‘eindejaarsuitkering’ zetten. Zie de bijlage hieronder:
+46901835977400
+Saldigegeven - alle reserveringen moeten uitbetaald zijn – fase A en B
+Beschikbaarheid - > 2 maanden gewerkt in het huidige jaar
+Flexwerker – in de linker kolom naar saldigegevens – betreft ‘verzamelloonstaat’ – Bruto loon. Zet dit in het document ‘eindejaarsuitkering’. Voor gemak maar de naam en bedragen een andere kleur
+Ga naar urendeclaraties. Zoek de eerste persoon op
+Extra urendeclaratie maken van zijn laatste plaatsing – alles verwijderen in de declaratie – vergoedingen – nieuw – bruto vergoedingen – bedrag – type het bedrag in wat in de kolom. Als het schoonmaak is type je het bedrag in wat in de kolom eindejaarsuitkering schoonmaak 4,50%. – gereed
+Herhaal dit bij de nodige volgende medewerkers
+Backoffice – overzichten – urendeclaraties proces starten – openen in Excel – controleer de eindejaarsuitkering (filter) 
+Genereer 02 verlonen
+Genereer 04 betalingen – controleer alleen de namen, bedragen zijn netto en onze bedragen bruto
+Genereer 05 betalingen t/m 08 journaalposten – voer deze uit
+Controleer 05 betalingen met 04 betalingen.
+
+-6350003111500In de sector schoonmaak is het percentage 4,5% eindejaarsuitkering. Hiervoor moeten zij 6 maanden gewerkt hebben in het huidige jaar. Cao-loos heeft geen recht op eindejaarsuitkering.
+
+2 sectoren in 1 jaar gewerkt
+Exit– naam in het documenten ‘eindejaarsuitkering’ zetten. Zie de bijlage hieronder:
+
+474955382204
+00
+
+
+Saldigegeven - alle reserveringen moeten uitbetaald zijn – fase A en B
+Beschikbaarheid - > 2 aangesloten maanden gewerkt in het huidige jaar.
+Flexwerker – in de linker kolom naar saldigegevens – betreft ‘verzamelloonstaat’ – Bruto loon. Doe de eindejaarsuitkering van de eerste maanden- de andere eindejaarsuitkering. Het totaal is wat hij krijgt
+Zet dit in het document ‘eindejaarsuitkering’. Voor gemak maar de naam en bedragen een andere kleur
+Ga naar urendeclaraties. Zoek de eerste persoon op
+Extra urendeclaratie maken van zijn laatste plaatsing – alles verwijderen in de declaratie – vergoedingen – nieuw – bruto vergoedingen – bedrag – type het bedrag in wat in de kolom eindejaarsuitkering 4,50%. – gereed
+Herhaal dit vervolgens bij de volgende medewerkers
+Backoffice – overzichten – urendeclaraties proces starten – openen in Excel – controleer de eindejaarsuitkering (filter) – klopt?
+Genereer 02 verlonen
+Genereer 04 betalingen – controleer alleen de namen, bedragen zijn netto en onze bedragen bruto
+Genereer 05 betalingen t/m 08 journaalposten – voer deze uit
+Controleer 05 betalingen met 04 betalingen.
+
+
+
+
+
+
+
+Doorvoeren loonsverhoging
+Relatie – linker kolom loon- en tariefafspraken – kies de juiste loonschema- in de 1e kolom bij schemanaam pas je aan naar het nieuwe uurloon indien dit nodig is. 2e kolom uurloon- ingangsdatum- nieuw- de datum dat de loonsverhoging in gaat- leeftijd/ minimum/ uurloon- uurloon- wijzig dit bedrag en type hier de nieuwe lonen in- opslaan.
+right1206500
+
+
+
+
+40373301727202
+002
+3662045148590001793240876301
+001
+137668014541500
+
+
+
+-4959352228850011106153390903
+003
+
+
+Herhaal dit bij ieder schemanaam (verschillende lonen) totdat alle nodige loonsverhogingen hierin staan.
+
+
+
+
+
+
+
+Tarieven aanpassen
+center2144106center26328100Klik op loonschema’s en verander deze naar tarievenschema’s.
+
+
+
+
+
+
+
+
+
+
+
+De tarieven voeren wij hard in, dit betekent dat het systeem niet het nieuwe tarief hoeft uit te rekenen als de medewerkers overuren maakt. Wij voeren het uiteindelijk tarief in wat er per uur geldt. Die tarieven halen wij uit ons eigen gemaakte tariefschema’s. Documenten- management Light- planning Henk Luijt- tarieven- tarieven actueel. Zie bijlage volgende pagina.
+1974215186690059690177165
+
+Kies de juiste tariefschema- pas indien nodig het schemanaam aan naar het nieuwe uurloon- klik op looncomponenten. Zie bijlage 1e bijlage hieronder.
+Juiste tariefschema/ schemanaam- datum- nieuw- de datum dat de loonsverhoging in gaat. Zie 2e bijlage hieronder
+Loon normale uren- loon normale uren- wijzigen- eenheid ‘uur’- rekenwijze ‘tarief’- factuur tarief- dit tarief verschilt per uurloon. Dat tarief haal je uit het schema en staat in de rij onder ‘tarief’, dan zoek je de juiste tarief die bij het uurloon hoor.- sector ‘industrieel fase B / C (15 ATV)- selecteer- stap 7 23 jaar tot AOW leeftijd- klik onder uitzendwerk ‘factuurtarief’ en daar moet het juiste tarief staan. Herhaal dit bij ieder schemanaam voor de 100% uren.
+Loon overwerkuren- loon overwerkuren- 125,00 (100,00)- wijzigen- eenheid ‘uur’- perc. FW 125,00- perc. RL 100,00- rekenwijze ‘tarief’- factuurtarief- dit tarief verschilt per uurloon. Om de juiste tarief te zoeken kijk je in de rij onder de ‘125%’. Dan zoek je de bijbehorende uurloon is en dan staat er de juiste tarief die bij het uurloon hoort en de overuren. Herhaal dit bij ieder schemanaam voor de 125% uren. Zie bijlage 3 voor extra informatie over de overuren.
+Loon overwerkuren- loon overwerkuren- 150,00 (100,00)- wijzigen- eenheid ‘uur’- perc. FW 150,00- perc. RL 100,00- rekenwijze ‘tarief’- factuurtarief- dit tarief verschilt per uurloon. Om de juiste tarief te zoeken kijk je in de rij onder de ‘150%’. Dan zoek je de bijbehorende uurloon is en dan staat er de juiste tarief die bij het uurloon hoort en de overuren. Herhaal dit bij ieder schemanaam voor de 150% uren. Zie bijlage 3 voor extra informatie over de overuren.
+158336031813500Zie hieronder in  de bijlagen voor extra uitleg.
+1981822808141
+001
+
+center311716613636566467673
+003
+9658555717790025728909970022
+002
+217646389947800
+
+
+425261926884900center3236063
+003
+20812132695820036769032082200
+4654403653076
+006
+769327347551
+001
+576096825938347
+007
+588473512578206
+006
+5668109212753100
+439896326999700187674327278200781053124202
+002
+-34097011635200
+47050082176597
+007
+229044582554
+004
+
+
+33224729785168
+008
+355773185868500246204757765100
+
+25397074170975
+005
+
+-510309-300182002690495323850034639319145300
+784860107951
+001
+27635202082803
+003
+
+4972054699000
+6756401816102
+002
+
+
+
+
+Als er onregelmatige uren moeten worden ingevoerd, herhaal je de vorige stappen van de overuren. Hierbij zet je allen bij perc. FW de hoeveelheid procent ze meer krijgen, bijvoorbeeld 130% en zet je dat ook bij perc. RL. Bij factuurtarief zet je het juiste tarief van 100% neer.
+
+Bruto jaarloon berekenen
+Flexwerker – in de linker kolom naar saldigegevens – betreft ‘verzamelloonstaat’ – Bruto loon. Zet dit in het document ‘eindejaarsuitkering’.
+
+
+
+
+
+
+
+
+
+
+
+Reguliere Loonstroken wijzigen in template:
+LIGHT- KERSTBONUS
+Aanpassen Briefpapier voor de kerstbonus:
+
+Ga naar map Personeelsmanagement\Overeenkomsten-Templates\Briefpapier\Model kerstbonus. Selecteer, rechter muisknop en Open met Paint. 
+
+Gewenste afbeelding kopieeren (of selecteren met   + shift + S). Ga naar het Paintbestand van Model kerstbonus en selecteer Bewerken\Plakken. 
+
+Plaats afbeelding in juiste grootte op de juiste plaats.
+
+Sla op als JPeg bestand.
+
+-713740460552800right2109724
+

@@ -1,0 +1,68 @@
+/* ============================================================
+   Light Personeelsdiensten — Typography tokens
+   Display: Montserrat (700–900)  ·  Body: Open Sans  ·  Mono: JetBrains Mono
+   ============================================================ */
+:root {
+  /* Families */
+  --font-display: 'Montserrat', 'Segoe UI', Arial, sans-serif;
+  --font-body:    'Open Sans', 'Segoe UI', Arial, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* Weights */
+  --fw-regular:   400;
+  --fw-medium:    500;
+  --fw-semibold:  600;
+  --fw-bold:      700;
+  --fw-extrabold: 800;
+  --fw-black:     900;
+
+  /* Type scale (px) */
+  --fs-display:   64px;  /* hero numerals / splash */
+  --fs-h1:        44px;
+  --fs-h2:        32px;
+  --fs-h3:        24px;
+  --fs-h4:        19px;
+  --fs-lead:      20px;  /* intro paragraph */
+  --fs-body:      16px;
+  --fs-sm:        14px;
+  --fs-xs:        12.5px; /* eyebrows, captions */
+
+  /* Line heights */
+  --lh-tight:     1.05;
+  --lh-heading:   1.15;
+  --lh-snug:      1.35;
+  --lh-body:      1.6;
+
+  /* Tracking */
+  --ls-tight:     -0.02em;   /* big display */
+  --ls-heading:   -0.01em;
+  --ls-normal:    0;
+  --ls-eyebrow:   0.14em;    /* uppercase eyebrow / wordmark spacing */
+}
+
+/* ---- Base element styling helpers ---- */
+.light-body {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--color-text);
+  font-weight: var(--fw-regular);
+  -webkit-font-smoothing: antialiased;
+  text-wrap: pretty;
+}
+
+.light-eyebrow {
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-xs);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.light-h1 { font-family: var(--font-display); font-weight: var(--fw-extrabold); font-size: var(--fs-h1); line-height: var(--lh-heading); letter-spacing: var(--ls-heading); color: var(--color-text); margin: 0; text-wrap: balance; }
+.light-h2 { font-family: var(--font-display); font-weight: var(--fw-extrabold); font-size: var(--fs-h2); line-height: var(--lh-heading); letter-spacing: var(--ls-heading); color: var(--color-text); margin: 0; text-wrap: balance; }
+.light-h3 { font-family: var(--font-display); font-weight: var(--fw-bold); font-size: var(--fs-h3); line-height: var(--lh-snug); color: var(--color-text); margin: 0; }
+.light-h4 { font-family: var(--font-display); font-weight: var(--fw-bold); font-size: var(--fs-h4); line-height: var(--lh-snug); color: var(--color-text); margin: 0; }
+.light-lead { font-family: var(--font-body); font-weight: var(--fw-regular); font-size: var(--fs-lead); line-height: var(--lh-snug); color: var(--color-text-muted); margin: 0; }
+.light-mono { font-family: var(--font-mono); font-size: var(--fs-sm); letter-spacing: 0; }

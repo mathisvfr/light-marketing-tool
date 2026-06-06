@@ -1,0 +1,509 @@
+﻿
+
+
+
+
+
+
+
+
+
+Personeelsadministratie 
+Procedures Flexwerkers 
+Gegevensverwerkingpag.  19      
+Identiteitsbewijzen - Reveal IDpag.  20  -  21
+Opbouw personeelsdossier / Vastlegging ondersteunende documentenpag.  22  -  24
+STIPP Pensioen pag.  25  -  26
+Zorgverzekeringpag.  27
+Arbeidsongeschiktheid   pag.  28  -  29
+Tewerkstelling met verblijfs- vreemdelingendocumentpag.  30  -  31
+Tewerkstelling België Limosa pag.  32  -  33
+Gewerkte Periode per branche en/of opdrachtgever genererenpag.  34
+Easyflex 2 Gopag.  35  -  37 
+Easyflex Privacy instellingenpag.  38  -  39
+Procedures aanvullend op https://handboek.easyflex.net/handboek
+
+Gegevensverwerking Flexwerkers
+
+Verplichte documenten:
+Geldig identiteitsbewijs (Paspoort of ID bewijs voor- en achterkant)
+Rijbewijs *
+CV * 
+* Niet verplichte documenten of uitsluitend wanneer noodzakelijk voor de tewerkstelling.
+Invoer persoonsgegevens in Easyflex
+Frontoffice – Flexwerkers – Nieuw - Algemeen 
+
+Alle gemarkeerde velden zijn verplicht om in te vullen. 
+De invoer van alle persoonsgegevens dienen correct in Easyflex te worden ingevoerd. 
+Bij icoon rechts naast het aantekeningen veld is de pasfoto van de flexwerker te selecteren, d.m.v. kopieren en plakken. Voor volledige informatie wat betreft het invoeren van de flexwerkers is in het informatiecentrum van EasyFlex een volledig naslag te vinden via HELP. 
+Identiteitsbewijzen – Reveal ID 
+Flexwerker – Identiteitsbewijzen
+6195464170387800-11430847725Hierna de invoer van de identiteitsbewijzen: Let op vermelding naam en geboortedatum. Selecteer het bestand en kopieer. Hierna d.m.v. het icoon met het computerscherm links onder het kader om de afbeelding te plakken. De geïmporteerde bestanden moeten volledig en goed leesbaar zijn. Alle randen van het document moeten zichtbaar zijn.
+
+Bij een Nederlands document zoals bovenstaand moet de achterkant ook worden geïmporteerd, het BSN staat op de achterkant vermeld. Dit is te importeren d.m.v. Afbeeldingen - Nieuw.
+1224511322522
+4 ogen policy: bij iedere kandidaat moet de identiteit, nationaliteit en of de persoon in Nederland zonder tewerkstellingsvergunning mag werken worden vastgesteld met behulp van het identiteitsbewijs door minimaal 2 personen. 
+
+
+Aanvullend is het mogelijk Reveal ID te gebruiken. 
+Procedure ID scannen bij tewerkstelling
+Aanzetten scanner, klein knopje boven de stekker aan de achterkant van de scanner, in het midden.
+
+Programma Reveal ID starten (snelkoppeling op bureaublad)
+Wacht op melding: Scan ID 
+
+Hierna het document op de scanner plaatsen 
+Oranje lampjes aan de zijkant betekenen dat het document wordt gescand
+Wanneer de lampjes groen zijn is het scannen klaar 
+Bij ID bewijzen volgt de melding: Turn document
+Leg het ID met de andere kant op de scanner en wacht tot lampjes groen zijn
+
+Hierna wordt het rapport gegenereerd. Het rapport is in te zien door in het menu links op rapport te klikken. 
+-665167317574Op het rapport moet “Passed” vermeld staan. Het document is hierdoor goedgekeurd. 
+Documenten met de vermelding “Failed” mogen niet worden geaccepteerd. De kandidaat mag niet te werk worden gesteld. Hier is geen uitzondering op mogelijk.
+Bij overige meldingen contact opnemen:
+Klantsupport: Servicedesk@bpiservices.eu 
+BPI Services (SO27001, ISO9001 en NEN7510 Gecertificeerd)
+Europalaan 101
+3526 KR Utrecht
++31(0)182 – 346 088
+contact@bpiservices.eu
+
+
+
+
+Opbouw personeelsdossier / vastlegging documenten
+
+Indien een rijbewijs voor de functie noodzakelijk is, deze hier invoeren en importeren zoals ID bewijs. Een rijbewijs is geen identiteitsbewijs, hier mag dus niet op worden gewerkt.
+-6139301048100Let op: Bij een vreemdelingendocument moeten wij voor aanvang van de werkzaamheden aantoonbaar het ID bewijs verstrekken aan de opdrachtgever! Verstrekking hiervan moet worden vastgelegd in het archief bij de flexwerker.
+Voor alle overige identiteitsdocumenten is dit niet toegestaan i.v.m. het AVG de wet op de privacy.
+Flexwerker – Fiscaal - Sociaal
+Voer het BSN nummer in vanaf het document waar deze op vermeld staat. Controleer altijd of het op de naam van de flexwerker zelf staat. Na het invoeren van de datum in dienst – Opslaan.
+Hierna in het zelfde veld invoer van loontijdvlak. Situatie met ingang van gelijk aan startdatum, Loontijdvlak week – Opslaan.
+right388331Als laatste in het zelfde veld, invoer van gegevens loonopgave. Situatie met ingang van is startdatum. Gevolgd door opslaan - OK. 
+
+
+303011438700
+
+
+
+
+
+
+
+Flexwerker – Betalingen
+Betaalfrequentie op wekelijks, tenzij anders aangegeven. Bij betaalwijze bank (IBAN) invoeren. Verplicht is dat naam van de rekeninghouder overeenkomt met de naam van de flexwerker; Wet Aanpak Schijnconstructies.
+Bij tijdelijke flexwerkers met een met buitenlands adres op BSN van de belastingdienst  Bovenwettelijke vakantiedagen altijd aanvinken.
+5067589102379300
+Gegevens opslaan door middel van OK. Hierna is de inschrijving voor plaatsen en verloning compleet. Pas nadat het personeelsdossier volledig is vindt verloning plaats. Bij het ontbreken of het nog aanvragen van het BSN nummer mag er maximaal 6 weken worden gewerkt zonder uitbetaling. 
+Flexwerker – Dashboard – Stamkaart
+right71674200Voor het genereren van een stamkaart zijn drie mogelijkheden. Doorgaans is de basisversie voldoende. Na het genereren hiervan is het mogelijk deze op te slaan als document of uit te printen.
+
+
+
+
+
+
+Samenstellen personeelsdossier
+Inscannen in PDF idem documenten import bij opdrachtgevers **;
+Identiteitsbewijs (Paspoort of ID bewijs) voor en achterkant
+CV * 
+Ondertekende Overeenkomst (bij voorkeur ook geparafeerd)
+Ondertekende verklaring arbeidsverleden
+Ondertekende LH verklaring
+Ondertekende bedrijfsregelementen *
+Ondertekende machtiging zorgverzekering *
+* Indien van toepassing
+**Via de scanner boven in kantoor is het ook mogelijk deze documenten direct in te scannen in EF of d.m.v. QR direct in het personeelsdossier d.m.v. snelkeuzeknop EF.
+Vastlegging ondersteunende documenten
+In het digitaal archief bij de flexwerker worden alle documenten gearchiveerd. 
+Flexwerker - Documenten - Importeren
+right575540
+
+-199724213181300
+
+
+
+
+
+
+Bij het wegschrijven van de documenten een keuze maken in documentenmap, daarna opslaan en controle goede invoer voordat het origineel van evt. getekende documenten worden vernietigd.
+
+
+
+Vastlegging STIPP pensioen
+
+Bij iedere (her) starter controleren we hun arbeidsverleden bij StiPP. Wij vullen een Excel bestand in met het BSN-nummer en geboortedatum, zie de bijlage hieronder. Dit mailen naar StiPP: werkgever@stippensioen.nl.
+42008215240
+
+
+
+
+
+
+
+5495697613613Wachttijd is niet meer van toepassing vanaf 1 juli 2023
+00Wachttijd is niet meer van toepassing vanaf 1 juli 2023
+-161192994138200442487611133In de reactie van StiPP is te zien wat er in het systeem van StiPP staat geregistreerd, dit is niet altijd de juiste informatie. Daarom controleer je van iedereen het verleden. De procedure die wij aanhouden zie je hieronder: 
+
+
+537084277638Wachttijd is niet meer van toepassing vanaf 1 juli 2023
+00Wachttijd is niet meer van toepassing vanaf 1 juli 2023
+center56970
+-17761426468600
+
+
+
+
+Aan de hand van de vorige controle koppelen wij onze medewerkers aan de juiste regeling in ons systeem, EasyFlex.
+Zoek in de flexwerker, in de linker kolom het kopje ‘Opvolgend werkgeverschap
+
+
+
+Maak een nieuw verleden aan. Kies de relatie STIPP pensioen, functie overig. Vink hierna de weken aan waarin de flexwerker heeft gewerkt volgens de STIPP pensioenfonds. De ‘laatste gewerkte dag’ moet precies overeenkomen met zijn laatste werkdag bij het vorige bedrijf.  Als laatst leg je zijn werkverleden vast.
+
+Hierin zet je bij ‘situatie met ingang van’ de precieze datum dat de flexwerker begonnen is bij zijn oude werkgever met de pensioen die aangevinkt moet worden. Dit staat ook op het document van de STIPP pensioenfonds die worden toegestuurd
+
+Hierna naar tabblad Fiscaal – sociaal
+
+
+Selecteer aftrekposten alle heffingen
+
+Het ontvangen document van STIPP met het pensioenverleden in het documentenarchief opslaan als onderbouwing. 
+
+Vastlegging inhouding zorgverzekering
+4571422348260Zoek in de flexwerker, in de linker kolom naar Fiscaal-sociaal
+
+
+
+
+
+
+
+
+
+
+
+-6778812510300
+
+
+
+
+
+
+
+
+
+       
+2. Bij verzekering Klik op de knop achter huidige situatie
+429093183147       3. Klik op nieuw 
+
+       
+
+
+
+321754510350500
+
+
+
+
+       4. Voer de datum van inhouding zorgverzekering in. LET OP deze inhouding mag uitsluitend als de flexwerker het machtigingsformulier heeft getekend. Deze moet in het Documentenarchief worden opgeslagen. Bij ingang van het nieuwe verzekeringsjaar moeten alle deelnemende flexwerkers het nieuwe machtigingsformulier ondertekenen. Deze dienen ook te worden gearchiveerd. 
+Bij uit dienst treden moet de einddatum worden ingegeven, gevolgd door vastleggen.
+
+Vastlegging Arbeidsongeschiktheid
+1422233156310300Arbeidsongeschiktheid – uitvoeren – vastleggen arbeidsongeschiktheid:
+Invoeren eerste dag arbeidsongeschikt
+Datum melding door werknemer
+Datum vastlegging Light (maximaal 4 kalenderdagen)
+Laatste dag waarop is gewerkt
+Volgende werkdag (indien bekend)
+Werkplichtig zaterdag / zondag 
+Reden van verzuim
+Controle verpleegadres
+Let op: altijd vastleggen voor afsluiten!
+Genereren Flexwerker gewerkte periode per branche en/of opdrachtgever
+
+EASYFLEX - MATCHING
+Match 854773WTTA GEWERKTE WEKEN
+! Selecteer persoon op naam uit de steekproef
+
+Overzicht ‘Gewerkte weken’
+Selectie: Flexwerkers uit match
+Mach: 854773
+
+! Vinkje bij Mach opnieuw starten aan
+
+Verwerkingswijze:Detail
+Proces activeren JA dan OK
+
+-559723269818Rapport in Excel de gevraagde Opdrachtgever(s) selecteren
+
+
+
+
+
+
+
+
+
+
+
+
+
+Tewerkstellen met verblijfs- vreemdelingen document
+
+-11214106921500Voor flexwerkers in bezit van een verblijfsdocument gelden er afwijkende regels voor het tewerkstellen.
+Wij zijn als uitzendorganisatie wettelijk verplicht om aantoonbaar een kopie van het Verblijfdocument te verstrekken aan de opdrachtgever voor aanvang van de werkzaamheden. 
+Op deze manier is het voor de opdrachtgever mogelijk voor aanvang van de werkzaamheden de identiteit van de flexwerker vast te stellen met behulp van deze kopie in combinatie met het originele Identiteitsdocument. Denk hierbij aan extra check van de geldigheid van het document, maar ook fysieke kenmerken.
+De kopie moet in de administratie van de opdrachtgever worden opgenomen: het bewaartermijn is 5 jaar. Voor meer informatie zie Wet Arbeid Vreemdelingen Artikel 15.
+Procedure verstrekken en archiveren Verblijfsdocument
+Frontoffice – Relaties – Plaatsingsbevestiging - Generen
+
+Selecteer Plaatsingbevestiging Verblijfsdocument.
+
+Document wordt gegenereerd, controleer de inhoud en vul gegevens aan waar nodig.
+
+Verstuur naar de contactpersoon van de Opdrachtgever de plaatsingsbevestiging en kopie van het verblijfsdocument, sticker en verleningsbrief voor aanvang van de werkzaamheden.
+
+In het digitaal archief bij de opdrachtgever worden alle gegenereerde plaatstingsbevestigingen verblijfsdocument gearchiveerd alsmede in het archief van de flexwerker.
+
+Frontoffice – Relaties – Documenten – Importeren
+411606130700
+
+
+354555198396100
+ Frontoffice – Flexwerkers – Documenten – Importeren
+Natuurlijk is het ook mogelijk door middel van het scannen van het document direct in EF het document te archiveren bij zowel opdrachtgever flexwerker vanuit het documentenarchief. Document type: n.v.t. hierna opdrachtgever en flexwerker selecteren en archiveren. Controleer na archiveren of dit correct is verlopen.
+
+-643486149704100Frontoffice – Documentenbeheer – Nog te behandelen documenten 
+
+
+
+
+
+
+
+
+
+Tewerkstelling België
+
+Bij werkzaamheden die in België worden uitgevoerd is een Limosa verplicht!
+www.limosa.be  
+
+NL
+
+Aanmelden:Gebruikers naam MariekeLight
+Wachtwoord Light2016!
+Melding doen
+
+Werknemer: Start melding
+
+Vraag als zelfstandige naar België: NEE
+
+Werkgever melden: Eerder gemelde: Light Personeelsdiensten selecteren d.m.v. groen plusje
+Volgende stap
+
+Plaats van Tewerkstelling aanmaken d.m.v. invoer onderneming
+Bij bekende plaats van tewerkstelling selecteren in eerder gemelde d.m.v. groen plusje
+Volgende stap
+
+Belgische klant is NVT dus direct door volgende stap
+
+Begin en einddatum invullen
+
+Zijn het uitzendkrachten: JA
+Bovenste sector selecteren (Podia en stellingen)
+
+Nieuwe Werknemer melden d.m.v. NAW BSN (alleen de  velden met geel *) GO
+Bekende werknemer is selecteren in eerder gemelde d.m.v. groen plusje
+Volgende stap
+
+Uurrooster aanmaken voor 1 week
+
+Werkuren invoeren: Uurrooster aanmaken
+
+Uurrooster bevestigen: Overzicht
+
+Gegevens nakijken, evt. aan te passen d.m.v. link onder aan ieder veld.
+Indien alles goed: Bevestigen
+Hierna krijg je de melding in PDF diverse talen te zien, NL openen en opslaan. Document mailen naar inlener als bevestiging van de melding. 
+
+Uitloggen
+
+* Meldingen zijn terug te vinden in het account onder beheer meldingen.
+
+Altijd een AI formulier opmaken voor iedere werknemer die buiten Nederland werkt.
+https://secure5.svb.nl/twinternet/flow/homepage-flow?execution=e1s1
+
+center8813300Inloggen: Gebruikersnaam MariekeDrost01
+Wachtwoord
+
+A1/(E)101 verklaringen aanvragen
+
+Situatie selecteren (meestal onderste optie)
+Blijft de medewerker in NL werken: Ja meer dan 25 % van de totale arbeidstijd
+
+Periode invoeren
+
+Werklocatie in het buitenland invoeren 
+
+Medewerker(S) toevoegen d.m.v. BSN, Geboortedatum: 
+Ander dienstverband: NEE
+
+Gegevens controleren evt. aan te passen d.m.v. link onder aan ieder veld
+
+Algemene voorwaarden accepten d.m.v. aanvinken hierna verzenden
+
+Hierna krijg je de mogelijkheid het document uit te printen (opslaan lukt niet)
+Dus inscannen en doorsturen naar inlener als bevestiging van de melding.
+Uitloggen
+
+** Meldingen incl. status zijn terug te vinden in het account onder overzicht verklaringen.
+*** Overige gegevens wbt Limosa en SVB A1 in de contactgegevens van Outlook
+
+
+
+
+
+Genereren Flexwerker gewerkte periode per branche 
+en/of opdrachtgever
+
+EASYFLEX - MATCHING
+Match 854773WTTA GEWERKTE WEKEN
+! Selecteer persoon op naam uit de steekproef
+
+Overzicht ‘Gewerkte weken’
+Selectie: Flexwerkers uit match
+Mach: 854773
+
+! Vinkje bij Mach opnieuw starten aan
+
+Verwerkingswijze:Detail
+Proces activeren JA dan OK
+
+-559723269818Rapport in Excel de gevraagde Opdrachtgever(s) selecteren
+
+
+
+
+
+
+
+
+
+
+
+
+
+Procedure EasyFlex 2go
+6571615000-58-2309
+
+
+right56676600Deze link opent een internetpagina met inlog. Hier is het mogelijk in te loggen met dezelfde inloggegevens die gebruikt worden voor Easyflex.
+ 
+
+2GO – Inschrijvingen – Start Inschrijving
+right128501
+
+
+
+.
+
+
+
+
+
+
+
+
+
+
+Kiezen voor optie intercedent, hierna is het mogelijk de nieuwe medewerker in te schrijven. Als alle verplichte velden zijn ingevuld en gecontroleerd kiezen voor versturen. 
+
+
+
+
+2GO – Inschrijvingen 
+
+Hier zijn de gegevens van de inschrijving terug te vinden. Selecteer de juiste naam en druk op het vergrootglas. Hierdoor opent het inschrijfformulier.    
+
+
+Na het aanvinken dat het ID bewijs gecontroleerd is, is het mogelijk om de flexwerker op te slaan. Nu is deze ook in Easyflex zichtbaar.
+
+LET OP 
+Voor het koppelen in Easyflex is het heel belangrijk alle ingevoerde gegevens te controleren en alle documenten in het archief toe te voegen
+
+Let extra op bij de volgende punten: 
+
+Algemeen – correcte business unit selecteren:  
+48208010541000
+5935345456100
+
+
+
+
+
+
+Algemeen – pasfoto toevoegen.
+Identiteitsgegevens - ingevoerde nummers en data van het ID bewijs controleren.
+Identiteitsgegevens - ID bewijs kwaliteit van foto controleren niet goed is vervangen door scan.
+
+Loontijdvlak: Deeltijdbaan moet aangevinkt zijn: 
+4613898255
+
+
+
+
+592916820897300
+Betalingen – indien van toepassing aanvinken:
+595081648040600
+Documenten – in het archief alle documenten importeren zie Flexwerker samenstellen personeelsdossier.
+
+Zodra het personeelsdossier compleet is en de flexwerker is gekoppeld en de documenten zijn gegenereerd in Easyflex is het mogelijk ze digitaal te versturen voor ondertekening.
+
+EF2GO – Ondertekeningen – start ondertekening
+De te versturen documenten selecteren door het kruisje achter het document. 
+Gevolgd door volgende.
+Naam betreffende flexwerker selecteren
+Voor dubbele ondertekening Intercedent toevoegen
+Gevolgd door volgende
+Ondertekening vervalt op datum aanpassen indien nodig
+Gevolgd door volgende
+Documenten en gegevens controleren alles correct is versturen.
+
+De verstuurde documenten zijn terug te vinden in Ondertekeningen – ondertekeningen status verstuurd. Zodra de documenten digitaal ondertekend zijn worden ze ter ondertekening aangeboden door een medewerker van Light. Hierna staat de status op goedgekeurd. 
+Na controle van de documenten in het archief van de flexwerker in Easyflex mag het goedgekeurde document worden gearchiveerd. Dit is mogelijk door het vierkantje achter het goedgekeurde document aan te vinken en vervolgens op archiveren.  
+Na ondertekening van beide partijen wordt er een digitale kopie van de ondertekende documenten voor eigen administratie naar de flexwerker verstuurd en komt een kopie van de getekende documenten in het documenten archief van de flexwerker in Easyflex. Dit gebeurt geheel automatisch.
+
+
+
+Privacy instellingen EasyFlex
+
+Op dit tabblad kun je autorisaties omtrent privacy wetgeving en de WBP/AVG vastleggen. 
+
+Alle autorisaties hebben dezelfde werking: indien je geen autorisatie inricht is niemand geautoriseerd voor de betreffende actie. Vink je de autorisatie aan in combinatie met de rol 'N.v.t.' dan is iedereen geautoriseerd voor de betreffende actie. Vink je de autorisatie aan in combinatie met een rol, dan kunnen alleen medewerkers met de gekozen rol de betreffende actie uitvoeren.
+Loonbeslagen
+Het kunnen inzien en wijzigen van loonbeslagen van flexwerkers kan geautoriseerd worden.
+Verwijderen verloonde flexwerkers
+Het kunnen verwijderen van verloonde flexwerkers kan geautoriseerd worden. Er kunnen alleen flexwerkers verwijderd worden die de afgelopen 7 jaar niet verloond zijn.
+Let op! Niet verloonde flexwerkers kunnen door iedereen verwijderd worden. Indien dit niet gewenst is kun je het tabblad 'Frontoffice > Flexwerkers > Verwijderen' niet beschikbaar stellen in de programmarechten.
+
+
+Batch verwijderen flexwerkers
+Het in batch kunnen verwijderen van flexwerkers kan geautoriseerd worden. Deze batch actie kan geselecteerd worden in het onderdeel Frontoffice > Matching. Indien een medewerker de rol heeft voor 'Batch verwijderen flexwerkers' maar niet de rol voor 'Verwijderen verloonde flexwerkers', kan deze medewerker in een batch alleen flexwerkers verwijderen met de status 'Ingeschreven'.
+Verwijderen documenten
+Het kunnen verwijderen van documenten kan hier geautoriseerd worden.
+Batch verwijderen documenten
+Het in batch kunnen verwijderen van flexwerkers kan geautoriseerd worden. Deze batch actie kan geselecteerd worden in het onderdeel 'Frontoffice > Matching'.
+Notificatie verwijderen
+Het kunnen verwijderen van afgewikkelde notificaties kan geautoriseerd worden.
+BSN/nationaliteit op dashboard
+Hier kun je een autorisatie vast leggen om de nationaliteit en het BSN van de flexwerker te tonen op het dashboard van de flexwerker. Indien er geen autorisatie is vastgelegd in dit tabblad is de nationaliteit en het BSN niet langer zichtbaar op het dashboard.  
+Verwijderen inschrijvingen
+Het kunnen verwijderen van inschrijvingen welke binnen komen via ‘Frontoffice > Inschrijvingen website’ kan geautoriseerd worden.
+Verwijderen vacaturereacties
+Het kunnen verwijderen van vacaturereacties via ‘Frontoffice > Vacaturereacties’ kan geautoriseerd worden.
+Verwijderen CV-inschrijvingen
+Het verwijderen van ingelezen CV’s via ‘Frontoffice > CV-inlezer > Overzicht’ kan geautoriseerd worden. Let op: het verwijderen van een CV tijdens het aanmaken in het scherm ‘nieuwe cv inlezen’ kan nog steeds door iedereen gedaan worden.
+
+

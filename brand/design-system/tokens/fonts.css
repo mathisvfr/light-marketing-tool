@@ -1,0 +1,15 @@
+/* ============================================================
+   Light Personeelsdiensten — Webfonts
+   ------------------------------------------------------------
+   SUBSTITUTION NOTE: The live WordPress site (Handyman theme)
+   does not expose licensed font files. The "Light" wordmark is
+   a heavy, slightly rounded geometric sans. We approximate the
+   brand with Google Fonts:
+     - Montserrat  → display / headings / wordmark feel
+     - Open Sans   → body / UI copy
+     - JetBrains Mono → codes, reference numbers, tabular data
+   If the real brand fonts are provided, drop the files in
+   tokens/fonts/ and replace the @import below with @font-face.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Open+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap');

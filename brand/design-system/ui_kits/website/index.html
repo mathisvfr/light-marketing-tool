@@ -1,0 +1,83 @@
+<!-- @dsCard group="Website" viewport="1200x760" name="Marketing homepage" subtitle="Light Personeelsdiensten — hero, services, vacancies, footer" -->
+<!-- @startingPoint section="Website" subtitle="Full marketing homepage" viewport="1200x760" -->
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Light Personeelsdiensten — Home</title>
+  <link rel="stylesheet" href="../../styles.css" />
+  <style>
+    *{box-sizing:border-box;}
+    html,body{margin:0;}
+    a{color:inherit;}
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Generated design-system bundle (present after compilation). Harmless 404 in raw preview. -->
+  <script src="../../_ds_bundle.js" onerror="window.__noBundle=true"></script>
+</head>
+<body>
+  <div id="root" class="light-body" style="min-height:100vh;">Laden…</div>
+
+  <script>
+  (async function () {
+    try {
+    // Resolve the design-system components: prefer the compiled bundle's
+    // namespace; fall back to transpiling the source .jsx for raw preview.
+    function findNamespace() {
+      for (const k in window) {
+        try {
+          const v = window[k];
+          if (v && v.Button && v.Card && v.JobCard && v.Badge && v.Tag && v.Input && v.Select) return v;
+        } catch (e) { /* cross-origin frame prop — skip */ }
+      }
+      return null;
+    }
+    async function buildFallback() {
+      const files = [
+        '../../components/buttons/Button.jsx',
+        '../../components/cards/Card.jsx',
+        '../../components/cards/JobCard.jsx',
+        '../../components/feedback/Badge.jsx',
+        '../../components/feedback/Tag.jsx',
+        '../../components/forms/Input.jsx',
+        '../../components/forms/Select.jsx',
+      ];
+      let src = '';
+      for (const f of files) {
+        let t = await (await fetch(f)).text();
+        t = t.replace(/^\s*import[^\n]*\n/gm, '').replace(/^\s*export\s+function/gm, 'function');
+        src += '\n' + t;
+      }
+      const code = Babel.transform(src, { presets: ['react'] }).code;
+      return new Function('React', code + '\nreturn {Button, Card, JobCard, Badge, Tag, Input, Select};')(window.React);
+    }
+
+    let DS = findNamespace();
+    if (!DS) DS = await buildFallback();
+
+    // Load the screen components, share scope, inject DS components by name.
+    const screens = ['Header.jsx', 'Hero.jsx', 'ServiceTiles.jsx', 'VacancyFeed.jsx', 'CtaBand.jsx', 'Footer.jsx', 'App.jsx'];
+    let src = '';
+    for (const f of screens) {
+      let t = await (await fetch(f)).text();
+      t = t.replace(/^\s*import[^\n]*\n/gm, '').replace(/^\s*export\s+(default\s+)?function/gm, 'function');
+      src += '\n' + t;
+    }
+    src += '\nReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));';
+    const code = Babel.transform(src, { presets: ['react'] }).code;
+    const names = ['Button', 'Card', 'JobCard', 'Badge', 'Tag', 'Input', 'Select'];
+    new Function('React', 'ReactDOM', ...names, code)(window.React, window.ReactDOM, ...names.map((n) => DS[n]));
+
+    setTimeout(() => window.lucide && lucide.createIcons(), 150);
+    } catch (err) {
+      console.error('[light] bootstrap error:', err && err.message, err);
+      document.getElementById('root').textContent = 'Bootstrap error: ' + (err && err.message);
+    }
+  })();
+  </script>
+</body>
+</html>

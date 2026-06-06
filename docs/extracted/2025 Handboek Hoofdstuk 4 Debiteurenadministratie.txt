@@ -1,0 +1,266 @@
+﻿
+
+
+
+
+
+
+
+
+
+
+Debiteurenadministratie 
+Bedrijfsgegevens verwerken pag.  40      
+Aanvraag aanmaken EasyFlex                                                                  pag.  43  -  46 
+Vastleggen ondersteunende documenten                                                 pag.  47
+Aanmeldprocedure Clazing Groep                                                            pag.  48
+
+Procedures aanvullend op https://handboek.easyflex.net/handboek
+
+Bedrijfsgegevens verwerken
+Overzicht benodigde documenten 
+Opdrachtovereenkomst AVG volledig ingevuld en ondertekend retour 
+Formulier inventarisatie inlenersbeloning volledig ingevuld en ondertekend retour
+Deze gegevens moeten worden overgenomen, zie hieronder werkwijze invoeren bedrijfsgegevens in EasyFlex
+Check op aanwezigheid verplichte documenten* indien van toepassing 
+Uitvoeren kredietcheck.
+
+Invoeren bedrijfsgegevens in EasyFlex
+Alle verkregen informatie op de formulieren hierboven moeten correct worden overgenomen in EasyFlex. 
+Frontoffice – Relaties – Nieuw
+Algemeen:  Alle gemarkeerde velden zijn verplicht om in te vullen. 
+-5892400
+Contactpersonen – Nieuw :  Alle gemarkeerde velden zijn verplicht om in te vullen
+left721600
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Relaties - Facturatie 
+
+Aandachtspunten:
+Frequentie van facturatie: wekelijks, maandelijks
+Betaalwijze: op rekening betaaltermijn standaard 14 dagen
+Debiteurnummer: aanvragen wordt door EF toegekend.
+-10976228800
+
+
+
+
+
+
+
+
+
+
+
+
+Overige gegevens:
+Beloningsregeleing: Inlenersbeloning
+Standaard werkweek: 40, 38, 36 ingeven (Extra controle: CAO afhankelijk!)
+left10823900
+
+
+
+
+
+
+169233310160000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Het logo importeren is mogelijk bij bedrijfsgegevens middels afbeelding kopieeren en  plakken.
+
+
+
+
+Aanmaken aanvragen bij de opdrachtgever
+
+Relatie – Aanvragen en plaatsingen – Nieuw
+
+Alle gearceerde velden zijn verplicht invullen!
+
+
+
+Algemeen
+
+Type aanvraag: Selecteren
+Aanvangsdatum: Startdatum eerste plaatsing ingeven
+Indien bekend einddatum of vervaldatum ingeven.
+
+Functieprofiel: selecteren (controle formulier inventarisatie inlenersbelonig)
+Functienaam: ingeven(controle formulier inventarisatie inlenersbelonig).
+
+Business unit: selecteren
+Extra gegevens / Omschrijving werkzaamheden: invullen indien bijzonderheden
+Uren per week / werktijden: ingeven
+Leveringswijze: selecteren.
+
+
+
+
+Functie
+Het functieprofiel selecteren en functienaam invoeren
+Functiegroep: selecteren (controle formulier inventarisatie inlenersbelonig)
+
+
+
+Vacature
+Plaatsing intern - ok
+right62172
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Planning
+Nieuw: Ingangsdatum van de aanvraag incl. aantal te verwachten medewerkers invoeren.
+
+left24187700Werkrooster is in te vullen dmv blokjes grijs te maken met de muis er op te klikken.
+Memo
+Eventuele bijzonderheden met betrekking tot de aanvraag hier noteren.
+left1024080
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Aanmaken aanvraag:
+
+Onderdeel Relatie:  
+Controleren Meld- en werkadres correct
+(Deze wordt automatisch overgenomen vanuit basis gegevens)
+
+Melden bij: Contact persoon selecteren
+Eerste dag melden om: Tijd aanvang ingeven
+Extra gegevens voor aanvraag: status en prioriteit aangeven 
+(Bijzonderheden indien van toepassing.)
+
+Factuurgegevens controleren
+Kostenplaatscode moet overeenkomen met de kostenplaatsnaam.
+Aanlevering urendeclaratie per: week / maand selecteren.
+Accorderen urendeclaraties relatie selecteren.
+Apart factuur aanvinken ja/nee (voorkeur inlener)
+
+Overige gegevens:
+Invullen sollicitatiegesprek gewenst Ja / Nee
+Beloning op basis van: Inlenersbeloning / uitzend CAO selecteren. 
+CAO schaal: invullen n.a.v. Opdrachtovereenkomst.
+
+Na het volledig invullen van deze velden is de aanvraag aangemaakt en is het mogelijk de medewerkers te plaatsten bij de opdrachtgever. Zie tewerkstellen.
+Vastlegging ondersteunende documenten
+In het digitaal archief bij de relatie worden alle documenten gearchiveerd. 
+Frontoffice – Relaties – Documenten - Importeren
+right44565
+
+
+
+
+
+
+
+
+
+
+
+Alle documenten controleren op leesbaarheid, invullen van gegevens en ondertekening.
+
+Opdrachtovereenkomst en Getekende AV of akkoord op ontvangen AV importeren.
+Bij het wegschrijven van de documenten een keuze maken in documentenmap, daarna opslaan.
+
+Formulier inventarisatie inlenersbeloning
+
+KvK
+
+Bedrijfsreglement indien van toepassing 
+
+Voor volledige informatie wat betreft het invoeren van de opdrachtgevers is in het informatiecentrum van EasyFlex een volledig naslag te vinden via HELP. -1259840-672528500 
+
+
+Aanmeldprocedure Clazing Groep
+
+-105600520701000Vanaf 1 september 2025 gaat een deel van de Clazing groep (Breukelen en Zevenhuizen) werken met een in klok systeem. Hiervoor is het noodzakelijk om constant een actueel systeem te hebben zowel bij Light als bij de klant.
+
+Het document waarin we werken staat:
+
+Data Light – urendeclaratie – aan afmeldingen - Light (klantnaam) mutaties aanmelden.
+Hierin zet je alleen de nieuwkomers in en verstuur je naar w.rodenburg@clazing.nl, protime@clazing.nl en contactpersoon van de betreffende vestiging. administratie@lightpersoneelsdiensten.nl mail moet bij iedere aanmelding in de CC. De lege/gele vlakken moeten ingevuld worden. Werknemersnummer is het registratienummer wat is aangegeven in Easyflex onder de geboortedatum.
+Dit document moet verstuurd worden voor 15.00 uur de dag voordat de uitzendkracht start. 
+
+Het document voor het afmelden van uitzendkrachten staat:
+
+Date Light – urendeclaratie – Light (klantnaam) mutaties afmelden.
+Als een uitzendkracht stopt, moet je Wessel Rodenburg (w.rodenburg@clazing.nl), protime@clazing.nl en de contactpersoon van de betreffende vestiging een mail sturen. administratie@lightpersoneelsdiensten.nl mail moet bij iedere afmelding in de CC. Met daarin voor- en achternaam, vestiging, evt. reden van ontslag en als we die ontvangen hebben, het badgenummer.
+Dit document moet zo snel mogelijk nadat we weten dat de uitzendkracht gestopt is verstuurd worden naar Wessel. 
+
+Functies waarvan we de mensen moeten aan – en afmelden:
+Inpak
+Panklaar
+TD
+
+Contactpersonen per locatie:
+De Bonte kip: Marlena@clazing.nl en patrick@clazing.nl
+C. van Miert: hh@cvanmiert.com
+
+
+Wegschrijven van de ontvangen mailtjes bij administratie@lightpersoneelsdiensten.nl:
+Outlook- administratie mail- accounts- des betreffende klant- aan- en afmeldingen.
+Hierin moet het document verplaatst en bewaard worden zodat iedereen altijd kan terugkijken of die al verzonden is.
+
+
+

@@ -1,0 +1,134 @@
+/* ============================================================
+   Light Personeelsdiensten — Marketing Tool global styles
+   Tailwind v4 + shadcn/ui mapped onto the Light design tokens.
+   CSS @import rules MUST come first.
+   ============================================================ */
+@import './styles/tokens/fonts.css';
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import './styles/tokens/colors.css';
+@import './styles/tokens/typography.css';
+@import './styles/tokens/spacing.css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* ------------------------------------------------------------
+   shadcn theme -> Light brand tokens
+   These variables are what shadcn/ui components read.
+   We point them at the design-system tokens (colors.css etc.).
+   ------------------------------------------------------------ */
+:root {
+  --radius: 10px; /* --radius-md */
+
+  --background: var(--color-bg);
+  --foreground: var(--color-text);
+
+  --card: var(--color-bg);
+  --card-foreground: var(--color-text);
+
+  --popover: var(--color-bg);
+  --popover-foreground: var(--color-text);
+
+  --primary: var(--color-primary);
+  --primary-foreground: var(--color-on-primary);
+
+  --secondary: var(--grey-100);
+  --secondary-foreground: var(--grey-900);
+
+  --muted: var(--grey-100);
+  --muted-foreground: var(--color-text-muted);
+
+  --accent: var(--color-primary-soft);
+  --accent-foreground: var(--color-primary);
+
+  --destructive: var(--light-red);
+  --destructive-foreground: var(--white);
+
+  --border: var(--color-border);
+  --input: var(--color-border);
+  --ring: var(--color-primary);
+
+  --sidebar: var(--grey-900);
+  --sidebar-foreground: var(--white);
+  --sidebar-primary: var(--color-primary);
+  --sidebar-primary-foreground: var(--color-on-primary);
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: var(--white);
+  --sidebar-border: var(--color-border-ondark);
+  --sidebar-ring: var(--color-primary);
+}
+
+/* ------------------------------------------------------------
+   Tailwind theme — expose tokens to utility classes
+   (bg-primary, text-muted-foreground, rounded-lg, font-display…)
+   ------------------------------------------------------------ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Brand colour ramp exposed as utilities (bg-brand-red, text-grey-500…) */
+  --color-brand-red: var(--light-red);
+  --color-brand-red-600: var(--light-red-600);
+  --color-brand-red-700: var(--light-red-700);
+  --color-brand-grey: var(--grey-500);
+  --color-success: var(--green);
+  --color-attention: var(--amber);
+  --color-info: var(--blue);
+
+  --font-display: var(--font-display);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    -webkit-font-smoothing: antialiased;
+    text-wrap: pretty;
+    margin: 0;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: var(--ls-heading);
+    text-wrap: balance;
+  }
+}

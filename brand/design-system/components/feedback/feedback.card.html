@@ -1,0 +1,42 @@
+<!-- @dsCard group="Components" viewport="700x360" name="Feedback — Badge & Tag" subtitle="Status pills and filter chips" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<style>body{margin:0;padding:24px;background:var(--color-bg);font-family:var(--font-body);}
+  .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:18px;}
+  .lbl{font-family:var(--font-mono);font-size:11px;color:var(--color-text-muted);width:100%;margin-bottom:-4px;}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="../../_ds_bundle.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    function DS(){ for (const k in window){ const v=window[k]; if(v&&v.Badge&&v.Tag) return v; } return {}; }
+    const { Badge, Tag } = DS();
+    const e = React.createElement;
+    ReactDOM.createRoot(document.getElementById('root')).render(e(React.Fragment, null,
+      e('div',{className:'row'},
+        e('span',{className:'lbl'},'Badges — soft'),
+        e(Badge,{tone:'green',icon:'check'},'Vacature open'),
+        e(Badge,{tone:'red'},'Productie'),
+        e(Badge,{tone:'blue'},'Logistiek'),
+        e(Badge,{tone:'amber'},'3 nieuw'),
+      ),
+      e('div',{className:'row'},
+        e('span',{className:'lbl'},'Badges — solid'),
+        e(Badge,{tone:'dark',solid:true,icon:'badge-check'},'SNA-gecertificeerd'),
+        e(Badge,{tone:'red',solid:true},'Fulltime'),
+        e(Badge,{tone:'green',solid:true},'Direct starten'),
+      ),
+      e('div',{className:'row'},
+        e('span',{className:'lbl'},'Tags / filters'),
+        e(Tag,{selected:true},'Productie'),
+        e(Tag,null,'Logistiek'),
+        e(Tag,null,'Schoonmaak'),
+        e(Tag,{removable:true},'Rotterdam'),
+      ),
+    ));
+    setTimeout(()=>window.lucide&&lucide.createIcons(),60);
+  </script>
+</body></html>

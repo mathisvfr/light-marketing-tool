@@ -1,0 +1,36 @@
+<!-- @dsCard group="Components" viewport="700x300" name="Buttons" subtitle="Primary, secondary, outline, ghost · notch · icons" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<style>body{margin:0;padding:24px;background:var(--color-bg);font-family:var(--font-body);}
+  .row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:16px;}
+  .lbl{font-family:var(--font-mono);font-size:11px;color:var(--color-text-muted);width:100%;margin-bottom:-4px;}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="../../_ds_bundle.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    function DS(){ for (const k in window){ const v=window[k]; if(v&&v.Button&&v.Card) return v; } return {}; }
+    const { Button } = DS();
+    const e = React.createElement;
+    ReactDOM.createRoot(document.getElementById('root')).render(e(React.Fragment, null,
+      e('div',{className:'row'},
+        e('span',{className:'lbl'},'Variants'),
+        e(Button,{variant:'primary',iconRight:'arrow-right'},'Lees meer'),
+        e(Button,{variant:'secondary'},'Over ons'),
+        e(Button,{variant:'outline'},'Neem contact op'),
+        e(Button,{variant:'ghost'},'Annuleren'),
+      ),
+      e('div',{className:'row'},
+        e('span',{className:'lbl'},'Sizes & notch'),
+        e(Button,{size:'sm'},'Klein'),
+        e(Button,{size:'md'},'Normaal'),
+        e(Button,{size:'lg',notch:true,icon:'send'},'Solliciteer direct'),
+        e(Button,{variant:'primary',disabled:true},'Disabled'),
+      ),
+    ));
+    setTimeout(()=>window.lucide&&lucide.createIcons(),60);
+  </script>
+</body></html>

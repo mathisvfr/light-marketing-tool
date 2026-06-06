@@ -1,0 +1,36 @@
+<!-- @dsCard group="Components" viewport="700x460" name="Cards — Card & JobCard" subtitle="Content surface + signature vacancy card" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<style>body{margin:0;padding:24px;background:var(--color-bg-soft);font-family:var(--font-body);}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="../../_ds_bundle.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    function DS(){ for (const k in window){ const v=window[k]; if(v&&v.Card&&v.JobCard) return v; } return {}; }
+    const { Card, JobCard, Button } = DS();
+    const e = React.createElement;
+    const truck = 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=600&q=70';
+    const factory = 'https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=600&q=70';
+    ReactDOM.createRoot(document.getElementById('root')).render(
+      e('div',{className:'grid'},
+        e(Card,{image:factory,interactive:true},
+          e('h3',{className:'light-h3',style:{marginBottom:8}},'Zakelijke diensten'),
+          e('p',{className:'light-body',style:{margin:'0 0 14px',fontSize:14.5,color:'var(--color-text-muted)'}},'Wij kennen de markt én de werkvloer. Persoonlijk advies dat aansluit bij uw bedrijf.'),
+          Button&&e(Button,{variant:'outline',size:'sm',iconRight:'arrow-right'},'Lees meer'),
+        ),
+        e(JobCard,{
+          title:'Meewerkend chauffeur', image:truck, category:'Logistiek',
+          location:'Rotterdam', hours:'Fulltime',
+          teaser:'Ben je graag onderweg en wil je dit combineren met je nieuwe baan?',
+          readTime:'1,2 min',
+        }),
+      )
+    );
+    setTimeout(()=>window.lucide&&lucide.createIcons(),80);
+  </script>
+</body></html>

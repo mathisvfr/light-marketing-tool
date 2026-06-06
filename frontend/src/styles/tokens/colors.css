@@ -1,0 +1,65 @@
+/* ============================================================
+   Light Personeelsdiensten — Color tokens
+   Brand: red #be1e2d + cool grey #787c7e (sampled from logo)
+   ============================================================ */
+:root {
+  /* ---- Brand red ---- */
+  --light-red:        #be1e2d;  /* primary brand red (logo banner) */
+  --light-red-600:    #a81927;  /* hover  (~10% darker) */
+  --light-red-700:    #8d1420;  /* press  (~20% darker) */
+  --light-red-300:    #e07b85;  /* tints / borders */
+  --light-red-100:    #f7d6da;  /* soft fill */
+  --light-red-50:     #fcedef;  /* faint wash */
+
+  /* ---- Brand grey + cool-neutral ramp (logo block = grey-500) ---- */
+  --grey-900: #1f2123;  /* ink / primary text */
+  --grey-800: #2e3133;  /* dark surfaces (footer, hero overlay) */
+  --grey-700: #45494b;
+  --grey-600: #5f6365;  /* muted text */
+  --grey-500: #787c7e;  /* LOGO GREY — brand neutral */
+  --grey-400: #9a9ea0;
+  --grey-300: #c4c7c9;
+  --grey-200: #e0e2e4;  /* default border */
+  --grey-100: #eef0f1;
+  --grey-50:  #f6f7f8;  /* soft background wash */
+  --white:    #ffffff;
+
+  /* ---- Semantic / feedback ---- */
+  --green:  #2f8f4e;   /* available / success */
+  --amber:  #c9882f;   /* attention */
+  --blue:   #2f6f9f;   /* informational */
+
+  /* ============================================================
+     Semantic aliases — use THESE in components
+     ============================================================ */
+  --color-bg:            var(--white);
+  --color-bg-soft:       var(--grey-50);
+  --color-bg-muted:      var(--grey-100);
+  --color-bg-dark:       var(--grey-800);
+  --color-bg-inverse:    var(--grey-900);
+
+  --color-text:          var(--grey-900);
+  --color-text-muted:    var(--grey-600);
+  --color-text-subtle:   var(--grey-500);
+  --color-text-inverse:  var(--white);
+  --color-text-on-dark-muted: #c4c7c9;
+
+  --color-primary:        var(--light-red);
+  --color-primary-hover:  var(--light-red-600);
+  --color-primary-press:  var(--light-red-700);
+  --color-on-primary:     var(--white);
+  --color-primary-soft:   var(--light-red-50);
+
+  --color-link:           var(--light-red);
+  --color-link-hover:     var(--light-red-700);
+
+  --color-border:         var(--grey-200);
+  --color-border-strong:  var(--grey-300);
+  --color-border-ondark:  rgba(255,255,255,0.14);
+
+  --color-focus-ring:     rgba(190,30,45,0.40);
+
+  --color-success:        var(--green);
+  --color-attention:      var(--amber);
+  --color-info:           var(--blue);
+}

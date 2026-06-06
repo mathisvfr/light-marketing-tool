@@ -1,0 +1,16 @@
+<!-- @dsCard group="Spacing" viewport="700x190" name="Radius & notch" subtitle="6→16, pill, and the logo notched corner" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>body{margin:0;padding:24px;background:var(--color-bg);font-family:var(--font-body);display:flex;gap:20px;align-items:flex-end;}
+  .item{text-align:center;}
+  .box{width:96px;height:72px;background:var(--grey-100);border:1px solid var(--color-border);}
+  .red{background:var(--light-red);}
+  .lbl{font-family:var(--font-mono);font-size:11px;color:var(--color-text-muted);margin-top:8px;}
+  .nm{font-family:var(--font-display);font-weight:700;font-size:12px;color:var(--color-text);margin-top:8px;}
+</style></head>
+<body>
+  <div class="item"><div class="box" style="border-radius:var(--radius-sm)"></div><div class="nm">sm</div><div class="lbl">6px</div></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-md)"></div><div class="nm">md</div><div class="lbl">10px</div></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-lg)"></div><div class="nm">lg</div><div class="lbl">16px</div></div>
+  <div class="item"><div class="box" style="border-radius:var(--radius-pill);width:120px"></div><div class="nm">pill</div><div class="lbl">999px</div></div>
+  <div class="item"><div class="box red" style="clip-path:var(--clip-notch)"></div><div class="nm" style="color:var(--light-red)">notch</div><div class="lbl">--clip-notch</div></div>
+</body></html>

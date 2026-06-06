@@ -1,0 +1,109 @@
+﻿
+Easyflex: relatiebeheer / CRM(achtige module)
+Het is mogelijk een nieuwe relatie aan te maken door het invoeren van basisgegevens in EF als prospect of marketing doelgroep. Zie dit als twee soorten CRMstatus: niet echt een marketingcampagnetool op zich, maar een manier om je relaties te categoriseren en georganiseerd te houden vóór de sales/marketing opvolging.
+Je houdt hierdoor een schoon overzicht van relaties die alleen in je marketinglijsten staan, zonder al in een sales of klanttraject te zitten. Je kunt hierop filteren en segmenteren bij analyses of rapportages. 
+Filters op marketingdoelgroep
+Je kunt relaties filteren om snel inzicht te krijgen in wie je nog moet benaderen:
+Op status
+Filter op Marketing Doelgroep om alleen die relaties te zien die nog geen actieve opvolging hebben.
+Op branche of sector
+Combineer de status met een filter op branche, regio, of bedrijfsgrootte.
+Op bron of herkomst
+Filter op hoe de relatie bij je bekend is gekomen: beurs, website, netwerkevent, campagne etc.
+Op contactmomenten
+Filter op relaties zonder contact of met een laatste contactdatum ouder dan X maanden.
+Op marketing tags of categorieën
+Als je tags gebruikt (bijv. “potentieel groot project”, “interesse in product X”), kun je hiermee verder segmenteren.
+Zodra je de juiste filter hebt toegepast, kun je bulk- of individuele acties doen:
+Marketingcommunicatie
+Versturen van mailingen naar geselecteerde relaties.
+Segmenten exporteren voor externe e-mailtools of campagnes.
+Vervolgacties
+Status wijzigen: van Marketing Doelgroep naar Prospect of 
+Taken aanmaken: b.v. een belafspraak, opvolg-e-mail of een afspraak op locatie.
+-15012892140Contactmomenten registreren: zo hou je bij wie je al benaderd hebt.
+
+
+
+
+
+
+Rapportages & analyses
+Overzicht van marketingdoelgroepen per regio, branche, of productinteresse.
+Campagne-effectiviteit: wie heeft gereageerd, wie nog niet.
+Bulk acties
+In Easyflex kun je ook meerdere relaties tegelijk updaten, bijvoorbeeld:
+Tags toevoegen
+Status wijzigen
+Taken toewijzen aan een medewerker
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Selectietabellen
+Op meerdere plaatsen binnen Easyflex, dienen selectietabellen te worden ingegeven, zoals bij Relaties en Flexwerkers. Met behulp van dit programma kunnen deze selectietabellen worden onderhouden. Elke tabel bestaat uit twee blokken. Eén blok waarin je onbeperkt selectieteksten kunt aanmaken en één blok waarin je de belangrijkste criteria (top 10) kunt plaatsen. Deze top 10 wordt, bij het opvragen van het betreffende onderdeel bij een relatie of een flexwerker, direct getoond. Wanneer je meer dan 10 selectieteksten wilt selecteren als belangrijkste criteria, geeft Easyflex de foutmelding 'Er mogen niet meer dan 10 keuzes als belangrijkste criteria bestaan'.
+Wanneer er geen selectietabel is ingegeven, hoeft er bij de flexwerker of relatie niets te worden ingegeven. Wanneer er wel een selectietabel is ingegeven, zijn de velden bij de flexwerker of relatie verplicht. Wanneer een selectietabel altijd leeg is geweest zijn er geen gegevens bekend bij de flexwerker of relatie. Wordt er na verloop van tijd alsnog een selectietabel aangemaakt, zijn de velden welke al leeg waren niet verplicht, deze mogen dus leeg blijven. Wordt er echter eenmaal een keuze ingegeven, zijn de velden wel verplicht.
+
+Relaties
+Mailcriteria
+In deze selectietabel kun je criteria opgeven voor de mailingen aan relaties. Zo kun je per relatie mailingen selecteren of bijvoorbeeld per relatie aangeven of de relatie een kerstkaart dient te ontvangen. Voorbeelden van mailcriteria zijn; Promotie activiteiten - Kerstkaart.
+Disciplines contactpersonen
+Middels deze selectietabel kun je disciplines voor contactpersonen vastleggen. Voorbeelden hiervan zijn 'Beslissingsbevoegd' of 'Contactpersoon Technisch'. Met behulp van de module Matching kun je hierop ook matches maken. (Frontoffice > Relaties > Contactpersonen > Overige).
+Waar kent de relatie ons van?
+Je kunt selecties ingeven voor de marketing gegevens van een relatie. Een van deze marketing gegevens is de vraag waar de relatie de werkmaatschappij van kent. Voorbeelden hiervan zijn; Mailing - TV commercial - Advertentie dagblad
+Wat is de reden voor samenwerking?
+Deze selectie wordt toegepast voor de marketing gegevens van een relatie. Wat is de belangrijkste reden voor de relatie om met de werkmaatschappij samen te werken, voorbeelden hiervan zijn; Prijs - Landelijke dekking.
+Kwalificatie prospects
+Je kunt een bepaalde indicatie geven aan prospects, dit noemen we de Kwalificatie. Voorbeelden hiervan zijn; Hot - Warm - Cold 
+Kwalificatie relaties
+Je kunt een bepaalde indicatie geven aan relaties, dit noemen we de Kwalificatie. Voorbeelden hiervan zijn; A-klant - B-klant.
+Wat vindt de relatie belangrijk?
+Om een compleet beeld van de relatie te krijgen, kun je in de bedrijfsgegevens vastleggen welke aandachtspunten de klant belangrijk vindt, bijvoorbeeld; goede service - regelmatig contact. 
+Wat is de reden voor het plaatsen van de aanvraag?
+Bij elke nieuwe aanvraag kun je aangeven waarom de aanvraag door de relatie werd geplaatst. Voorbeelden hier van zijn; Ziekte - Zwangerschap.
+Wat is de reden voor vervallen van de aanvraag?
+Wanneer je een aanvraag op vervallen zet, kunt u aangeven waarom de relatie de aanvraag laat vervallen, bijvoorbeeld; Niet tijdig vervult - Bij ander uitzendbureau ondergebracht.
+Wat is de reden voor beëindiging van de aanvraag?
+Wanneer je een definitieve einddatum vastlegt in een aanvraag, kun je aangeven waarom deze aanvraag beëindigd wordt, bijvoorbeeld; Vervult door ander uitzendbureau - Geen flexwerkers meer nodig. 
+Flexwerkers
+Onderstaande selectietabellen hebben betrekking op de flexwerkers van jouw werkmaatschappij.
+Mailcriteria
+In deze selectietabel kun je criteria opgeven voor de mailingen aan flexwerkers. Zo kun je per flexwerker mailingen selecteren of bijvoorbeeld per flexwerker aangeven of de flexwerker een kerstkaart dient te ontvangen. Voorbeelden van mailcriteria zijn; Promotie activiteiten - Kerstkaart.
+Waar kent de flexwerker ons van?
+Je kunt selecties ingeven voor de marketing gegevens van een flexwerker. Een van deze marketing gegevens is de vraag waar de flexwerker de werkmaatschappij van kent. Voorbeelden hiervan zijn; Internet - Gouden Gids
+Wat is de reden voor inschrijving?
+Deze selectie wordt toegepast voor de marketing gegevens van een flexwerker. Wat is de belangrijkste reden voor de flexwerker om zich in te schrijven bij de werkmaatschappij, voorbeelden hiervan zijn; Zoekt vast werk - Bijverdienste.
+Wat is de eerste indruk?
+Wanneer een flexwerker zich inschrijft bij de werkmaatschappij, laat de flexwerker een eerste indruk achter. Wat is deze eerste indruk? Voorbeelden hiervan zijn; Zelfverzekerd - Representatief. 
+Wat deed de flexwerker voorheen?
+In deze selectietabel registreer je wat de flexwerker deed voordat deze zich inschreef bij je werkmaatschappij, bijvoorbeeld; Vast werk - Dagopleiding.
+Ontslagreden andere werkgever(s)
+Wanneer de flexwerker werkervaring heeft opgedaan, kun je per werkervaring aangeven waarom de flexwerker bij deze werkgever(s) is ontslagen, bijvoorbeeld; Eigen verzoek - Diefstal.
+Kenmerkende eigenschappen
+Vaak bezit een flexwerker een aantal kenmerkende eigenschappen. Deze kun je vastleggen in het profiel van de flexwerker. Voorbeelden hiervan zijn; Stressbestendig - Zelfverzekerd.
+Reden voor beëindiging?
+Wanneer je 'Einde plaatsing' ingeeft binnen een urendeclaratie, ben je verplicht aan te geven wat de reden van beëindiging is, bijvoorbeeld; Geen werk meer - Vaste baan.
+Relaties en flexwerkers
+Onderstaande selectietabellen hebben betrekking op de relaties flexwerkers van je werkmaatschappij.
+Sollicitatiestatus
+De acties en resultaten van sollicitaties kunnen worden vastgelegd, bijvoorbeeld; Vervolggesprek - Flexwerker ziet ervan af.
+
+
