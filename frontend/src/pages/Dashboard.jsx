@@ -10,6 +10,7 @@ import {
 
 import ChannelIndicator from '@/components/shared/ChannelIndicator';
 import StatusBadge from '@/components/shared/StatusBadge';
+import DashboardCharts from '@/components/dashboard/DashboardCharts';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -129,7 +130,10 @@ export default function Dashboard() {
           </Card>
         ))}
       </section>
-
+      <section>
+        <h2 className="mb-4 font-display text-lg font-bold">Statistieken</h2>
+        <DashboardCharts />
+      </section>
       <section className="grid gap-6 lg:grid-cols-2">
         {role === 'owner' ? (
           <Card>
