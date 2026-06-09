@@ -13,6 +13,7 @@ const draftsRoutes = require('./routes/drafts');
 const publishRoutes = require('./routes/publish');
 const brandRoutes = require('./routes/brand');
 const usersRoutes = require('./routes/users');
+const seoRoutes = require('./routes/seo');
 const { requireAuth } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/errorHandler');
 
@@ -37,6 +38,7 @@ app.use('/api/drafts', requireAuth, draftsRoutes);
 app.use('/api/publish', requireAuth, publishRoutes);
 app.use('/api/brand', requireAuth, brandRoutes);
 app.use('/api/users', requireAuth, usersRoutes);
+app.use('/api/seo', requireAuth, seoRoutes);
 
 app.use(errorHandler);
 

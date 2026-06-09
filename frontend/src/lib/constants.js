@@ -9,6 +9,7 @@ export const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: 'LayoutDashboard' },
   { to: '/vacature-plaatsen', label: 'Vacature plaatsen', icon: 'Briefcase' },
   { to: '/marketing-post', label: 'Marketing post', icon: 'Megaphone' },
+  { to: '/seo-paginas', label: 'SEO-pagina\'s', icon: 'Globe' },
   { to: '/content-wachtrij', label: 'Content wachtrij', icon: 'ListChecks' },
   { to: '/gepubliceerd', label: 'Gepubliceerd', icon: 'Send' },
   { to: '/merk-instellingen', label: 'Merk instellingen', icon: 'Settings', ownerOnly: true },

@@ -157,7 +157,36 @@ async function expire(draftId, externalIds) {
   });
 }
 
+async function publishSeoPage(page) {
+  const webhook = process.env.N8N_WEBHOOK_SEO;
+
+  if (!webhook) {
+    throw new Error('n8n SEO-webhook is niet geconfigureerd.');
+  }
+
+  const result = await postJsonWithTimeout(webhook, {
+    id: page.id,
+    slug: page.slug,
+    sector: page.sector,
+    locatie: page.locatie,
+    doelgroep: page.doelgroep,
+    metaTitle: page.meta_title,
+    metaDescription: page.meta_description,
+    h1: page.h1,
+    bodyHtml: page.body_html,
+    keywords: page.keywords,
+  });
+
+  return {
+    status: result?.status === 'failed' ? 'failed' : 'success',
+    externalId: result?.externalId || result?.external_id || result?.url || null,
+    error: result?.error || result?.error_message || null,
+  };
+}
+
 module.exports = {
   publish,
   expire,
+  publishSeoPage,
 };
+

@@ -10,6 +10,7 @@ import Gepubliceerd from './pages/Gepubliceerd';
 import Login from './pages/Login';
 import MarketingPost from './pages/MarketingPost';
 import MerkInstellingen from './pages/MerkInstellingen';
+import SeoPaginas from './pages/SeoPaginas';
 import VacaturePlaatsen from './pages/VacaturePlaatsen';
 import { queryClient } from './lib/queryClient';
 
@@ -30,6 +31,7 @@ function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/vacature-plaatsen" element={<VacaturePlaatsen />} />
               <Route path="/marketing-post" element={<MarketingPost />} />
+              <Route path="/seo-paginas" element={<SeoPaginas />} />
               <Route path="/content-wachtrij" element={<ContentWachtrij />} />
               <Route path="/gepubliceerd" element={<Gepubliceerd />} />
               <Route path="/merk-instellingen" element={<MerkInstellingen />} />

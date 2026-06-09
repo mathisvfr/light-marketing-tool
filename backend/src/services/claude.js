@@ -71,8 +71,14 @@ async function callAnthropic(systemPrompt, formData) {
   return response.json();
 }
 
+const PROMPT_BY_TYPE = {
+  'marketing-post': 'marketing-post',
+  'seo-page': 'seo-page',
+  vacature: 'vacature',
+};
+
 async function generate(type, formData) {
-  const promptName = type === 'marketing-post' ? 'marketing-post' : 'vacature';
+  const promptName = PROMPT_BY_TYPE[type] || 'vacature';
   const [brandContext, templatePrompt] = await Promise.all([
     loadBrandContext(),
     loadPrompt(promptName),
