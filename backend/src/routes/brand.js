@@ -1,6 +1,7 @@
 const express = require('express');
 const { supabase } = require('../db/client');
 const { requireRole } = require('../middleware/auth');
+const { getCredentialStatus } = require('../services/integrations');
 
 const router = express.Router();
 
@@ -21,18 +22,28 @@ const SETTING_KEYS = [
   'configured_channels',
 ];
 
-function buildApiStatus() {
+async function buildApiStatus() {
+  const [indeedCred, metaCred, gmbCred, wordpressCred] = await Promise.all([
+    getCredentialStatus('indeed'),
+    getCredentialStatus('meta'),
+    getCredentialStatus('google_mijn_bedrijf'),
+    getCredentialStatus('wordpress'),
+  ]);
+
+  const metaConnected = Boolean(metaCred?.hasAccessToken);
+
   return {
     linkedin_jobs: false,
-    indeed: Boolean(process.env.INDEED_API_URL && process.env.INDEED_API_KEY),
-    facebook_instagram: false,
+    indeed: Boolean(indeedCred?.hasAccessToken || process.env.INDEED_API_KEY),
+    facebook_instagram: metaConnected,
     wordpress: Boolean(
+      wordpressCred?.hasAccessToken ||
       process.env.WORDPRESS_API_URL &&
         process.env.WORDPRESS_USERNAME &&
         process.env.WORDPRESS_APP_PASSWORD
     ),
     linkedin: false,
-    google_mijn_bedrijf: Boolean(process.env.GMB_API_URL && process.env.GMB_ACCESS_TOKEN),
+    google_mijn_bedrijf: Boolean(gmbCred?.hasAccessToken || process.env.GMB_ACCESS_TOKEN),
     notifications: String(process.env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true',
     anthropic: Boolean(process.env.ANTHROPIC_API_KEY),
   };
@@ -76,7 +87,7 @@ router.get('/', async (_req, res, next) => {
     return res.json({
       settings,
       configuredChannels,
-      apiStatus: buildApiStatus(),
+      apiStatus: await buildApiStatus(),
     });
   } catch (error) {
     return next(error);

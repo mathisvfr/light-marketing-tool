@@ -1,5 +1,8 @@
 const { Buffer } = require('node:buffer');
 const { supabase } = require('../db/client');
+const { publishToIndeed } = require('./indeed');
+const { publishFacebookInstagram } = require('./meta');
+const { getCredential } = require('./integrations');
 
 const REQUEST_TIMEOUT_MS = 15000;
 
@@ -55,36 +58,10 @@ function contentForChannel(draft) {
   };
 }
 
-async function publishToIndeed(draft) {
-  const apiUrl = process.env.INDEED_API_URL;
-  const apiKey = process.env.INDEED_API_KEY;
-
-  if (!apiUrl || !apiKey) {
-    return { status: 'failed', error: 'Indeed API is niet geconfigureerd.' };
-  }
-
-  const result = await postJson(
-    apiUrl,
-    {
-      draftId: draft.id,
-      type: draft.type,
-      title: getDraftTitle(draft.form_data),
-      formData: draft.form_data,
-      content: contentForChannel(draft),
-    },
-    { Authorization: `Bearer ${apiKey}` }
-  );
-
-  return {
-    status: result?.status === 'failed' ? 'failed' : 'success',
-    externalId: result?.externalId || result?.external_id || result?.id || null,
-    error: result?.error || result?.error_message || null,
-  };
-}
-
 async function publishToGoogleMijnBedrijf(draft) {
   const apiUrl = process.env.GMB_API_URL;
-  const token = process.env.GMB_ACCESS_TOKEN;
+  const credential = await getCredential('google_mijn_bedrijf');
+  const token = credential?.access_token || process.env.GMB_ACCESS_TOKEN;
 
   if (!apiUrl || !token) {
     return { status: 'failed', error: 'Google Mijn Bedrijf API is niet geconfigureerd.' };
@@ -150,8 +127,19 @@ async function publishChannel(channel, draft) {
     return publishToIndeed(draft);
   }
 
+  if (channel === 'facebook_instagram') {
+    return publishFacebookInstagram(draft);
+  }
+
   if (channel === 'google_mijn_bedrijf') {
     return publishToGoogleMijnBedrijf(draft);
+  }
+
+  if (channel === 'linkedin' || channel === 'linkedin_jobs') {
+    return {
+      status: 'failed',
+      error: `Kanaal '${channel}' vereist nog een directe LinkedIn-integratie.`,
+    };
   }
 
   if (channel === 'wordpress') {
