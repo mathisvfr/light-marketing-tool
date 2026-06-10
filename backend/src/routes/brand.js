@@ -4,7 +4,13 @@ const { requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-const DEFAULT_CHANNELS = ['linkedin_jobs', 'indeed', 'facebook_instagram', 'wordpress'];
+const DEFAULT_CHANNELS = [
+  'linkedin_jobs',
+  'indeed',
+  'facebook_instagram',
+  'wordpress',
+  'google_mijn_bedrijf',
+];
 const SETTING_KEYS = [
   'bedrijfsnaam',
   'tone_of_voice',
@@ -17,13 +23,17 @@ const SETTING_KEYS = [
 
 function buildApiStatus() {
   return {
-    linkedin_jobs: Boolean(process.env.N8N_WEBHOOK_VACATURE),
-    indeed: Boolean(process.env.N8N_WEBHOOK_VACATURE),
-    facebook_instagram: Boolean(
-      process.env.N8N_WEBHOOK_VACATURE || process.env.N8N_WEBHOOK_MARKETING
+    linkedin_jobs: false,
+    indeed: Boolean(process.env.INDEED_API_URL && process.env.INDEED_API_KEY),
+    facebook_instagram: false,
+    wordpress: Boolean(
+      process.env.WORDPRESS_API_URL &&
+        process.env.WORDPRESS_USERNAME &&
+        process.env.WORDPRESS_APP_PASSWORD
     ),
-    wordpress: Boolean(process.env.N8N_WEBHOOK_VACATURE),
-    linkedin: Boolean(process.env.N8N_WEBHOOK_MARKETING),
+    linkedin: false,
+    google_mijn_bedrijf: Boolean(process.env.GMB_API_URL && process.env.GMB_ACCESS_TOKEN),
+    notifications: String(process.env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true',
     anthropic: Boolean(process.env.ANTHROPIC_API_KEY),
   };
 }

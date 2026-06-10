@@ -19,6 +19,7 @@ const CHANNEL_OPTIONS = [
   { key: 'facebook_instagram', label: 'Facebook/Instagram' },
   { key: 'wordpress', label: 'WordPress' },
   { key: 'linkedin', label: 'LinkedIn (marketing)' },
+  { key: 'google_mijn_bedrijf', label: 'Google Mijn Bedrijf' },
 ];
 
 const TEXT_FIELDS = [
@@ -41,11 +42,13 @@ const DEFAULT_SETTINGS = {
 
 function getApiLabel(key) {
   const labels = {
-    linkedin_jobs: 'LinkedIn Jobs webhook',
-    indeed: 'Indeed webhook',
-    facebook_instagram: 'Facebook/Instagram webhook',
-    wordpress: 'WordPress webhook',
-    linkedin: 'LinkedIn marketing webhook',
+    linkedin_jobs: 'LinkedIn Jobs API',
+    indeed: 'Indeed API',
+    facebook_instagram: 'Facebook/Instagram API',
+    wordpress: 'WordPress API',
+    linkedin: 'LinkedIn API',
+    google_mijn_bedrijf: 'Google Mijn Bedrijf API',
+    notifications: 'Notificaties',
     anthropic: 'Anthropic API',
   };
 

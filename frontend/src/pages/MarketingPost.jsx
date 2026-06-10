@@ -19,6 +19,7 @@ import { api } from '../lib/api';
 const CHANNEL_OPTIONS = [
   { key: 'linkedin', label: 'LinkedIn' },
   { key: 'facebook_instagram', label: 'Facebook/Instagram' },
+  { key: 'google_mijn_bedrijf', label: 'Google Mijn Bedrijf' },
 ];
 
 const DEFAULT_FORM = {

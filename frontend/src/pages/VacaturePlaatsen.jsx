@@ -21,6 +21,7 @@ const CHANNEL_OPTIONS = [
   { key: 'indeed', label: 'Indeed' },
   { key: 'facebook_instagram', label: 'Facebook/Instagram' },
   { key: 'wordpress', label: 'WordPress' },
+  { key: 'google_mijn_bedrijf', label: 'Google Mijn Bedrijf' },
 ];
 
 const DEFAULT_FORM = {

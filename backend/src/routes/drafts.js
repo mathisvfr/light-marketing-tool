@@ -1,6 +1,7 @@
 const express = require('express');
 const { supabase } = require('../db/client');
 const { generate } = require('../services/claude');
+const { notify } = require('../services/notifications');
 
 const router = express.Router();
 
@@ -224,6 +225,12 @@ router.post('/:id/generate', async (req, res, next) => {
       throw updateError;
     }
 
+    await notify('draft_submitted', {
+      draftId: updatedDraft.id,
+      title: getDraftTitle(updatedDraft.form_data),
+      submittedBy: req.user.email,
+    });
+
     return res.json({ draft: formatDraftForResponse(updatedDraft) });
   } catch (error) {
     return next(error);
@@ -278,6 +285,12 @@ router.put('/:id', async (req, res, next) => {
     if (updateError) {
       throw updateError;
     }
+
+    await notify('draft_submitted', {
+      draftId: updatedDraft.id,
+      title: getDraftTitle(updatedDraft.form_data),
+      submittedBy: req.user.email,
+    });
 
     return res.json({ draft: formatDraftForResponse(updatedDraft) });
   } catch (error) {
@@ -359,6 +372,12 @@ router.post('/:id/approve', async (req, res, next) => {
       return res.status(404).json({ error: 'Concept niet gevonden.' });
     }
 
+    await notify('draft_approved', {
+      draftId: data.id,
+      title: getDraftTitle(data.form_data),
+      approvedBy: req.user.email,
+    });
+
     return res.json({ draft: formatDraftForResponse(data) });
   } catch (error) {
     return next(error);
@@ -410,6 +429,17 @@ router.post('/:id/reject', async (req, res, next) => {
     if (error) {
       throw error;
     }
+
+    if (!data) {
+      return res.status(404).json({ error: 'Concept niet gevonden.' });
+    }
+
+    await notify('draft_rejected', {
+      draftId: data.id,
+      title: getDraftTitle(data.form_data),
+      rejectedBy: req.user.email,
+      comment: comment || null,
+    });
 
     return res.json({ draft: formatDraftForResponse(data) });
   } catch (error) {

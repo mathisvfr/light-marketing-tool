@@ -1,7 +1,8 @@
 const express = require('express');
 const { supabase } = require('../db/client');
 const { generate } = require('../services/claude');
-const { publishSeoPage } = require('../services/n8n');
+const { publishSeoPage } = require('../services/publication');
+const { notify } = require('../services/notifications');
 
 const router = express.Router();
 
@@ -351,6 +352,12 @@ router.post('/:id/submit', async (req, res, next) => {
       throw updateError;
     }
 
+    await notify('seo_submitted', {
+      pageId: page.id,
+      slug: page.slug,
+      submittedBy: req.user.email,
+    });
+
     return res.json({ status: 'pending_approval' });
   } catch (error) {
     return next(error);
@@ -376,6 +383,11 @@ router.post('/:id/approve', async (req, res, next) => {
       throw error;
     }
 
+    await notify('seo_approved', {
+      pageId: req.params.id,
+      approvedBy: req.user.email,
+    });
+
     return res.json({ status: 'approved' });
   } catch (error) {
     return next(error);
@@ -400,6 +412,11 @@ router.post('/:id/reject', async (req, res, next) => {
     if (error) {
       throw error;
     }
+
+    await notify('seo_rejected', {
+      pageId: req.params.id,
+      rejectedBy: req.user.email,
+    });
 
     return res.json({ status: 'draft' });
   } catch (error) {
@@ -455,6 +472,12 @@ router.post('/:id/publish', async (req, res, next) => {
         page: formatPage(updated),
       });
     }
+
+    await notify('seo_published', {
+      pageId: page.id,
+      slug: page.slug,
+      publishedBy: req.user.email,
+    });
 
     return res.json({ page: formatPage(updated) });
   } catch (error) {
