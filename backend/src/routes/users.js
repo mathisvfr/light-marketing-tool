@@ -153,4 +153,45 @@ router.patch('/:id/role', async (req, res, next) => {
   }
 });
 
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const userId = req.params.id;
+
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, role')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (userError) {
+      throw userError;
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: 'Gebruiker niet gevonden.' });
+    }
+
+    if (user.id === req.user.id) {
+      return res.status(400).json({ error: 'Je kunt je eigen account niet verwijderen.' });
+    }
+
+    if (user.role === 'owner') {
+      const ownerCount = await getOwnerCount();
+      if (ownerCount <= 1) {
+        return res.status(400).json({ error: 'Je kunt de laatste owner niet verwijderen.' });
+      }
+    }
+
+    const { error } = await supabase.from('users').delete().eq('id', userId);
+
+    if (error) {
+      throw error;
+    }
+
+    return res.status(204).send();
+  } catch (error) {
+    return next(error);
+  }
+});
+
 module.exports = router;

@@ -1,25 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { Loader2, Sparkles } from 'lucide-react';
-
-import FormMessage from '@/components/shared/FormMessage';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import './marketing-post.css';
 
 const CHANNEL_OPTIONS = [
   { key: 'linkedin', label: 'LinkedIn' },
   { key: 'facebook_instagram', label: 'Facebook/Instagram' },
-  { key: 'google_mijn_bedrijf', label: 'Google Mijn Bedrijf' },
 ];
 
 const DEFAULT_FORM = {
@@ -32,10 +20,15 @@ export default function MarketingPost() {
   const { role } = useAuth();
   const [searchParams] = useSearchParams();
   const draftIdParam = searchParams.get('draftId');
-  const [form, setForm] = useState(DEFAULT_FORM);
-  const [draftId, setDraftId] = useState(null);
+  const [draftId, setDraftId] = useState(draftIdParam);
+  const [formEdits, setFormEdits] = useState({});
+  const [contentEdits, setContentEdits] = useState({});
+  const [imagePathOverride, setImagePathOverride] = useState(undefined);
+  const [criticusOverride, setCriticusOverride] = useState({
+    passed: undefined,
+    notes: undefined,
+  });
   const [activeTab, setActiveTab] = useState('linkedin_post');
-  const [content, setContent] = useState({ linkedin_post: '', social_nl: '' });
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -51,61 +44,120 @@ export default function MarketingPost() {
     enabled: Boolean(draftIdParam),
   });
 
-  useEffect(() => {
-    const draft = existingDraftQuery.data?.draft;
+  const loadedDraft = existingDraftQuery.data?.draft;
 
-    if (!draft) {
-      return;
-    }
+  const form = useMemo(
+    () => ({
+      ...DEFAULT_FORM,
+      ...(loadedDraft?.form_data || {}),
+      ...formEdits,
+      kanalen: Array.isArray(formEdits.kanalen)
+        ? formEdits.kanalen
+        : Array.isArray(loadedDraft?.form_data?.kanalen)
+        ? loadedDraft.form_data.kanalen
+        : DEFAULT_FORM.kanalen,
+    }),
+    [loadedDraft, formEdits]
+  );
 
-    setDraftId(draft.id);
-    setForm((prev) => ({
-      ...prev,
-      ...(draft.form_data || {}),
-      kanalen: Array.isArray(draft.form_data?.kanalen) ? draft.form_data.kanalen : [],
-    }));
-    setContent({
-      linkedin_post: draft.linkedin_post || '',
-      social_nl: draft.social_nl || '',
-    });
-  }, [existingDraftQuery.data]);
+  const content = useMemo(
+    () => ({
+      linkedin_post: loadedDraft?.linkedin_post || '',
+      social_nl: loadedDraft?.social_nl || '',
+      instagram_caption: loadedDraft?.instagram_caption || '',
+      ...contentEdits,
+    }),
+    [loadedDraft, contentEdits]
+  );
 
-  const configuredChannels =
-    brandQuery.data?.configuredChannels || CHANNEL_OPTIONS.map((c) => c.key);
+  const imagePath =
+    typeof imagePathOverride === 'string' ? imagePathOverride : loadedDraft?.image_path || '';
+
+  const criticusPassed =
+    typeof criticusOverride.passed === 'boolean'
+      ? criticusOverride.passed
+      : typeof loadedDraft?.criticus_passed === 'boolean'
+      ? loadedDraft.criticus_passed
+      : null;
+
+  const criticusNotes =
+    typeof criticusOverride.notes === 'string'
+      ? criticusOverride.notes
+      : loadedDraft?.criticus_notes || '';
+
+  const effectiveDraftId = draftId || draftIdParam;
+
+  const configuredChannels = brandQuery.data?.configuredChannels || CHANNEL_OPTIONS.map((c) => c.key);
 
   const saveMutation = useMutation({
     mutationFn: (status) =>
-      api(`/drafts/${draftId}`, {
+      api(`/drafts/${effectiveDraftId}`, {
         method: 'PUT',
         body: JSON.stringify({
           linkedin_post: content.linkedin_post,
           social_nl: content.social_nl,
+          instagram_caption: content.instagram_caption,
+          image_path: imagePath || null,
+          criticus_passed: criticusPassed,
+          criticus_notes: criticusNotes,
           status,
         }),
       }),
   });
 
   const submitForApprovalMutation = useMutation({
-    mutationFn: () => api(`/drafts/${draftId}/submit`, { method: 'POST' }),
+    mutationFn: () => api(`/drafts/${effectiveDraftId}/submit`, { method: 'POST' }),
   });
 
   const publishMutation = useMutation({
-    mutationFn: () => api(`/publish/${draftId}`, { method: 'POST' }),
+    mutationFn: () => api(`/publish/${effectiveDraftId}`, { method: 'POST' }),
   });
 
   function updateField(key, value) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setFormEdits((prev) => ({ ...prev, [key]: value }));
   }
 
   function toggleChannel(channelKey) {
-    setForm((prev) => {
-      const exists = prev.kanalen.includes(channelKey);
+    setFormEdits((prev) => {
+      const current = Array.isArray(prev.kanalen) ? prev.kanalen : form.kanalen;
+      const exists = current.includes(channelKey);
       if (exists) {
-        return { ...prev, kanalen: prev.kanalen.filter((item) => item !== channelKey) };
+        return { ...prev, kanalen: current.filter((item) => item !== channelKey) };
       }
 
-      return { ...prev, kanalen: [...prev.kanalen, channelKey] };
+      return { ...prev, kanalen: [...current, channelKey] };
     });
+  }
+
+  async function handleUploadOverride(event) {
+    const file = event.target.files?.[0];
+    if (!file || !effectiveDraftId) {
+      return;
+    }
+
+    setError('');
+    setSuccess('');
+
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Afbeelding kon niet worden gelezen.'));
+        reader.readAsDataURL(file);
+      });
+
+      const uploaded = await api(`/drafts/${effectiveDraftId}/image-override`, {
+        method: 'POST',
+        body: JSON.stringify({ dataUrl }),
+      });
+
+      setImagePathOverride(uploaded?.draft?.image_path || '');
+      setSuccess('Afbeelding succesvol overschreven.');
+    } catch (err) {
+      setError(err.message || 'Uploaden van afbeelding is mislukt.');
+    } finally {
+      event.target.value = '';
+    }
   }
 
   async function handleGenerate(event) {
@@ -138,11 +190,19 @@ export default function MarketingPost() {
 
       const generated = await api(`/drafts/${targetDraftId}/generate`, { method: 'POST' });
 
-      setContent({
+      setContentEdits({
         linkedin_post: generated?.draft?.linkedin_post || '',
         social_nl: generated?.draft?.social_nl || '',
+        instagram_caption: generated?.draft?.instagram_caption || '',
       });
-
+      setImagePathOverride(generated?.draft?.image_path || '');
+      setCriticusOverride({
+        passed:
+          typeof generated?.draft?.criticus_passed === 'boolean'
+            ? generated.draft.criticus_passed
+            : null,
+        notes: generated?.draft?.criticus_notes || '',
+      });
       setActiveTab('linkedin_post');
       setSuccess('Marketingconcept succesvol gegenereerd.');
     } catch (err) {
@@ -182,9 +242,10 @@ export default function MarketingPost() {
     setSuccess('');
 
     try {
-      await saveMutation.mutateAsync('approved');
+      await saveMutation.mutateAsync('draft');
+      await api(`/drafts/${effectiveDraftId}/approve`, { method: 'POST' });
       await publishMutation.mutateAsync();
-      setSuccess('Concept goedgekeurd en gepubliceerd.');
+      setSuccess('Marketingpost is goedgekeurd en gepubliceerd op gekoppelde kanalen.');
     } catch (err) {
       setError(err.message || 'Publiceren is mislukt.');
     }
@@ -197,152 +258,159 @@ export default function MarketingPost() {
     publishMutation.isPending;
 
   if (existingDraftQuery.isLoading) {
-    return <Skeleton className="h-64" />;
+    return <p>Concept wordt geladen...</p>;
   }
 
   return (
-    <div className="grid gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Marketingpost</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form className="grid gap-5" onSubmit={handleGenerate}>
-            <div className="grid gap-2">
-              <Label htmlFor="onderwerp">Onderwerp</Label>
-              <Input
-                id="onderwerp"
-                value={form.onderwerp}
-                onChange={(event) => updateField('onderwerp', event.target.value)}
-                required
-              />
-            </div>
+    <div className="marketing-layout">
+      <form className="marketing-form" onSubmit={handleGenerate}>
+        <label className="marketing-field">
+          Onderwerp
+          <input
+            value={form.onderwerp}
+            onChange={(event) => updateField('onderwerp', event.target.value)}
+            required
+          />
+        </label>
 
-            <div className="grid gap-2">
-              <Label>Type</Label>
-              <div className="inline-flex w-fit rounded-md border border-border p-1">
-                {['Opdrachtgevers', 'Kandidaten'].map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => updateField('type', value)}
-                    className={cn(
-                      'rounded-sm px-4 py-1.5 text-sm font-display font-bold transition-colors',
-                      form.type === value
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground',
-                    )}
-                  >
-                    {value}
-                  </button>
-                ))}
-              </div>
-            </div>
+        <div className="marketing-field">
+          <span>Type</span>
+          <div className="marketing-radio-group">
+            {['Opdrachtgevers', 'Kandidaten'].map((value) => (
+              <label key={value} className="marketing-radio-item">
+                <input
+                  type="radio"
+                  name="marketing-type"
+                  checked={form.type === value}
+                  onChange={() => updateField('type', value)}
+                />
+                {value}
+              </label>
+            ))}
+          </div>
+        </div>
 
-            <div className="grid gap-2">
-              <Label>Kanalen</Label>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {CHANNEL_OPTIONS.map((channel) => {
-                  const disabled = !configuredChannels.includes(channel.key);
-                  return (
-                    <label
-                      key={channel.key}
-                      className={cn(
-                        'flex items-center gap-2.5 rounded-md border border-border px-3 py-2.5 text-sm',
-                        disabled
-                          ? 'cursor-not-allowed opacity-50'
-                          : 'cursor-pointer hover:border-brand-red-300',
-                      )}
-                    >
-                      <Checkbox
-                        checked={form.kanalen.includes(channel.key)}
-                        onCheckedChange={() => toggleChannel(channel.key)}
-                        disabled={disabled}
-                      />
-                      {channel.label}
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
+        <div className="marketing-field">
+          <span>Kanalen</span>
+          <div className="marketing-channel-group">
+            {CHANNEL_OPTIONS.map((channel) => {
+              const disabled = !configuredChannels.includes(channel.key);
 
-            <FormMessage variant="error">{error}</FormMessage>
-
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isBusy || brandQuery.isLoading}>
-                {isGenerating ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Sparkles className="size-4" />
-                )}
-                Concept genereren
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      {isGenerating ? (
-        <Card>
-          <CardContent className="flex items-center gap-3 py-8 text-muted-foreground">
-            <Loader2 className="size-5 animate-spin text-primary" />
-            Concept wordt gegenereerd...
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {draftId && !isGenerating ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Voorbeeld en bewerken</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList>
-                <TabsTrigger value="linkedin_post">LinkedIn post</TabsTrigger>
-                <TabsTrigger value="social_nl">Facebook/Instagram post</TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            <Textarea
-              className="min-h-56 font-mono text-sm"
-              value={content[activeTab] || ''}
-              onChange={(event) =>
-                setContent((prev) => ({
-                  ...prev,
-                  [activeTab]: event.target.value,
-                }))
-              }
-            />
-
-            <FormMessage variant="success">{success}</FormMessage>
-
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button variant="outline" onClick={handleSaveDraft} disabled={isBusy}>
-                Opslaan als concept
-              </Button>
-
-              {role === 'recruiter' ? (
-                <Button
-                  variant="secondary"
-                  onClick={handleSubmitForApproval}
-                  disabled={isBusy}
+              return (
+                <label
+                  key={channel.key}
+                  className={`marketing-channel-item${disabled ? ' disabled' : ''}`}
                 >
-                  Indienen ter goedkeuring
-                </Button>
-              ) : null}
+                  <input
+                    type="checkbox"
+                    checked={form.kanalen.includes(channel.key)}
+                    onChange={() => toggleChannel(channel.key)}
+                    disabled={disabled}
+                  />
+                  {channel.label}
+                </label>
+              );
+            })}
+          </div>
+        </div>
 
-              {role === 'owner' ? (
-                <Button onClick={handleApproveAndPublish} disabled={isBusy}>
-                  Goedkeuren en publiceren
-                </Button>
-              ) : null}
+        <div className="marketing-actions">
+          <button type="submit" disabled={isBusy || brandQuery.isLoading}>
+            Concept genereren
+          </button>
+        </div>
+      </form>
+
+      {isGenerating ? <div className="marketing-skeleton">Concept wordt gegenereerd...</div> : null}
+
+      {effectiveDraftId && !isGenerating ? (
+        <section className="marketing-preview">
+          <h3>Voorbeeld en bewerken</h3>
+
+          {criticusPassed !== null ? (
+            <div className={`marketing-criticus ${criticusPassed ? 'pass' : 'fail'}`}>
+              <strong>{criticusPassed ? 'Criticus: akkoord' : 'Criticus: aandacht nodig'}</strong>
+              <p>{criticusNotes || 'Geen opmerkingen.'}</p>
             </div>
-          </CardContent>
-        </Card>
+          ) : null}
+
+          <div className="marketing-tabs">
+            <button
+              type="button"
+              className={activeTab === 'linkedin_post' ? 'active' : ''}
+              onClick={() => setActiveTab('linkedin_post')}
+            >
+              LinkedIn post
+            </button>
+            <button
+              type="button"
+              className={activeTab === 'social_nl' ? 'active' : ''}
+              onClick={() => setActiveTab('social_nl')}
+            >
+              Facebook post
+            </button>
+            <button
+              type="button"
+              className={activeTab === 'instagram_caption' ? 'active' : ''}
+              onClick={() => setActiveTab('instagram_caption')}
+            >
+              Instagram caption
+            </button>
+          </div>
+
+          <textarea
+            value={content[activeTab] || ''}
+            onChange={(event) =>
+              setContentEdits((prev) => ({
+                ...prev,
+                [activeTab]: event.target.value,
+              }))
+            }
+          />
+
+          <div className="marketing-image-block">
+            <p className="marketing-label">Afbeelding preview</p>
+            {imagePath ? (
+              <img src={imagePath} alt="Marketing preview" className="marketing-preview-image" />
+            ) : (
+              <p className="marketing-muted">Nog geen afbeelding beschikbaar.</p>
+            )}
+
+            {role === 'owner' ? (
+              <label className="marketing-upload">
+                Eigen afbeelding uploaden (override)
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleUploadOverride}
+                  disabled={isBusy}
+                />
+              </label>
+            ) : null}
+          </div>
+
+          <div className="marketing-actions">
+            <button type="button" onClick={handleSaveDraft} disabled={isBusy}>
+              Opslaan als concept
+            </button>
+
+            {role === 'recruiter' ? (
+              <button type="button" onClick={handleSubmitForApproval} disabled={isBusy}>
+                Indienen ter goedkeuring
+              </button>
+            ) : null}
+
+            {role === 'owner' ? (
+              <button type="button" onClick={handleApproveAndPublish} disabled={isBusy}>
+                Goedkeuren en publiceren
+              </button>
+            ) : null}
+          </div>
+        </section>
       ) : null}
 
-      {!draftId ? <FormMessage variant="success">{success}</FormMessage> : null}
+      {error ? <p className="marketing-error">{error}</p> : null}
+      {success ? <p>{success}</p> : null}
     </div>
   );
 }

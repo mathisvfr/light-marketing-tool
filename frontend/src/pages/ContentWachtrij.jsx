@@ -1,30 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-
-import FormMessage from '@/components/shared/FormMessage';
-import StatusBadge from '@/components/shared/StatusBadge';
-import TypeBadge from '@/components/shared/TypeBadge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import './content-wachtrij.css';
 
 function formatDate(value) {
   if (!value) {
@@ -36,6 +15,32 @@ function formatDate(value) {
     month: '2-digit',
     year: 'numeric',
   }).format(new Date(value));
+}
+
+function getTypeBadgeClass(type) {
+  return type === 'marketing-post' ? 'queue-badge type-marketing' : 'queue-badge type-vacature';
+}
+
+function getTypeLabel(type) {
+  return type === 'marketing-post' ? 'Marketing' : 'Vacature';
+}
+
+function getStatusBadgeClass(status) {
+  return `queue-badge status-${status}`;
+}
+
+function getStatusLabel(status) {
+  const labels = {
+    draft: 'Concept',
+    pending_approval: 'Wacht op goedkeuring',
+    approved: 'Goedgekeurd',
+    actief: 'Actief',
+    published: 'Gepubliceerd',
+    expired: 'Verlopen',
+    rejected: 'Afgewezen',
+  };
+
+  return labels[status] || status;
 }
 
 function formatChannels(channels) {
@@ -94,7 +99,7 @@ export default function ContentWachtrij() {
     },
   });
 
-  const drafts = draftsQuery.data?.drafts || [];
+  const drafts = useMemo(() => draftsQuery.data?.drafts || [], [draftsQuery.data]);
   const authorOptions = useMemo(() => {
     const map = new Map();
     for (const draft of drafts) {
@@ -150,173 +155,149 @@ export default function ContentWachtrij() {
   }
 
   if (draftsQuery.isLoading) {
-    return <p className="text-muted-foreground">Wachtrij wordt geladen...</p>;
+    return <p>Wachtrij wordt geladen...</p>;
   }
 
   if (draftsQuery.isError) {
-    return <FormMessage variant="error">Kon wachtrij niet laden.</FormMessage>;
+    return <p className="queue-error">Kon wachtrij niet laden.</p>;
   }
 
   const isMutating =
     approveMutation.isPending || rejectMutation.isPending || deleteMutation.isPending;
 
   return (
-    <div className="grid gap-6">
-      <Card>
-        <CardContent className="flex flex-wrap gap-4 py-4">
-          <div className="grid gap-1.5">
-            <Label>Status</Label>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-52">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Alle statussen</SelectItem>
-                <SelectItem value="draft">Concept</SelectItem>
-                <SelectItem value="pending_approval">Wacht op goedkeuring</SelectItem>
-                <SelectItem value="approved">Goedgekeurd</SelectItem>
-                <SelectItem value="published">Gepubliceerd</SelectItem>
-                <SelectItem value="expired">Verlopen</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="queue-layout">
+      <div className="queue-filters">
+        <label>
+          Status
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            <option value="all">Alle statussen</option>
+            <option value="draft">Draft</option>
+            <option value="pending_approval">Wacht op goedkeuring</option>
+            <option value="approved">Goedgekeurd</option>
+            <option value="actief">Actief</option>
+            <option value="published">Gepubliceerd</option>
+            <option value="expired">Verlopen</option>
+            <option value="rejected">Afgewezen</option>
+          </select>
+        </label>
 
-          <div className="grid gap-1.5">
-            <Label>Type</Label>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-44">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Alle types</SelectItem>
-                <SelectItem value="vacature">Vacature</SelectItem>
-                <SelectItem value="marketing">Marketing</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <label>
+          Type
+          <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
+            <option value="all">Alle types</option>
+            <option value="vacature">Vacature</option>
+            <option value="marketing">Marketing</option>
+          </select>
+        </label>
 
-          <div className="grid gap-1.5">
-            <Label>Auteur</Label>
-            <Select value={authorFilter} onValueChange={setAuthorFilter}>
-              <SelectTrigger className="w-52">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Alle auteurs</SelectItem>
-                {authorOptions.map((author) => (
-                  <SelectItem key={author.id} value={author.id}>
-                    {author.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+        <label>
+          Auteur
+          <select value={authorFilter} onChange={(event) => setAuthorFilter(event.target.value)}>
+            <option value="all">Alle auteurs</option>
+            {authorOptions.map((author) => (
+              <option key={author.id} value={author.id}>
+                {author.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
-      <Card>
-        <CardContent className="py-2">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Titel</TableHead>
-                <TableHead>Auteur</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Aangemaakt</TableHead>
-                <TableHead>Kanalen</TableHead>
-                <TableHead>Acties</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {drafts.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-muted-foreground">
-                    Geen concepten gevonden.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                drafts.map((draft) => {
-                  const isOwner = role === 'owner';
-                  const isRecruiterOwnDraft =
-                    role === 'recruiter' && draft.createdBy === user?.id;
+      <div className="queue-table-wrap">
+        <table className="queue-table">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Titel</th>
+              <th>Auteur</th>
+              <th>Status</th>
+              <th>Aangemaakt</th>
+              <th>Kanalen</th>
+              <th>Acties</th>
+            </tr>
+          </thead>
+          <tbody>
+            {drafts.length === 0 ? (
+              <tr>
+                <td colSpan={7}>Geen concepten gevonden.</td>
+              </tr>
+            ) : (
+              drafts.map((draft) => {
+                const isOwner = role === 'owner';
+                const isRecruiterOwnDraft = role === 'recruiter' && draft.createdBy === user?.id;
 
-                  return (
-                    <TableRow key={draft.id}>
-                      <TableCell>
-                        <TypeBadge type={draft.type} />
-                      </TableCell>
-                      <TableCell className="font-medium whitespace-normal">
-                        {draft.title}
-                      </TableCell>
-                      <TableCell>{draft.authorName}</TableCell>
-                      <TableCell>
-                        <StatusBadge status={draft.status} />
-                      </TableCell>
-                      <TableCell>{formatDate(draft.createdAt)}</TableCell>
-                      <TableCell>{formatChannels(draft.channels)}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-2">
-                          {isOwner ? (
-                            <>
-                              <Button
-                                size="sm"
-                                disabled={isMutating}
-                                onClick={() => handleApprove(draft.id)}
-                              >
-                                Goedkeuren
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={isMutating}
-                                onClick={() => handleReject(draft.id)}
-                              >
-                                Afwijzen
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled={isMutating}
-                                onClick={() => handleEdit(draft)}
-                              >
-                                Bewerken
-                              </Button>
-                            </>
-                          ) : null}
+                return (
+                  <tr key={draft.id}>
+                    <td>
+                      <span className={getTypeBadgeClass(draft.type)}>{getTypeLabel(draft.type)}</span>
+                    </td>
+                    <td>{draft.title}</td>
+                    <td>{draft.authorName}</td>
+                    <td>
+                      <span className={getStatusBadgeClass(draft.status)}>
+                        {getStatusLabel(draft.status)}
+                      </span>
+                    </td>
+                    <td>{formatDate(draft.createdAt)}</td>
+                    <td>{formatChannels(draft.channels)}</td>
+                    <td>
+                      <div className="queue-actions">
+                        {isOwner ? (
+                          <>
+                            <button
+                              type="button"
+                              disabled={isMutating}
+                              onClick={() => handleApprove(draft.id)}
+                            >
+                              Goedkeuren
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isMutating}
+                              onClick={() => handleReject(draft.id)}
+                            >
+                              Afwijzen
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isMutating}
+                              onClick={() => handleEdit(draft)}
+                            >
+                              Bewerken
+                            </button>
+                          </>
+                        ) : null}
 
-                          {isRecruiterOwnDraft ? (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={isMutating}
-                                onClick={() => handleEdit(draft)}
-                              >
-                                Bewerken
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled={isMutating}
-                                onClick={() => handleDelete(draft.id)}
-                              >
-                                Verwijderen
-                              </Button>
-                            </>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                        {isRecruiterOwnDraft ? (
+                          <>
+                            <button
+                              type="button"
+                              disabled={isMutating}
+                              onClick={() => handleEdit(draft)}
+                            >
+                              Bewerken
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isMutating}
+                              onClick={() => handleDelete(draft.id)}
+                            >
+                              Verwijderen
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
 
-      <FormMessage variant="error">{error}</FormMessage>
+      {error ? <p className="queue-error">{error}</p> : null}
     </div>
   );
 }

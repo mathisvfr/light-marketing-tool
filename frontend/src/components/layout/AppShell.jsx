@@ -1,27 +1,45 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { NAV_ITEMS, ROUTE_TITLES } from '../../lib/constants';
 import Header from './Header';
 import PageWrapper from './PageWrapper';
 import Sidebar from './Sidebar';
+import './layout.css';
+
+const navItems = [
+  { to: '/', label: 'Dashboard' },
+  { to: '/vacature-plaatsen', label: 'Vacature plaatsen' },
+  { to: '/marketing-post', label: 'Marketing post' },
+  { to: '/content-wachtrij', label: 'Content wachtrij' },
+  { to: '/gepubliceerd', label: 'Gepubliceerd' },
+  { to: '/merk-instellingen', label: 'Merk instellingen', ownerOnly: true },
+  { to: '/gebruikers', label: 'Gebruikers', ownerOnly: true },
+];
+
+const routeTitles = {
+  '/': 'Dashboard',
+  '/vacature-plaatsen': 'Vacature plaatsen',
+  '/marketing-post': 'Marketing post',
+  '/content-wachtrij': 'Content wachtrij',
+  '/gepubliceerd': 'Gepubliceerd',
+  '/merk-instellingen': 'Merk instellingen',
+  '/gebruikers': 'Gebruikers',
+};
 
 export default function AppShell() {
   const location = useLocation();
   const { user, role, logout } = useAuth();
 
-  const visibleNavItems = NAV_ITEMS.filter((item) =>
+  const visibleNavItems = navItems.filter((item) =>
     item.ownerOnly ? role === 'owner' : true
   );
 
-  const pageTitle = ROUTE_TITLES[location.pathname] || 'Light Marketing Tool';
+  const pageTitle = routeTitles[location.pathname] || 'Light Marketing Tool';
 
   return (
-    <div className="grid min-h-screen grid-cols-1 bg-grey-50 md:grid-cols-[260px_1fr]">
-      <div className="hidden md:block">
-        <Sidebar items={visibleNavItems} />
-      </div>
+    <div className="app-shell">
+      <Sidebar items={visibleNavItems} />
 
-      <div className="flex min-w-0 flex-col">
+      <div className="app-shell-main">
         <Header
           pageTitle={pageTitle}
           userName={user?.name || 'Onbekend'}
@@ -29,8 +47,8 @@ export default function AppShell() {
           onLogout={logout}
         />
 
-        <main className="min-w-0 flex-1">
-          <PageWrapper>
+        <main className="app-shell-content">
+          <PageWrapper title={pageTitle}>
             <Outlet />
           </PageWrapper>
         </main>

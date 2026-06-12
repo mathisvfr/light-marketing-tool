@@ -1,8 +1,7 @@
-import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
-
-export const AuthContext = createContext(null);
+import { AuthContext } from './auth-context';
 
 export function AuthProvider({ children }) {
   const user = useAuthStore((state) => state.user);
@@ -17,7 +16,7 @@ export function AuthProvider({ children }) {
       const data = await api('/auth/me');
       setUser(data?.user ?? null);
       return data?.user ?? null;
-    } catch (_error) {
+    } catch {
       clearUser();
       return null;
     } finally {

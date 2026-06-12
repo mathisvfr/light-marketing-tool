@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { Loader2, Sparkles } from 'lucide-react';
@@ -88,35 +88,33 @@ export default function SeoPaginas() {
     queryFn: () => api('/seo'),
   });
 
-  const detailQuery = useQuery({
+  useQuery({
     queryKey: ['seo-page-detail', seoIdParam],
     queryFn: () => api(`/seo/${seoIdParam}`),
     enabled: Boolean(seoIdParam),
+    onSuccess: (result) => {
+      const page = result?.page;
+      if (!page) {
+        return;
+      }
+
+      setPageId(page.id);
+      setForm({
+        sector: page.sector || '',
+        locatie: page.locatie || 'Rotterdam',
+        doelgroep: page.doelgroep || 'werkzoekenden',
+        keywords: page.keywords || '',
+      });
+      setContent({
+        metaTitle: page.metaTitle || '',
+        metaDescription: page.metaDescription || '',
+        h1: page.h1 || '',
+        bodyHtml: page.bodyHtml || '',
+        keywords: page.keywords || '',
+      });
+      setActiveTab('metaTitle');
+    },
   });
-
-  useEffect(() => {
-    const page = detailQuery.data?.page;
-
-    if (!page) {
-      return;
-    }
-
-    setPageId(page.id);
-    setForm({
-      sector: page.sector || '',
-      locatie: page.locatie || 'Rotterdam',
-      doelgroep: page.doelgroep || 'werkzoekenden',
-      keywords: page.keywords || '',
-    });
-    setContent({
-      metaTitle: page.metaTitle || '',
-      metaDescription: page.metaDescription || '',
-      h1: page.h1 || '',
-      bodyHtml: page.bodyHtml || '',
-      keywords: page.keywords || '',
-    });
-    setActiveTab('metaTitle');
-  }, [detailQuery.data]);
 
   const saveMutation = useMutation({
     mutationFn: (status) =>

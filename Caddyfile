@@ -4,5 +4,8 @@
   @api path /api/*
   reverse_proxy @api backend:3001
 
+  @feeds path /feeds/*
+  reverse_proxy @feeds backend:3001
+
   reverse_proxy frontend:80
 }

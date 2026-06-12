@@ -1,0 +1,133 @@
+.marketing-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.marketing-form,
+.marketing-preview {
+  background: #ffffff;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.marketing-field {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 0.8rem;
+}
+
+.marketing-field input,
+.marketing-preview textarea {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+}
+
+.marketing-radio-group,
+.marketing-channel-group,
+.marketing-tabs,
+.marketing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.marketing-radio-item,
+.marketing-channel-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  background: #f8fafc;
+}
+
+.marketing-channel-item.disabled {
+  opacity: 0.55;
+}
+
+.marketing-tabs button,
+.marketing-actions button {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 0.48rem 0.72rem;
+}
+
+.marketing-tabs button.active {
+  border-color: #0f172a;
+  background: #e2e8f0;
+}
+
+.marketing-preview textarea {
+  width: 100%;
+  min-height: 200px;
+  margin-top: 0.7rem;
+  margin-bottom: 0.8rem;
+}
+
+.marketing-image-block {
+  margin: 0.4rem 0 0.8rem;
+  padding: 0.8rem;
+  border: 1px dashed #94a3b8;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.marketing-label {
+  margin: 0;
+  font-weight: 600;
+}
+
+.marketing-muted {
+  color: #64748b;
+}
+
+.marketing-preview-image {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  margin-top: 0.55rem;
+}
+
+.marketing-upload {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+}
+
+.marketing-criticus {
+  border-radius: 10px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.marketing-criticus p {
+  margin: 0.35rem 0 0;
+}
+
+.marketing-criticus.pass {
+  background: #dcfce7;
+  border: 1px solid #16a34a;
+}
+
+.marketing-criticus.fail {
+  background: #fee2e2;
+  border: 1px solid #dc2626;
+}
+
+.marketing-skeleton {
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  background: #f1f5f9;
+  border: 1px dashed #94a3b8;
+}
+
+.marketing-error {
+  color: #b91c1c;
+}

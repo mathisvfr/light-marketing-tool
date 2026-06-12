@@ -12,10 +12,9 @@ const dashboardRoutes = require('./routes/dashboard');
 const draftsRoutes = require('./routes/drafts');
 const publishRoutes = require('./routes/publish');
 const brandRoutes = require('./routes/brand');
-const usersRoutes = require('./routes/users');
-const seoRoutes = require('./routes/seo');
 const integrationsRoutes = require('./routes/integrations');
-const socialRoutes = require('./routes/social');
+const usersRoutes = require('./routes/users');
+const feedsRoutes = require('./routes/feeds');
 const { requireAuth } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/errorHandler');
 
@@ -27,22 +26,23 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: '6mb' }));
 app.use(cookieParser());
+app.use('/uploads', express.static(path.resolve(__dirname, '..', 'uploads')));
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
+
+app.use('/feeds', feedsRoutes);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', requireAuth, dashboardRoutes);
 app.use('/api/drafts', requireAuth, draftsRoutes);
 app.use('/api/publish', requireAuth, publishRoutes);
 app.use('/api/brand', requireAuth, brandRoutes);
-app.use('/api/users', requireAuth, usersRoutes);
-app.use('/api/seo', requireAuth, seoRoutes);
 app.use('/api/integrations', requireAuth, integrationsRoutes);
-app.use('/api/social', requireAuth, socialRoutes);
+app.use('/api/users', requireAuth, usersRoutes);
 
 app.use(errorHandler);
 

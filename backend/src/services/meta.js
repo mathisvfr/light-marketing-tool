@@ -82,7 +82,15 @@ async function publishInstagramPost(draft) {
   const credential = await getCredential('meta');
   const metadata = requireMetaConfig(credential, ['instagramUserId']);
 
-  const imageUrl = metadata.defaultImageUrl || process.env.IG_DEFAULT_IMAGE_URL;
+  const configuredBase = process.env.PUBLIC_APP_URL || process.env.APP_BASE_URL || '';
+  const localImageUrl =
+    draft.image_path && configuredBase
+      ? `${configuredBase.replace(/\/$/, '')}${draft.image_path}`
+      : null;
+  const imageUrl =
+    (draft.image_path && /^https?:\/\//i.test(draft.image_path) ? draft.image_path : localImageUrl) ||
+    metadata.defaultImageUrl ||
+    process.env.IG_DEFAULT_IMAGE_URL;
   if (!imageUrl) {
     throw new Error('Instagram vereist een afbeelding (metadata.defaultImageUrl of IG_DEFAULT_IMAGE_URL).');
   }
@@ -91,7 +99,7 @@ async function publishInstagramPost(draft) {
     `/${metadata.instagramUserId}/media`,
     {
       image_url: imageUrl,
-      caption: contentFromDraft(draft),
+      caption: draft.instagram_caption || contentFromDraft(draft),
     },
     credential.access_token,
     'POST'

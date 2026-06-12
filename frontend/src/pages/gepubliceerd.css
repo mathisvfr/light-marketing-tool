@@ -1,0 +1,116 @@
+.published-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.published-section {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.published-section h3 {
+  margin: 0;
+}
+
+.published-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.published-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 860px;
+}
+
+.published-table th,
+.published-table td {
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.7rem;
+}
+
+.published-table thead th {
+  background: #f8fafc;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-size: 0.84rem;
+}
+
+.published-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.16rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.type-vacature {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.type-marketing {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.channel-status-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.channel-status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 0.18rem 0.55rem;
+  font-size: 0.8rem;
+  background: #f8fafc;
+}
+
+.channel-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.channel-dot.success {
+  background: #16a34a;
+}
+
+.channel-dot.failed {
+  background: #dc2626;
+}
+
+.channel-dot.pending {
+  background: #d97706;
+}
+
+.channel-dot.unknown {
+  background: #64748b;
+}
+
+.published-note {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.published-error {
+  color: #b91c1c;
+}

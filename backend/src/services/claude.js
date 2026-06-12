@@ -71,23 +71,9 @@ async function callAnthropic(systemPrompt, formData) {
   return response.json();
 }
 
-const PROMPT_BY_TYPE = {
-  'marketing-post': 'marketing-post',
-  'seo-page': 'seo-page',
-  vacature: 'vacature',
-};
-
-async function generate(type, formData) {
-  const promptName = PROMPT_BY_TYPE[type] || 'vacature';
-  const [brandContext, templatePrompt] = await Promise.all([
-    loadBrandContext(),
-    loadPrompt(promptName),
-  ]);
-
-  const systemPrompt = `${brandContext}\n\n${templatePrompt}`;
-
+async function callAnthropicExpectingJson(systemPrompt, payload) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const responseJson = await callAnthropic(systemPrompt, formData);
+    const responseJson = await callAnthropic(systemPrompt, payload);
     const rawText = extractTextFromAnthropicResponse(responseJson);
 
     try {
@@ -102,7 +88,35 @@ async function generate(type, formData) {
   throw new Error('Genereren mislukte door ongeldige JSON-respons.');
 }
 
+async function generate(type, formData) {
+  const promptName = type === 'marketing-post' ? 'marketing-post' : 'vacature';
+  const [brandContext, templatePrompt] = await Promise.all([
+    loadBrandContext(),
+    loadPrompt(promptName),
+  ]);
+
+  const systemPrompt = `${brandContext}\n\n${templatePrompt}`;
+
+  return callAnthropicExpectingJson(systemPrompt, formData);
+}
+
+async function criticus(input) {
+  const [brandContext, criticusPrompt] = await Promise.all([
+    loadBrandContext(),
+    loadPrompt('criticus'),
+  ]);
+
+  const systemPrompt = `${brandContext}\n\n${criticusPrompt}`;
+  const result = await callAnthropicExpectingJson(systemPrompt, input);
+
+  return {
+    passed: Boolean(result?.passed),
+    notes: String(result?.notes || '').trim(),
+  };
+}
+
 module.exports = {
   loadBrandContext,
   generate,
+  criticus,
 };

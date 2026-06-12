@@ -1,6 +1,6 @@
 const { supabase } = require('../db/client');
 
-const SUPPORTED_PROVIDERS = ['indeed', 'meta', 'google_mijn_bedrijf', 'wordpress'];
+const SUPPORTED_PROVIDERS = ['linkedin', 'meta', 'wordpress', 'indeed', 'google_mijn_bedrijf'];
 
 function isSupportedProvider(provider) {
   return SUPPORTED_PROVIDERS.includes(provider);

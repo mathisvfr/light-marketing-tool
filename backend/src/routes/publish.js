@@ -1,8 +1,7 @@
 const express = require('express');
 const { supabase } = require('../db/client');
 const { requireRole } = require('../middleware/auth');
-const { publishDraft, expirePublishedDraft } = require('../services/publication');
-const { notify } = require('../services/notifications');
+const n8n = require('../services/n8n');
 
 const router = express.Router();
 
@@ -16,18 +15,31 @@ function getDraftTitle(formData) {
 
 router.get('/', async (_req, res, next) => {
   try {
-    const { data: drafts, error: draftsError } = await supabase
+    const { data: marketingDrafts, error: marketingError } = await supabase
       .from('drafts')
       .select('id, type, form_data, status, updated_at')
+      .eq('type', 'marketing-post')
       .eq('status', 'published')
       .order('updated_at', { ascending: false })
       .limit(500);
 
-    if (draftsError) {
-      throw draftsError;
+    if (marketingError) {
+      throw marketingError;
     }
 
-    const draftIds = (drafts || []).map((item) => item.id);
+    const { data: activeVacatures, error: activeVacaturesError } = await supabase
+      .from('drafts')
+      .select('id, type, form_data, updated_at')
+      .eq('type', 'vacature')
+      .eq('status', 'actief')
+      .order('updated_at', { ascending: false })
+      .limit(500);
+
+    if (activeVacaturesError) {
+      throw activeVacaturesError;
+    }
+
+    const draftIds = (marketingDrafts || []).map((item) => item.id);
     let publications = [];
 
     if (draftIds.length > 0) {
@@ -57,7 +69,7 @@ router.get('/', async (_req, res, next) => {
       byDraftId.set(publication.draft_id, existing);
     }
 
-    const items = (drafts || []).map((draft) => ({
+    const marketingItems = (marketingDrafts || []).map((draft) => ({
       id: draft.id,
       title: getDraftTitle(draft.form_data),
       type: draft.type,
@@ -65,7 +77,18 @@ router.get('/', async (_req, res, next) => {
       channels: byDraftId.get(draft.id) || [],
     }));
 
-    return res.json({ items });
+    const vacatureItems = (activeVacatures || []).map((draft) => ({
+      id: draft.id,
+      title: getDraftTitle(draft.form_data),
+      status: 'actief',
+      updatedAt: draft.updated_at,
+      stats: 'Nog niet beschikbaar',
+    }));
+
+    return res.json({
+      marketingItems,
+      vacatureItems,
+    });
   } catch (error) {
     return next(error);
   }
@@ -91,9 +114,47 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
 
     const channels = Array.isArray(draft.form_data?.kanalen) ? draft.form_data.kanalen : [];
 
+    const credentialMapping = {
+      linkedin: 'linkedin',
+      facebook_instagram: 'meta',
+      instagram: 'meta',
+      facebook: 'meta',
+    };
+
+    const requiredCredentialChannels = channels.filter((channel) => Boolean(credentialMapping[channel]));
+
+    let connectedMap = new Map();
+    if (requiredCredentialChannels.length > 0) {
+      const requiredKeys = Array.from(new Set(requiredCredentialChannels.map((channel) => credentialMapping[channel])));
+      const { data: credentialRows, error: credentialError } = await supabase
+        .from('channel_credentials')
+        .select('channel, status')
+        .in('channel', requiredKeys);
+
+      if (credentialError) {
+        throw credentialError;
+      }
+
+      connectedMap = new Map((credentialRows || []).map((row) => [row.channel, row.status === 'connected']));
+    }
+
+    const publishableChannels = channels.filter((channel) => {
+      const credentialKey = credentialMapping[channel];
+      if (!credentialKey) {
+        return true;
+      }
+      return connectedMap.get(credentialKey) === true;
+    });
+
+    if (publishableChannels.length === 0) {
+      return res.status(400).json({
+        error: 'Geen gekoppelde kanalen beschikbaar. Controleer kanaalstatus in Merk instellingen.',
+      });
+    }
+
     const { data: fullDraft, error: fullDraftError } = await supabase
       .from('drafts')
-      .select('id, type, content_nl, social_nl, content_pl, social_pl, linkedin_post, form_data')
+      .select('id, type, omschrijving_nl, social_nl, omschrijving_pl, social_pl, linkedin_post, instagram_caption, image_path, form_data')
       .eq('id', draftId)
       .single();
 
@@ -101,14 +162,18 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
       throw fullDraftError;
     }
 
-    const publishResult = await publishDraft(fullDraft, channels);
+    const contentPayload = {
+      omschrijving_nl: fullDraft.omschrijving_nl,
+      social_nl: fullDraft.social_nl,
+      omschrijving_pl: fullDraft.omschrijving_pl,
+      social_pl: fullDraft.social_pl,
+      linkedin_post: fullDraft.linkedin_post,
+      instagram_caption: fullDraft.instagram_caption,
+      image_path: fullDraft.image_path,
+      form_data: fullDraft.form_data,
+    };
 
-    if (publishResult.successCount === 0) {
-      return res.status(502).json({
-        error: 'Publiceren mislukt: geen enkel kanaal accepteerde de publicatie.',
-        results: publishResult.rows,
-      });
-    }
+    await n8n.publish(draftId, fullDraft.type, publishableChannels, contentPayload);
 
     const { error: updateError } = await supabase
       .from('drafts')
@@ -118,15 +183,6 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
     if (updateError) {
       throw updateError;
     }
-
-    await notify('draft_published', {
-      draftId,
-      title: getDraftTitle(fullDraft.form_data),
-      publishedBy: req.user.email,
-      channels,
-      results: publishResult.rows,
-    });
-
     return res.json({ success: true });
   } catch (error) {
     return next(error);
@@ -159,7 +215,7 @@ router.post('/:id/expire', requireRole('owner'), async (req, res, next) => {
 
     const { data: publicationRows, error: publicationReadError } = await supabase
       .from('publications')
-      .select('channel, external_id')
+      .select('external_id')
       .eq('draft_id', draftId)
       .not('external_id', 'is', null);
 
@@ -167,7 +223,8 @@ router.post('/:id/expire', requireRole('owner'), async (req, res, next) => {
       throw publicationReadError;
     }
 
-    await expirePublishedDraft(draft, publicationRows || []);
+    const externalIds = (publicationRows || []).map((row) => row.external_id).filter(Boolean);
+    await n8n.expire(draftId, externalIds);
 
     const { error: updateDraftError } = await supabase
       .from('drafts')
@@ -187,11 +244,6 @@ router.post('/:id/expire', requireRole('owner'), async (req, res, next) => {
     if (updatePublicationsError) {
       throw updatePublicationsError;
     }
-
-    await notify('vacature_expired', {
-      draftId,
-      expiredBy: req.user.email,
-    });
 
     return res.json({ success: true });
   } catch (error) {

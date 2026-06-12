@@ -1,28 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { Loader2, Sparkles } from 'lucide-react';
-
-import FormMessage from '@/components/shared/FormMessage';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
-
-const CHANNEL_OPTIONS = [
-  { key: 'linkedin_jobs', label: 'LinkedIn Jobs' },
-  { key: 'indeed', label: 'Indeed' },
-  { key: 'facebook_instagram', label: 'Facebook/Instagram' },
-  { key: 'wordpress', label: 'WordPress' },
-  { key: 'google_mijn_bedrijf', label: 'Google Mijn Bedrijf' },
-];
+import './vacature-plaatsen.css';
 
 const DEFAULT_FORM = {
   functietitel: '',
@@ -30,18 +11,20 @@ const DEFAULT_FORM = {
   urenPerWeek: '',
   startdatum: '',
   korteOmschrijving: '',
-  taal: 'Nederlands',
-  kanalen: [],
+  taal: 'NL',
+  contract: '',
 };
 
 function createTabs(content) {
   const tabs = [
-    { key: 'content_nl', label: 'Vacature tekst NL' },
+    { key: 'omschrijving_nl', label: 'Omschrijving NL' },
+    { key: 'functie_eisen', label: 'Functie-eisen NL' },
+    { key: 'wat_wij_bieden', label: 'Wat wij bieden NL' },
     { key: 'social_nl', label: 'Social post NL' },
   ];
 
-  if (content.content_pl) {
-    tabs.push({ key: 'content_pl', label: 'Vacature tekst PL' });
+  if (content.omschrijving_pl) {
+    tabs.push({ key: 'omschrijving_pl', label: 'Omschrijving PL' });
   }
 
   if (content.social_pl) {
@@ -55,23 +38,17 @@ export default function VacaturePlaatsen() {
   const { role } = useAuth();
   const [searchParams] = useSearchParams();
   const draftIdParam = searchParams.get('draftId');
-  const [form, setForm] = useState(DEFAULT_FORM);
-  const [draftId, setDraftId] = useState(null);
-  const [content, setContent] = useState({
-    content_nl: '',
-    social_nl: '',
-    content_pl: '',
-    social_pl: '',
+  const [draftId, setDraftId] = useState(draftIdParam);
+  const [formEdits, setFormEdits] = useState({});
+  const [contentEdits, setContentEdits] = useState({});
+  const [criticusOverride, setCriticusOverride] = useState({
+    passed: undefined,
+    notes: undefined,
   });
-  const [activeTab, setActiveTab] = useState('content_nl');
+  const [activeTab, setActiveTab] = useState('omschrijving_nl');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  const brandQuery = useQuery({
-    queryKey: ['brand-settings'],
-    queryFn: () => api('/brand'),
-  });
 
   const existingDraftQuery = useQuery({
     queryKey: ['draft-detail-vacature', draftIdParam],
@@ -79,67 +56,70 @@ export default function VacaturePlaatsen() {
     enabled: Boolean(draftIdParam),
   });
 
-  useEffect(() => {
-    const draft = existingDraftQuery.data?.draft;
+  const loadedDraft = existingDraftQuery.data?.draft;
 
-    if (!draft) {
-      return;
-    }
+  const form = useMemo(
+    () => ({
+      ...DEFAULT_FORM,
+      ...(loadedDraft?.form_data || {}),
+      ...formEdits,
+    }),
+    [loadedDraft, formEdits]
+  );
 
-    setDraftId(draft.id);
-    setForm((prev) => ({
-      ...prev,
-      ...(draft.form_data || {}),
-      kanalen: Array.isArray(draft.form_data?.kanalen) ? draft.form_data.kanalen : [],
-    }));
-    setContent({
-      content_nl: draft.content_nl || '',
-      social_nl: draft.social_nl || '',
-      content_pl: draft.content_pl || '',
-      social_pl: draft.social_pl || '',
-    });
-  }, [existingDraftQuery.data]);
+  const content = useMemo(
+    () => ({
+      omschrijving_nl: loadedDraft?.omschrijving_nl || '',
+      functie_eisen: loadedDraft?.functie_eisen || '',
+      wat_wij_bieden: loadedDraft?.wat_wij_bieden || '',
+      omschrijving_pl: loadedDraft?.omschrijving_pl || '',
+      social_nl: loadedDraft?.social_nl || '',
+      social_pl: loadedDraft?.social_pl || '',
+      ...contentEdits,
+    }),
+    [loadedDraft, contentEdits]
+  );
 
-  const configuredChannels =
-    brandQuery.data?.configuredChannels || CHANNEL_OPTIONS.map((c) => c.key);
+  const criticusPassed =
+    typeof criticusOverride.passed === 'boolean'
+      ? criticusOverride.passed
+      : typeof loadedDraft?.criticus_passed === 'boolean'
+      ? loadedDraft.criticus_passed
+      : null;
+
+  const criticusNotes =
+    typeof criticusOverride.notes === 'string'
+      ? criticusOverride.notes
+      : loadedDraft?.criticus_notes || '';
+
+  const effectiveDraftId = draftId || draftIdParam;
 
   const tabs = useMemo(() => createTabs(content), [content]);
 
   const saveMutation = useMutation({
     mutationFn: (status) =>
-      api(`/drafts/${draftId}`, {
+      api(`/drafts/${effectiveDraftId}`, {
         method: 'PUT',
         body: JSON.stringify({
-          content_nl: content.content_nl,
+          omschrijving_nl: content.omschrijving_nl,
+          functie_eisen: content.functie_eisen,
+          wat_wij_bieden: content.wat_wij_bieden,
+          omschrijving_pl: content.omschrijving_pl,
           social_nl: content.social_nl,
-          content_pl: content.content_pl,
           social_pl: content.social_pl,
+          criticus_passed: criticusPassed,
+          criticus_notes: criticusNotes,
           status,
         }),
       }),
   });
 
   const submitForApprovalMutation = useMutation({
-    mutationFn: () => api(`/drafts/${draftId}/submit`, { method: 'POST' }),
-  });
-
-  const publishMutation = useMutation({
-    mutationFn: () => api(`/publish/${draftId}`, { method: 'POST' }),
+    mutationFn: () => api(`/drafts/${effectiveDraftId}/submit`, { method: 'POST' }),
   });
 
   function updateField(key, value) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
-
-  function toggleChannel(channelKey) {
-    setForm((prev) => {
-      const exists = prev.kanalen.includes(channelKey);
-      if (exists) {
-        return { ...prev, kanalen: prev.kanalen.filter((item) => item !== channelKey) };
-      }
-
-      return { ...prev, kanalen: [...prev.kanalen, channelKey] };
-    });
+    setFormEdits((prev) => ({ ...prev, [key]: value }));
   }
 
   async function handleGenerate(event) {
@@ -152,8 +132,8 @@ export default function VacaturePlaatsen() {
       return;
     }
 
-    if (form.kanalen.length === 0) {
-      setError('Kies minimaal een kanaal.');
+    if (!form.contract) {
+      setError('Contract is verplicht.');
       return;
     }
 
@@ -177,14 +157,23 @@ export default function VacaturePlaatsen() {
       });
 
       const nextContent = {
-        content_nl: generated?.draft?.content_nl || '',
+        omschrijving_nl: generated?.draft?.omschrijving_nl || '',
+        functie_eisen: generated?.draft?.functie_eisen || '',
+        wat_wij_bieden: generated?.draft?.wat_wij_bieden || '',
+        omschrijving_pl: generated?.draft?.omschrijving_pl || '',
         social_nl: generated?.draft?.social_nl || '',
-        content_pl: generated?.draft?.content_pl || '',
         social_pl: generated?.draft?.social_pl || '',
       };
 
-      setContent(nextContent);
-      setActiveTab('content_nl');
+      setContentEdits(nextContent);
+      setCriticusOverride({
+        passed:
+          typeof generated?.draft?.criticus_passed === 'boolean'
+            ? generated.draft.criticus_passed
+            : null,
+        notes: generated?.draft?.criticus_notes || '',
+      });
+      setActiveTab('omschrijving_nl');
       setSuccess('Concept succesvol gegenereerd.');
     } catch (err) {
       setError(err.message || 'Genereren is mislukt.');
@@ -218,224 +207,180 @@ export default function VacaturePlaatsen() {
     }
   }
 
-  async function handleApproveAndPublish() {
+  async function handleApprove() {
     setError('');
     setSuccess('');
 
     try {
-      await saveMutation.mutateAsync('approved');
-      await publishMutation.mutateAsync();
-      setSuccess('Concept goedgekeurd en gepubliceerd.');
+      await saveMutation.mutateAsync('draft');
+      await api(`/drafts/${effectiveDraftId}/approve`, { method: 'POST' });
+      setSuccess('Vacature is goedgekeurd en staat nu op actief (in feed).');
     } catch (err) {
-      setError(err.message || 'Publiceren is mislukt.');
+      setError(err.message || 'Goedkeuren is mislukt.');
     }
   }
 
   const isBusy =
     isGenerating ||
     saveMutation.isPending ||
-    submitForApprovalMutation.isPending ||
-    publishMutation.isPending;
+    submitForApprovalMutation.isPending;
 
   if (existingDraftQuery.isLoading) {
-    return <Skeleton className="h-64" />;
+    return <p>Concept wordt geladen...</p>;
   }
 
   return (
-    <div className="grid gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Vacaturegegevens</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form className="grid gap-5" onSubmit={handleGenerate}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="grid gap-2">
-                <Label htmlFor="functietitel">Functietitel</Label>
-                <Input
-                  id="functietitel"
-                  value={form.functietitel}
-                  onChange={(event) => updateField('functietitel', event.target.value)}
-                  required
-                />
-              </div>
+    <div className="vacature-layout">
+      <form className="vacature-form" onSubmit={handleGenerate}>
+        <div className="vacature-grid">
+          <label className="vacature-field">
+            Functietitel
+            <input
+              value={form.functietitel}
+              onChange={(event) => updateField('functietitel', event.target.value)}
+              required
+            />
+          </label>
 
-              <div className="grid gap-2">
-                <Label htmlFor="locatie">Locatie</Label>
-                <Input
-                  id="locatie"
-                  value={form.locatie}
-                  onChange={(event) => updateField('locatie', event.target.value)}
-                />
-              </div>
+          <label className="vacature-field">
+            Locatie
+            <input
+              value={form.locatie}
+              onChange={(event) => updateField('locatie', event.target.value)}
+            />
+          </label>
 
-              <div className="grid gap-2">
-                <Label htmlFor="urenPerWeek">Uren per week</Label>
-                <Input
-                  id="urenPerWeek"
-                  type="number"
-                  min="1"
-                  value={form.urenPerWeek}
-                  onChange={(event) => updateField('urenPerWeek', event.target.value)}
-                  required
-                />
-              </div>
+          <label className="vacature-field">
+            Uren per week
+            <input
+              type="number"
+              min="1"
+              value={form.urenPerWeek}
+              onChange={(event) => updateField('urenPerWeek', event.target.value)}
+              required
+            />
+          </label>
 
-              <div className="grid gap-2">
-                <Label htmlFor="startdatum">Startdatum</Label>
-                <Input
-                  id="startdatum"
-                  type="date"
-                  value={form.startdatum}
-                  onChange={(event) => updateField('startdatum', event.target.value)}
-                  required
-                />
-              </div>
+          <label className="vacature-field">
+            Startdatum
+            <input
+              type="date"
+              value={form.startdatum}
+              onChange={(event) => updateField('startdatum', event.target.value)}
+              required
+            />
+          </label>
+        </div>
+
+        <label className="vacature-field">
+          Korte omschrijving
+          <textarea
+            value={form.korteOmschrijving}
+            onChange={(event) => updateField('korteOmschrijving', event.target.value)}
+            maxLength={400}
+            rows={4}
+            required
+          />
+          <small>{form.korteOmschrijving.length}/400 tekens</small>
+        </label>
+
+        <div className="vacature-field">
+          <span>Taal</span>
+          <div className="vacature-language" role="group" aria-label="Taalkeuze">
+            <button
+              type="button"
+              className={form.taal === 'NL' ? 'active' : ''}
+              onClick={() => updateField('taal', 'NL')}
+            >
+              NL
+            </button>
+            <button
+              type="button"
+              className={form.taal === 'NL+PL' ? 'active' : ''}
+              onClick={() => updateField('taal', 'NL+PL')}
+            >
+              NL + PL
+            </button>
+          </div>
+        </div>
+
+        <label className="vacature-field">
+          Contract
+          <input
+            value={form.contract}
+            onChange={(event) => updateField('contract', event.target.value)}
+            placeholder="Bijv. Fulltime"
+            required
+          />
+        </label>
+
+        <div className="form-actions">
+          <button type="submit" disabled={isBusy}>
+            Concept genereren
+          </button>
+        </div>
+      </form>
+
+      {isGenerating ? <div className="skeleton">Concept wordt gegenereerd...</div> : null}
+
+      {effectiveDraftId && !isGenerating ? (
+        <section className="vacature-preview">
+          <h3>Voorbeeld en bewerken</h3>
+
+          {criticusPassed !== null ? (
+            <div className={`criticus-box ${criticusPassed ? 'pass' : 'fail'}`}>
+              <strong>{criticusPassed ? 'Criticus: akkoord' : 'Criticus: aandacht nodig'}</strong>
+              <p>{criticusNotes || 'Geen opmerkingen.'}</p>
             </div>
+          ) : null}
 
-            <div className="grid gap-2">
-              <Label htmlFor="korteOmschrijving">Korte omschrijving</Label>
-              <Textarea
-                id="korteOmschrijving"
-                value={form.korteOmschrijving}
-                onChange={(event) => updateField('korteOmschrijving', event.target.value)}
-                maxLength={400}
-                rows={4}
-                required
-              />
-              <span className="text-right text-xs text-muted-foreground">
-                {form.korteOmschrijving.length}/400 tekens
-              </span>
-            </div>
+          <div className="preview-tabs">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                className={activeTab === tab.key ? 'active' : ''}
+                onClick={() => setActiveTab(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-            <div className="grid gap-2">
-              <Label>Taal</Label>
-              <div className="inline-flex w-fit rounded-md border border-border p-1">
-                {['Nederlands', 'Nederlands + Pools'].map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => updateField('taal', value)}
-                    className={cn(
-                      'rounded-sm px-4 py-1.5 text-sm font-display font-bold transition-colors',
-                      form.taal === value
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground',
-                    )}
-                  >
-                    {value}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Kanalen</Label>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {CHANNEL_OPTIONS.map((channel) => {
-                  const disabled = !configuredChannels.includes(channel.key);
-                  return (
-                    <label
-                      key={channel.key}
-                      className={cn(
-                        'flex items-center gap-2.5 rounded-md border border-border px-3 py-2.5 text-sm',
-                        disabled
-                          ? 'cursor-not-allowed opacity-50'
-                          : 'cursor-pointer hover:border-brand-red-300',
-                      )}
-                    >
-                      <Checkbox
-                        checked={form.kanalen.includes(channel.key)}
-                        onCheckedChange={() => toggleChannel(channel.key)}
-                        disabled={disabled}
-                      />
-                      {channel.label}
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            <FormMessage variant="error">{error}</FormMessage>
-
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isBusy || brandQuery.isLoading}>
-                {isGenerating ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Sparkles className="size-4" />
-                )}
-                Concept genereren
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      {isGenerating ? (
-        <Card>
-          <CardContent className="flex items-center gap-3 py-8 text-muted-foreground">
-            <Loader2 className="size-5 animate-spin text-primary" />
-            Concept wordt gegenereerd...
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {draftId && !isGenerating ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Voorbeeld en bewerken</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="flex-wrap">
-                {tabs.map((tab) => (
-                  <TabsTrigger key={tab.key} value={tab.key}>
-                    {tab.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-
-            <Textarea
-              className="min-h-64 font-mono text-sm"
+          <div className="preview-pane">
+            <textarea
               value={content[activeTab] || ''}
               onChange={(event) =>
-                setContent((prev) => ({
+                setContentEdits((prev) => ({
                   ...prev,
                   [activeTab]: event.target.value,
                 }))
               }
             />
+          </div>
 
-            <FormMessage variant="success">{success}</FormMessage>
+          <div className="form-actions">
+            <button type="button" onClick={handleSaveDraft} disabled={isBusy}>
+              Opslaan als concept
+            </button>
 
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button variant="outline" onClick={handleSaveDraft} disabled={isBusy}>
-                Opslaan als concept
-              </Button>
+            {role === 'recruiter' ? (
+              <button type="button" onClick={handleSubmitForApproval} disabled={isBusy}>
+                Indienen ter goedkeuring
+              </button>
+            ) : null}
 
-              {role === 'recruiter' ? (
-                <Button
-                  variant="secondary"
-                  onClick={handleSubmitForApproval}
-                  disabled={isBusy}
-                >
-                  Indienen ter goedkeuring
-                </Button>
-              ) : null}
-
-              {role === 'owner' ? (
-                <Button onClick={handleApproveAndPublish} disabled={isBusy}>
-                  Goedkeuren en publiceren
-                </Button>
-              ) : null}
-            </div>
-          </CardContent>
-        </Card>
+            {role === 'owner' ? (
+              <button type="button" onClick={handleApprove} disabled={isBusy}>
+                Goedkeuren
+              </button>
+            ) : null}
+          </div>
+        </section>
       ) : null}
 
-      {!draftId ? <FormMessage variant="success">{success}</FormMessage> : null}
+      {error ? <p className="error-text">{error}</p> : null}
+      {success ? <p>{success}</p> : null}
     </div>
   );
 }

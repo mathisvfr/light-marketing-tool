@@ -1,21 +1,8 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-
-import ChannelIndicator from '@/components/shared/ChannelIndicator';
-import FormMessage from '@/components/shared/FormMessage';
-import TypeBadge from '@/components/shared/TypeBadge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import './gepubliceerd.css';
 
 function formatDate(value) {
   if (!value) {
@@ -27,6 +14,30 @@ function formatDate(value) {
     month: '2-digit',
     year: 'numeric',
   }).format(new Date(value));
+}
+
+function getTypeLabel(type) {
+  return type === 'marketing-post' ? 'Marketing' : 'Vacature';
+}
+
+function getTypeClass(type) {
+  return type === 'marketing-post' ? 'published-badge type-marketing' : 'published-badge type-vacature';
+}
+
+function getStatusDotClass(status) {
+  if (status === 'success') {
+    return 'channel-dot success';
+  }
+
+  if (status === 'failed') {
+    return 'channel-dot failed';
+  }
+
+  if (status === 'pending') {
+    return 'channel-dot pending';
+  }
+
+  return 'channel-dot unknown';
 }
 
 export default function Gepubliceerd() {
@@ -61,84 +72,118 @@ export default function Gepubliceerd() {
   }
 
   if (publishedQuery.isLoading) {
-    return <p className="text-muted-foreground">Gepubliceerde items worden geladen...</p>;
+    return <p>Gepubliceerde items worden geladen...</p>;
   }
 
   if (publishedQuery.isError) {
-    return <FormMessage variant="error">Kon gepubliceerde items niet laden.</FormMessage>;
+    return <p className="published-error">Kon gepubliceerde items niet laden.</p>;
   }
 
-  const items = publishedQuery.data?.items || [];
+  const marketingItems = publishedQuery.data?.marketingItems || [];
+  const vacatureItems = publishedQuery.data?.vacatureItems || [];
 
   return (
-    <div className="grid gap-6">
-      <Card>
-        <CardContent className="py-2">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Titel</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Gepubliceerd op</TableHead>
-                <TableHead>Kanalen</TableHead>
-                <TableHead>Actie</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground">
-                    Nog geen gepubliceerde items.
-                  </TableCell>
-                </TableRow>
+    <div className="published-layout">
+      <section className="published-section">
+        <h3>Marketingpublicaties (Type B)</h3>
+        <div className="published-table-wrap">
+          <table className="published-table">
+            <thead>
+              <tr>
+                <th>Titel</th>
+                <th>Type</th>
+                <th>Gepubliceerd op</th>
+                <th>Per-kanaal status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {marketingItems.length === 0 ? (
+                <tr>
+                  <td colSpan={4}>Nog geen gepubliceerde marketingposts.</td>
+                </tr>
               ) : (
-                items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium whitespace-normal">
-                      {item.title}
-                    </TableCell>
-                    <TableCell>
-                      <TypeBadge type={item.type} />
-                    </TableCell>
-                    <TableCell>{formatDate(item.publishedAt)}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1.5">
+                marketingItems.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.title}</td>
+                    <td>
+                      <span className={getTypeClass(item.type)}>{getTypeLabel(item.type)}</span>
+                    </td>
+                    <td>{formatDate(item.publishedAt)}</td>
+                    <td>
+                      <div className="channel-status-list">
                         {(item.channels || []).length === 0 ? (
-                          <span className="text-muted-foreground">-</span>
+                          <span>-</span>
                         ) : (
                           item.channels.map((channel) => (
-                            <ChannelIndicator
-                              key={`${item.id}-${channel.channel}`}
-                              channel={channel.channel}
-                              status={channel.status}
-                            />
+                            <span key={`${item.id}-${channel.channel}`} className="channel-status-item">
+                              <span className={getStatusDotClass(channel.status)} />
+                              {channel.channel} ({channel.status})
+                            </span>
                           ))
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {role === 'owner' && item.type === 'vacature' ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="published-section">
+        <h3>Actieve vacatures (Type A)</h3>
+        <div className="published-table-wrap">
+          <table className="published-table">
+            <thead>
+              <tr>
+                <th>Titel</th>
+                <th>Status</th>
+                <th>Laatst bijgewerkt</th>
+                <th>Stats</th>
+                <th>Actie</th>
+              </tr>
+            </thead>
+            <tbody>
+              {vacatureItems.length === 0 ? (
+                <tr>
+                  <td colSpan={5}>Geen actieve vacatures.</td>
+                </tr>
+              ) : (
+                vacatureItems.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.title}</td>
+                    <td>
+                      <span className="published-badge status-active">Actief</span>
+                    </td>
+                    <td>{formatDate(item.updatedAt)}</td>
+                    <td>{item.stats}</td>
+                    <td>
+                      {role === 'owner' ? (
+                        <button
+                          type="button"
                           onClick={() => handleExpire(item.id)}
                           disabled={expireMutation.isPending}
                         >
                           Vacature sluiten
-                        </Button>
+                        </button>
                       ) : (
-                        <span className="text-muted-foreground">-</span>
+                        '-'
                       )}
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))
               )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-      <FormMessage variant="error">{error}</FormMessage>
+      <p className="published-note">
+        Stats voor Type A zijn nog een stub tot de Jobit/Multiposter-methode definitief is.
+      </p>
+
+      {error ? <p className="published-error">{error}</p> : null}
     </div>
   );
 }

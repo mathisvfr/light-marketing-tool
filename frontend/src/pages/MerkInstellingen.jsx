@@ -1,17 +1,8 @@
-import { useEffect, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
-
-import FormMessage from '@/components/shared/FormMessage';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
+import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import './merk-instellingen.css';
 
 const CHANNEL_OPTIONS = [
   { key: 'linkedin_jobs', label: 'LinkedIn Jobs' },
@@ -19,16 +10,12 @@ const CHANNEL_OPTIONS = [
   { key: 'facebook_instagram', label: 'Facebook/Instagram' },
   { key: 'wordpress', label: 'WordPress' },
   { key: 'linkedin', label: 'LinkedIn (marketing)' },
-  { key: 'google_mijn_bedrijf', label: 'Google Mijn Bedrijf' },
 ];
 
-const TEXT_FIELDS = [
-  { key: 'bedrijfsnaam', label: 'Bedrijfsnaam', multiline: false },
-  { key: 'tone_of_voice', label: 'Tone of voice', multiline: true },
-  { key: 'aanbod_werknemers', label: 'Wat bieden wij werknemers', multiline: true },
-  { key: 'aanbod_opdrachtgevers', label: 'Wat bieden wij opdrachtgevers', multiline: true },
-  { key: 'doelgroep_werknemers', label: 'Doelgroep werknemers', multiline: true },
-  { key: 'doelgroep_opdrachtgevers', label: 'Doelgroep opdrachtgevers', multiline: true },
+const PROVIDER_OPTIONS = [
+  { key: 'linkedin', label: 'LinkedIn' },
+  { key: 'meta', label: 'Meta (Facebook/Instagram)' },
+  { key: 'wordpress', label: 'WordPress' },
 ];
 
 const DEFAULT_SETTINGS = {
@@ -40,50 +27,81 @@ const DEFAULT_SETTINGS = {
   doelgroep_opdrachtgevers: '',
 };
 
-function getApiLabel(key) {
-  const labels = {
-    linkedin_jobs: 'LinkedIn Jobs API',
-    indeed: 'Indeed API',
-    facebook_instagram: 'Facebook/Instagram API',
-    wordpress: 'WordPress API',
-    linkedin: 'LinkedIn API',
-    google_mijn_bedrijf: 'Google Mijn Bedrijf API',
-    notifications: 'Notificaties',
-    anthropic: 'Anthropic API',
-  };
+function getCredentialState(provider) {
+  if (!provider?.hasAccessToken) {
+    return 'disconnected';
+  }
 
-  return labels[key] || key;
+  if (!provider?.expiresAt) {
+    return 'connected';
+  }
+
+  const expiresAt = new Date(provider.expiresAt);
+  if (Number.isNaN(expiresAt.getTime())) {
+    return 'connected';
+  }
+
+  const daysLeft = (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+  if (daysLeft <= 7) {
+    return 'expiring';
+  }
+
+  return 'connected';
+}
+
+function getCredentialLabel(state) {
+  if (state === 'connected') {
+    return 'Verbonden';
+  }
+
+  if (state === 'expiring') {
+    return 'Verloopt binnenkort';
+  }
+
+  return 'Opnieuw koppelen';
 }
 
 export default function MerkInstellingen() {
+  const queryClient = useQueryClient();
   const { role } = useAuth();
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
-  const [configuredChannels, setConfiguredChannels] = useState([]);
+  const [settingsEdits, setSettingsEdits] = useState({});
+  const [configuredChannelsEdits, setConfiguredChannelsEdits] = useState(undefined);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   const brandQuery = useQuery({
     queryKey: ['brand-settings-owner'],
     queryFn: () => api('/brand'),
+  });
+
+  const integrationsQuery = useQuery({
+    queryKey: ['integrations-status-owner'],
+    queryFn: () => api('/integrations'),
     enabled: role === 'owner',
   });
 
-  useEffect(() => {
-    if (!brandQuery.data) {
-      return;
+  const settings = useMemo(
+    () => ({
+      ...DEFAULT_SETTINGS,
+      ...(brandQuery.data?.settings || {}),
+      ...settingsEdits,
+    }),
+    [brandQuery.data, settingsEdits]
+  );
+
+  const configuredChannels =
+    Array.isArray(configuredChannelsEdits)
+      ? configuredChannelsEdits
+      : brandQuery.data?.configuredChannels || [];
+
+  const providersByKey = useMemo(() => {
+    const map = new Map();
+    for (const provider of integrationsQuery.data?.providers || []) {
+      map.set(provider.provider, provider);
     }
 
-    setSettings({
-      bedrijfsnaam: brandQuery.data.settings?.bedrijfsnaam || '',
-      tone_of_voice: brandQuery.data.settings?.tone_of_voice || '',
-      aanbod_werknemers: brandQuery.data.settings?.aanbod_werknemers || '',
-      aanbod_opdrachtgevers: brandQuery.data.settings?.aanbod_opdrachtgevers || '',
-      doelgroep_werknemers: brandQuery.data.settings?.doelgroep_werknemers || '',
-      doelgroep_opdrachtgevers: brandQuery.data.settings?.doelgroep_opdrachtgevers || '',
-    });
-
-    setConfiguredChannels(brandQuery.data.configuredChannels || []);
-  }, [brandQuery.data]);
+    return map;
+  }, [integrationsQuery.data]);
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -96,17 +114,36 @@ export default function MerkInstellingen() {
       }),
   });
 
+  const connectMutation = useMutation({
+    mutationFn: ({ provider, accessToken, expiresAt }) =>
+      api(`/integrations/${provider}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          accessToken,
+          expiresAt: expiresAt || null,
+          metadata: {},
+        }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['integrations-status-owner'] });
+    },
+  });
+
   function updateField(key, value) {
-    setSettings((prev) => ({ ...prev, [key]: value }));
+    setSettingsEdits((prev) => ({ ...prev, [key]: value }));
   }
 
   function toggleChannel(channelKey) {
-    setConfiguredChannels((prev) => {
-      if (prev.includes(channelKey)) {
-        return prev.filter((item) => item !== channelKey);
+    setConfiguredChannelsEdits((prev) => {
+      const source = Array.isArray(prev)
+        ? prev
+        : brandQuery.data?.configuredChannels || [];
+
+      if (source.includes(channelKey)) {
+        return source.filter((item) => item !== channelKey);
       }
 
-      return [...prev, channelKey];
+      return [...source, channelKey];
     });
   }
 
@@ -118,115 +155,159 @@ export default function MerkInstellingen() {
     try {
       await saveMutation.mutateAsync();
       setSuccess('Merk instellingen opgeslagen.');
+      queryClient.invalidateQueries({ queryKey: ['brand-settings-owner'] });
     } catch (err) {
       setError(err.message || 'Opslaan mislukt.');
     }
   }
 
+  async function handleConnect(providerKey, providerLabel) {
+    setError('');
+    setSuccess('');
+
+    const accessToken = window.prompt(`${providerLabel}: plak access token`);
+    if (!accessToken) {
+      return;
+    }
+
+    const expiresAtInput = window.prompt(
+      `${providerLabel}: vervaldatum (optioneel, ISO formaat, bv 2026-07-31T00:00:00Z)`
+    );
+
+    try {
+      await connectMutation.mutateAsync({
+        provider: providerKey,
+        accessToken: accessToken.trim(),
+        expiresAt: expiresAtInput ? expiresAtInput.trim() : null,
+      });
+      setSuccess(`${providerLabel} is bijgewerkt.`);
+    } catch (err) {
+      setError(err.message || 'Koppelen mislukt.');
+    }
+  }
+
   if (role !== 'owner') {
-    return <p className="text-muted-foreground">Alleen eigenaren hebben toegang tot deze pagina.</p>;
+    return <p>Alleen eigenaren hebben toegang tot deze pagina.</p>;
   }
 
   if (brandQuery.isLoading) {
-    return <Skeleton className="h-96" />;
+    return <p>Merk instellingen worden geladen...</p>;
   }
 
   if (brandQuery.isError) {
-    return <FormMessage variant="error">Kon merk instellingen niet laden.</FormMessage>;
+    return <p className="brand-error">Kon merk instellingen niet laden.</p>;
   }
 
-  const apiStatus = brandQuery.data?.apiStatus || {};
-
   return (
-    <form className="grid gap-6" onSubmit={handleSave}>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Merkprofiel</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-5">
-          {TEXT_FIELDS.map((field) => (
-            <div key={field.key} className="grid gap-2">
-              <Label htmlFor={`brand-${field.key}`}>{field.label}</Label>
-              {field.multiline ? (
-                <Textarea
-                  id={`brand-${field.key}`}
-                  rows={3}
-                  value={settings[field.key]}
-                  onChange={(event) => updateField(field.key, event.target.value)}
-                />
-              ) : (
-                <Input
-                  id={`brand-${field.key}`}
-                  value={settings[field.key]}
-                  onChange={(event) => updateField(field.key, event.target.value)}
-                />
-              )}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+    <div className="brand-layout">
+      <form className="brand-form" onSubmit={handleSave}>
+        <label className="brand-field">
+          Bedrijfsnaam
+          <input
+            value={settings.bedrijfsnaam}
+            onChange={(event) => updateField('bedrijfsnaam', event.target.value)}
+          />
+        </label>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Geconfigureerde kanalen</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-2 sm:grid-cols-2">
+        <label className="brand-field">
+          Tone of voice
+          <textarea
+            rows={3}
+            value={settings.tone_of_voice}
+            onChange={(event) => updateField('tone_of_voice', event.target.value)}
+          />
+        </label>
+
+        <label className="brand-field">
+          Wat bieden wij werknemers
+          <textarea
+            rows={3}
+            value={settings.aanbod_werknemers}
+            onChange={(event) => updateField('aanbod_werknemers', event.target.value)}
+          />
+        </label>
+
+        <label className="brand-field">
+          Wat bieden wij opdrachtgevers
+          <textarea
+            rows={3}
+            value={settings.aanbod_opdrachtgevers}
+            onChange={(event) => updateField('aanbod_opdrachtgevers', event.target.value)}
+          />
+        </label>
+
+        <label className="brand-field">
+          Doelgroep werknemers
+          <textarea
+            rows={3}
+            value={settings.doelgroep_werknemers}
+            onChange={(event) => updateField('doelgroep_werknemers', event.target.value)}
+          />
+        </label>
+
+        <label className="brand-field">
+          Doelgroep opdrachtgevers
+          <textarea
+            rows={3}
+            value={settings.doelgroep_opdrachtgevers}
+            onChange={(event) => updateField('doelgroep_opdrachtgevers', event.target.value)}
+          />
+        </label>
+
+        <div className="brand-field">
+          <span>Geconfigureerde kanalen</span>
+          <div className="brand-channels">
             {CHANNEL_OPTIONS.map((channel) => (
-              <label
-                key={channel.key}
-                className="flex cursor-pointer items-center gap-2.5 rounded-md border border-border px-3 py-2.5 text-sm hover:border-brand-red-300"
-              >
-                <Checkbox
+              <label key={channel.key} className="brand-channel-item">
+                <input
+                  type="checkbox"
                   checked={configuredChannels.includes(channel.key)}
-                  onCheckedChange={() => toggleChannel(channel.key)}
+                  onChange={() => toggleChannel(channel.key)}
                 />
                 {channel.label}
               </label>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">API status</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {Object.keys(apiStatus).length === 0 ? (
-            <p className="text-muted-foreground">Geen API-status beschikbaar.</p>
-          ) : (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {Object.entries(apiStatus).map(([key, isOk]) => (
-                <div
-                  key={key}
-                  className="flex items-center justify-between rounded-md border border-border px-3 py-2.5 text-sm"
-                >
-                  <span>{getApiLabel(key)}</span>
-                  <Badge
-                    className={
-                      isOk
-                        ? 'border-transparent bg-success/15 text-success'
-                        : 'border-transparent bg-destructive/15 text-destructive'
-                    }
-                  >
-                    {isOk ? 'Verbonden' : 'Niet verbonden'}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <FormMessage variant="error">{error}</FormMessage>
-      <FormMessage variant="success">{success}</FormMessage>
-
-      <div className="flex justify-end">
-        <Button type="submit" disabled={saveMutation.isPending}>
+        <button type="submit" disabled={saveMutation.isPending}>
           Opslaan
-        </Button>
-      </div>
-    </form>
+        </button>
+      </form>
+
+      <section className="brand-integrations">
+        <h3>Kanaalkoppelingen</h3>
+        <div className="integration-grid">
+          {PROVIDER_OPTIONS.map((provider) => {
+            const row = providersByKey.get(provider.key);
+            const state = getCredentialState(row);
+            const stateLabel = getCredentialLabel(state);
+            const buttonLabel = state === 'disconnected' ? 'Koppelen' : 'Opnieuw koppelen';
+
+            return (
+              <article key={provider.key} className="integration-card">
+                <h4>{provider.label}</h4>
+                <p>
+                  Status:{' '}
+                  <span className={`integration-pill ${state}`}>
+                    {stateLabel}
+                  </span>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleConnect(provider.key, provider.label)}
+                  disabled={connectMutation.isPending || integrationsQuery.isLoading}
+                >
+                  {buttonLabel}
+                </button>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      {error ? <p className="brand-error">{error}</p> : null}
+      {success ? <p>{success}</p> : null}
+    </div>
   );
 }

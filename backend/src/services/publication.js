@@ -1,7 +1,8 @@
-const { Buffer } = require('node:buffer');
 const { supabase } = require('../db/client');
 const { publishToIndeed } = require('./indeed');
-const { publishFacebookInstagram } = require('./meta');
+const linkedinChannel = require('./channels/linkedin');
+const metaChannel = require('./channels/meta');
+const wordpressChannel = require('./channels/wordpress');
 const { getCredential } = require('./integrations');
 
 const REQUEST_TIMEOUT_MS = 15000;
@@ -87,32 +88,11 @@ async function publishToGoogleMijnBedrijf(draft) {
 }
 
 async function publishToWordPress(draft) {
-  const baseUrl = process.env.WORDPRESS_API_URL;
-  const username = process.env.WORDPRESS_USERNAME;
-  const appPassword = process.env.WORDPRESS_APP_PASSWORD;
-
-  if (!baseUrl || !username || !appPassword) {
-    return { status: 'failed', error: 'WordPress API is niet geconfigureerd.' };
-  }
-
-  const endpoint = `${baseUrl.replace(/\/$/, '')}/wp-json/wp/v2/posts`;
-  const basicToken = Buffer.from(`${username}:${appPassword}`).toString('base64');
-
-  const body = {
-    title: getDraftTitle(draft.form_data),
-    status: 'publish',
-    content: draft.type === 'vacature' ? draft.content_nl || '' : draft.linkedin_post || draft.social_nl || '',
-  };
-
-  const result = await postJson(endpoint, body, {
-    Authorization: `Basic ${basicToken}`,
+  return wordpressChannel.publish({
+    ...draft,
+    content_nl: draft.content_nl,
+    omschrijving_nl: draft.content_nl,
   });
-
-  return {
-    status: 'success',
-    externalId: result?.id ? String(result.id) : result?.link || null,
-    error: null,
-  };
 }
 
 function placeholderChannel(channel) {
@@ -128,7 +108,7 @@ async function publishChannel(channel, draft) {
   }
 
   if (channel === 'facebook_instagram') {
-    return publishFacebookInstagram(draft);
+    return metaChannel.publish(draft);
   }
 
   if (channel === 'google_mijn_bedrijf') {
@@ -136,10 +116,7 @@ async function publishChannel(channel, draft) {
   }
 
   if (channel === 'linkedin' || channel === 'linkedin_jobs') {
-    return {
-      status: 'failed',
-      error: `Kanaal '${channel}' vereist nog een directe LinkedIn-integratie.`,
-    };
+    return linkedinChannel.publish(draft);
   }
 
   if (channel === 'wordpress') {

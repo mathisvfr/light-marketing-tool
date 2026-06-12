@@ -1,0 +1,118 @@
+.queue-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.queue-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.queue-filters label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.92rem;
+}
+
+.queue-filters select {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  background: #ffffff;
+}
+
+.queue-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.queue-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
+
+.queue-table th,
+.queue-table td {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.7rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.queue-table thead th {
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #475569;
+  background: #f8fafc;
+}
+
+.queue-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.18rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.type-vacature {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.type-marketing {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-draft {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.status-pending_approval {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-approved,
+.status-actief,
+.status-published {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-expired,
+.status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.queue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.queue-actions button {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  border-radius: 7px;
+  padding: 0.35rem 0.55rem;
+}
+
+.queue-error {
+  color: #b91c1c;
+}
+
+@media (max-width: 1000px) {
+  .queue-filters {
+    grid-template-columns: 1fr;
+  }
+}

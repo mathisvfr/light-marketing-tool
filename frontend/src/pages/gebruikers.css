@@ -1,0 +1,127 @@
+.users-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.users-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.users-toolbar p {
+  margin: 0;
+  color: #475569;
+}
+
+.users-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.users-table {
+  width: 100%;
+  min-width: 840px;
+  border-collapse: collapse;
+}
+
+.users-table th,
+.users-table td {
+  text-align: left;
+  padding: 0.7rem;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+
+.users-table thead th {
+  font-size: 0.84rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.role-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.16rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-right: 0.4rem;
+}
+
+.role-pill.owner {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.role-pill.recruiter {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.role-pill.viewer {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.users-table select,
+.users-modal input,
+.users-modal select {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.42rem 0.55rem;
+  font: inherit;
+  background: #ffffff;
+}
+
+.users-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: grid;
+  place-items: center;
+  z-index: 40;
+  padding: 1rem;
+}
+
+.users-modal {
+  width: 100%;
+  max-width: 460px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.users-modal h3 {
+  margin: 0;
+}
+
+.users-modal label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.users-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.users-error {
+  color: #b91c1c;
+}
+
+@media (max-width: 860px) {
+  .users-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

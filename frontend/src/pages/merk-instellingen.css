@@ -1,0 +1,97 @@
+.brand-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.brand-form,
+.brand-integrations {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.brand-field {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.brand-field input,
+.brand-field textarea {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.58rem 0.7rem;
+  font: inherit;
+}
+
+.brand-channels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.brand-channel-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  background: #f8fafc;
+}
+
+.integration-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.integration-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.integration-card h4 {
+  margin: 0;
+}
+
+.integration-card p {
+  margin: 0;
+}
+
+.integration-pill {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.integration-pill.connected {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.integration-pill.expiring {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.integration-pill.disconnected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.brand-error {
+  color: #b91c1c;
+}
+
+@media (max-width: 980px) {
+  .integration-grid {
+    grid-template-columns: 1fr;
+  }
+}

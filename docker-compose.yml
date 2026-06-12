@@ -12,6 +12,7 @@ services:
     volumes:
       - ./backend/prompts:/app/prompts:ro
       - ./brand:/app/brand:ro
+      - ./backend/uploads:/app/uploads
     expose:
       - "3001"
     restart: unless-stopped

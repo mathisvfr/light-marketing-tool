@@ -1,38 +1,8 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-
-import FormMessage from '@/components/shared/FormMessage';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { ROLE_LABELS } from '../lib/constants';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import './gebruikers.css';
 
 function formatDate(value) {
   if (!value) {
@@ -44,10 +14,6 @@ function formatDate(value) {
     month: '2-digit',
     year: 'numeric',
   }).format(new Date(value));
-}
-
-function roleLabel(role) {
-  return ROLE_LABELS?.[role] || role;
 }
 
 export default function Gebruikers() {
@@ -91,16 +57,26 @@ export default function Gebruikers() {
     },
   });
 
+  const deleteUserMutation = useMutation({
+    mutationFn: (userId) =>
+      api(`/users/${userId}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-list'] });
+    },
+  });
+
   if (role !== 'owner') {
-    return <p className="text-muted-foreground">Alleen eigenaren hebben toegang tot deze pagina.</p>;
+    return <p>Alleen eigenaren hebben toegang tot deze pagina.</p>;
   }
 
   if (usersQuery.isLoading) {
-    return <p className="text-muted-foreground">Gebruikers worden geladen...</p>;
+    return <p>Gebruikers worden geladen...</p>;
   }
 
   if (usersQuery.isError) {
-    return <FormMessage variant="error">Kon gebruikers niet laden.</FormMessage>;
+    return <p className="users-error">Kon gebruikers niet laden.</p>;
   }
 
   const users = usersQuery.data?.users || [];
@@ -132,93 +108,101 @@ export default function Gebruikers() {
     }
   }
 
+  async function handleDeleteUser(userId, userName) {
+    setError('');
+    setSuccess('');
+
+    if (!window.confirm(`Weet je zeker dat je ${userName} wilt verwijderen?`)) {
+      return;
+    }
+
+    try {
+      await deleteUserMutation.mutateAsync(userId);
+      setSuccess('Gebruiker verwijderd.');
+    } catch (err) {
+      setError(err.message || 'Gebruiker verwijderen mislukt.');
+    }
+  }
+
   return (
-    <div className="grid gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-muted-foreground">Beheer gebruikers en rollen.</p>
-        <Button onClick={() => setShowCreateModal(true)}>Gebruiker toevoegen</Button>
+    <div className="users-layout">
+      <div className="users-toolbar">
+        <p>Beheer gebruikers en rollen.</p>
+        <button type="button" onClick={() => setShowCreateModal(true)}>
+          Gebruiker toevoegen
+        </button>
       </div>
 
-      <Card>
-        <CardContent className="py-2">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Naam</TableHead>
-                <TableHead>E-mail</TableHead>
-                <TableHead>Rol</TableHead>
-                <TableHead>Aangemaakt</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground">
-                    Geen gebruikers gevonden.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                users.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{item.email}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">{roleLabel(item.role)}</Badge>
-                        <Select
-                          value={item.role}
-                          onValueChange={(value) => handleRoleChange(item.id, value)}
-                          disabled={updateRoleMutation.isPending}
-                        >
-                          <SelectTrigger size="sm" className="w-36">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="owner">Eigenaar</SelectItem>
-                            <SelectItem value="recruiter">Recruiter</SelectItem>
-                            <SelectItem value="viewer">Kijker</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </TableCell>
-                    <TableCell>{formatDate(item.createdAt)}</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <div className="users-table-wrap">
+        <table className="users-table">
+          <thead>
+            <tr>
+              <th>Naam</th>
+              <th>E-mail</th>
+              <th>Rol</th>
+              <th>Aangemaakt</th>
+              <th>Actie</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.length === 0 ? (
+              <tr>
+                <td colSpan={5}>Geen gebruikers gevonden.</td>
+              </tr>
+            ) : (
+              users.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.name}</td>
+                  <td>{item.email}</td>
+                  <td>
+                    <span className={`role-pill ${item.role}`}>{item.role}</span>
+                    {' '}
+                    <select
+                      value={item.role}
+                      onChange={(event) => handleRoleChange(item.id, event.target.value)}
+                      disabled={updateRoleMutation.isPending || deleteUserMutation.isPending}
+                    >
+                      <option value="owner">owner</option>
+                      <option value="recruiter">recruiter</option>
+                      <option value="viewer">viewer</option>
+                    </select>
+                  </td>
+                  <td>{formatDate(item.createdAt)}</td>
+                  <td>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteUser(item.id, item.name)}
+                      disabled={updateRoleMutation.isPending || deleteUserMutation.isPending}
+                    >
+                      Verwijderen
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
-      <FormMessage variant="error">{error}</FormMessage>
-      <FormMessage variant="success">{success}</FormMessage>
+      {showCreateModal ? (
+        <div className="users-modal-backdrop" role="dialog" aria-modal="true">
+          <form className="users-modal" onSubmit={handleCreateUser}>
+            <h3>Nieuwe gebruiker</h3>
 
-      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nieuwe gebruiker</DialogTitle>
-            <DialogDescription>
-              Voeg een nieuwe gebruiker toe met een tijdelijk wachtwoord en rol.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form className="grid gap-4" onSubmit={handleCreateUser}>
-            <div className="grid gap-2">
-              <Label htmlFor="user-name">Naam</Label>
-              <Input
-                id="user-name"
+            <label>
+              Naam
+              <input
                 value={createForm.name}
                 onChange={(event) =>
                   setCreateForm((prev) => ({ ...prev, name: event.target.value }))
                 }
                 required
               />
-            </div>
+            </label>
 
-            <div className="grid gap-2">
-              <Label htmlFor="user-email">E-mail</Label>
-              <Input
-                id="user-email"
+            <label>
+              E-mail
+              <input
                 type="email"
                 value={createForm.email}
                 onChange={(event) =>
@@ -226,58 +210,48 @@ export default function Gebruikers() {
                 }
                 required
               />
-            </div>
+            </label>
 
-            <div className="grid gap-2">
-              <Label htmlFor="user-password">Tijdelijk wachtwoord</Label>
-              <Input
-                id="user-password"
+            <label>
+              Tijdelijk wachtwoord
+              <input
                 type="text"
                 value={createForm.temporaryPassword}
                 onChange={(event) =>
-                  setCreateForm((prev) => ({
-                    ...prev,
-                    temporaryPassword: event.target.value,
-                  }))
+                  setCreateForm((prev) => ({ ...prev, temporaryPassword: event.target.value }))
                 }
                 required
               />
-            </div>
+            </label>
 
-            <div className="grid gap-2">
-              <Label>Rol</Label>
-              <Select
+            <label>
+              Rol
+              <select
                 value={createForm.role}
-                onValueChange={(value) =>
-                  setCreateForm((prev) => ({ ...prev, role: value }))
+                onChange={(event) =>
+                  setCreateForm((prev) => ({ ...prev, role: event.target.value }))
                 }
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="owner">Eigenaar</SelectItem>
-                  <SelectItem value="recruiter">Recruiter</SelectItem>
-                  <SelectItem value="viewer">Kijker</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <option value="owner">owner</option>
+                <option value="recruiter">recruiter</option>
+                <option value="viewer">viewer</option>
+              </select>
+            </label>
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowCreateModal(false)}
-              >
+            <div className="users-modal-actions">
+              <button type="button" onClick={() => setShowCreateModal(false)}>
                 Annuleren
-              </Button>
-              <Button type="submit" disabled={createMutation.isPending}>
+              </button>
+              <button type="submit" disabled={createMutation.isPending}>
                 Opslaan
-              </Button>
-            </DialogFooter>
+              </button>
+            </div>
           </form>
-        </DialogContent>
-      </Dialog>
+        </div>
+      ) : null}
+
+      {error ? <p className="users-error">{error}</p> : null}
+      {success ? <p>{success}</p> : null}
     </div>
   );
 }
