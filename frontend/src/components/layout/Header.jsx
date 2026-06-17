@@ -1,4 +1,12 @@
+const ROLE_BADGE = {
+  owner: { background: 'var(--light-red-100)', color: 'var(--light-red-700)', label: 'Owner' },
+  recruiter: { background: '#e0f2fe', color: '#075985', label: 'Recruiter' },
+  viewer: { background: '#f1f5f9', color: '#334155', label: 'Viewer' },
+};
+
 export default function Header({ pageTitle, userName, role, onLogout }) {
+  const badge = ROLE_BADGE[role] || { background: '#f1f5f9', color: '#334155', label: role || 'onbekend' };
+
   return (
     <header
       className="app-header"
@@ -24,20 +32,46 @@ export default function Header({ pageTitle, userName, role, onLogout }) {
             style={{
               display: 'inline-block',
               marginTop: '.15rem',
-              padding: '.2rem .5rem',
+              padding: '.2rem .55rem',
               borderRadius: 999,
-              background: '#e0f2fe',
-              color: '#075985',
+              background: badge.background,
+              color: badge.color,
               fontSize: '.75rem',
               textTransform: 'capitalize',
               fontWeight: 600,
             }}
           >
-            {role || 'onbekend'}
+            {badge.label}
           </span>
         </div>
 
-        <button type="button" onClick={onLogout}>
+        <button
+          type="button"
+          onClick={onLogout}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            borderRadius: 8,
+            padding: '.45rem .9rem',
+            font: 'inherit',
+            fontWeight: 600,
+            fontSize: '.88rem',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            background: '#ffffff',
+            color: 'var(--light-red)',
+            border: '1.5px solid var(--light-red-300)',
+            transition: 'background .15s, border-color .15s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--light-red-50)';
+            e.currentTarget.style.borderColor = 'var(--light-red)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#ffffff';
+            e.currentTarget.style.borderColor = 'var(--light-red-300)';
+          }}
+        >
           Uitloggen
         </button>
       </div>

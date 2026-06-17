@@ -12,6 +12,25 @@ import MarketingPost from './pages/MarketingPost';
 import MerkInstellingen from './pages/MerkInstellingen';
 import VacaturePlaatsen from './pages/VacaturePlaatsen';
 import { queryClient } from './lib/queryClient';
+import { useAuth } from './hooks/useAuth';
+
+function RoleRoute({ allowedRoles, children }) {
+  const { role, isInitializing } = useAuth();
+
+  if (isInitializing) {
+    return <div style={{ padding: '2rem' }}>Sessie wordt geladen...</div>;
+  }
+
+  if (!allowedRoles.includes(role)) {
+    return (
+      <div style={{ padding: '2rem', color: '#b91c1c' }}>
+        Je hebt geen toegang tot deze pagina.
+      </div>
+    );
+  }
+
+  return children;
+}
 
 function App() {
   return (
@@ -32,8 +51,22 @@ function App() {
               <Route path="/marketing-post" element={<MarketingPost />} />
               <Route path="/content-wachtrij" element={<ContentWachtrij />} />
               <Route path="/gepubliceerd" element={<Gepubliceerd />} />
-              <Route path="/merk-instellingen" element={<MerkInstellingen />} />
-              <Route path="/gebruikers" element={<Gebruikers />} />
+              <Route
+                path="/merk-instellingen"
+                element={
+                  <RoleRoute allowedRoles={['owner']}>
+                    <MerkInstellingen />
+                  </RoleRoute>
+                }
+              />
+              <Route
+                path="/gebruikers"
+                element={
+                  <RoleRoute allowedRoles={['owner']}>
+                    <Gebruikers />
+                  </RoleRoute>
+                }
+              />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
