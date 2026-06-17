@@ -261,6 +261,16 @@ export default function MarketingPost() {
     return <p>Concept wordt geladen...</p>;
   }
 
+  if (role === 'viewer') {
+    return (
+      <div className="marketing-layout">
+        <div className="viewer-readonly-banner">
+          Je hebt leesrechten. Je kunt geen marketingposts aanmaken of bewerken.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="marketing-layout">
       <form className="marketing-form" onSubmit={handleGenerate}>
@@ -270,6 +280,16 @@ export default function MarketingPost() {
             value={form.onderwerp}
             onChange={(event) => updateField('onderwerp', event.target.value)}
             required
+          />
+        </label>
+
+        <label className="marketing-field">
+          Aanvullende context (optioneel)
+          <textarea
+            value={form.beschrijving || ''}
+            onChange={(event) => updateField('beschrijving', event.target.value)}
+            rows={3}
+            placeholder="Extra context voor de AI, bijv. aanleiding, specifieke boodschap of doelgroep..."
           />
         </label>
 

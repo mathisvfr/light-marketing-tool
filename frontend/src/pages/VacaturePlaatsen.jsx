@@ -229,6 +229,16 @@ export default function VacaturePlaatsen() {
     return <p>Concept wordt geladen...</p>;
   }
 
+  if (role === 'viewer') {
+    return (
+      <div className="vacature-layout">
+        <div className="viewer-readonly-banner">
+          Je hebt leesrechten. Je kunt geen vacatures aanmaken of bewerken.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="vacature-layout">
       <form className="vacature-form" onSubmit={handleGenerate}>
@@ -267,7 +277,6 @@ export default function VacaturePlaatsen() {
               type="date"
               value={form.startdatum}
               onChange={(event) => updateField('startdatum', event.target.value)}
-              required
             />
           </label>
         </div>
@@ -287,20 +296,16 @@ export default function VacaturePlaatsen() {
         <div className="vacature-field">
           <span>Taal</span>
           <div className="vacature-language" role="group" aria-label="Taalkeuze">
-            <button
-              type="button"
-              className={form.taal === 'NL' ? 'active' : ''}
-              onClick={() => updateField('taal', 'NL')}
-            >
-              NL
-            </button>
-            <button
-              type="button"
-              className={form.taal === 'NL+PL' ? 'active' : ''}
-              onClick={() => updateField('taal', 'NL+PL')}
-            >
-              NL + PL
-            </button>
+            {[['NL', 'NL'], ['NL+PL', 'NL + PL'], ['PL', 'PL']].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={form.taal === value ? 'active' : ''}
+                onClick={() => updateField('taal', value)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -311,6 +316,35 @@ export default function VacaturePlaatsen() {
             onChange={(event) => updateField('contract', event.target.value)}
             placeholder="Bijv. Fulltime"
             required
+          />
+        </label>
+
+        <label className="vacature-field">
+          Salaris
+          <input
+            value={form.salaris || ''}
+            onChange={(event) => updateField('salaris', event.target.value)}
+            placeholder="Bijv. €14,- p/u of conform CAO (leeg = conform CAO)"
+          />
+        </label>
+
+        <label className="vacature-field">
+          Sollicitatie URL
+          <input
+            type="url"
+            value={form.sollicitatie_url || ''}
+            onChange={(event) => updateField('sollicitatie_url', event.target.value)}
+            placeholder="https://"
+          />
+        </label>
+
+        <label className="vacature-field">
+          E-mailadres sollicitaties
+          <input
+            type="email"
+            value={form.email || ''}
+            onChange={(event) => updateField('email', event.target.value)}
+            placeholder="recruiter@lightpersoneelsdiensten.nl"
           />
         </label>
 

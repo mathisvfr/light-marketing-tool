@@ -38,15 +38,36 @@
 }
 
 .vacature-language button {
-  border: 1px solid #cbd5e1;
+  border: 1.5px solid var(--color-border, #cbd5e1);
   background: #f8fafc;
   border-radius: 8px;
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 0.85rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+
+.vacature-language button:hover:not(.active) {
+  border-color: var(--light-red-300);
+  background: var(--light-red-50);
 }
 
 .vacature-language button.active {
-  border-color: #0f172a;
-  background: #e2e8f0;
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: 600;
+}
+
+.viewer-readonly-banner {
+  background: var(--grey-100);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
 }
 
 .form-actions {
