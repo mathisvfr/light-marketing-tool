@@ -13,9 +13,10 @@ Belangrijke regels:
    - functie_eisen
    - wat_wij_bieden
    - social_nl
-3. Als de invoer aangeeft dat ook Pools nodig is (bijv. taal = NL+PL), voeg dan ook toe:
-   - omschrijving_pl
-   - social_pl
+3. Taallogica op basis van het veld `taal` in de input:
+   - `taal = NL`    → genereer ALLEEN Nederlandse velden: omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl.
+   - `taal = NL+PL` → genereer alle Nederlandse velden ÉN Poolse equivalenten: omschrijving_pl, social_pl.
+   - `taal = PL`    → genereer ALLEEN Poolse velden: omschrijving_pl, social_pl. Laat omschrijving_nl, functie_eisen, wat_wij_bieden en social_nl weg uit de output.
 4. Verzin nooit salarissen of harde arbeidsvoorwaarden die niet in de input staan.
 5. Als salaris ontbreekt of leeg is, benoem dit als "salaris conform CAO".
 6. Noem transport en huisvesting alleen als dit in merkrichtlijnen of input wordt ondersteund.
