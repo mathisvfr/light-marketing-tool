@@ -53,6 +53,18 @@ function getChannelStatusLabel(status) {
   return status || 'Onbekend';
 }
 
+function getFeedHealthLabel(itemsWithIssues) {
+  if (itemsWithIssues === 0) {
+    return 'In orde';
+  }
+
+  if (itemsWithIssues < 5) {
+    return 'Aandacht nodig';
+  }
+
+  return 'Actie nodig';
+}
+
 export default function Dashboard() {
   const { role } = useAuth();
   const queryClient = useQueryClient();
@@ -92,6 +104,8 @@ export default function Dashboard() {
   const approvalQueue = summaryQuery.data?.approvalQueue || [];
   const recentActivity = summaryQuery.data?.recentActivity || [];
   const channelHealth = summaryQuery.data?.channelHealth || [];
+  const feedHealth = summaryQuery.data?.feedHealth || null;
+  const feedIssueCount = feedHealth?.itemsWithIssues || 0;
 
   return (
     <div className="dashboard-grid">
@@ -108,6 +122,16 @@ export default function Dashboard() {
           <h3>Actieve vacatures</h3>
           <p className="dashboard-count">{counts.activeVacatures}</p>
         </article>
+        {role === 'owner' ? (
+          <article className="dashboard-card">
+            <h3>Feed gezondheid</h3>
+            <p className="dashboard-count">{feedHealth?.totalItems || 0}</p>
+            <p className="dashboard-meta">
+              Items met issues: {feedIssueCount} · {getFeedHealthLabel(feedIssueCount)}
+            </p>
+            <p className="dashboard-meta">Laatste check: {formatDate(feedHealth?.generatedAt)}</p>
+          </article>
+        ) : null}
       </section>
 
       <section className="dashboard-panels">

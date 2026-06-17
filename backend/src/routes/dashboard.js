@@ -1,6 +1,7 @@
 const express = require('express');
 const { supabase } = require('../db/client');
 const { requireRole } = require('../middleware/auth');
+const { getJobsFeedStatus } = require('../services/feed');
 
 const router = express.Router();
 
@@ -39,6 +40,7 @@ router.get('/summary', async (req, res, next) => {
       recentActivityResult,
       channelRowsResult,
       approvalQueueResult,
+      feedStatusResult,
     ] = await Promise.all([
       supabase
         .from('drafts')
@@ -71,6 +73,9 @@ router.get('/summary', async (req, res, next) => {
             .order('created_at', { ascending: true })
             .limit(10)
         : Promise.resolve({ data: [], error: null }),
+      req.user.role === 'owner'
+        ? getJobsFeedStatus().then((data) => ({ data, error: null }))
+        : Promise.resolve({ data: null, error: null }),
     ]);
 
     const errors = [
@@ -80,6 +85,7 @@ router.get('/summary', async (req, res, next) => {
       recentActivityResult.error,
       channelRowsResult.error,
       approvalQueueResult.error,
+      feedStatusResult.error,
     ].filter(Boolean);
 
     if (errors.length > 0) {
@@ -132,6 +138,7 @@ router.get('/summary', async (req, res, next) => {
       },
       approvalQueue,
       recentActivity,
+      feedHealth: feedStatusResult.data,
       channelHealth: Array.from(channelMap.values())
         .map(({ channel, status, updatedAt }) => ({ channel, status, updatedAt }))
         .sort((a, b) => a.channel.localeCompare(b.channel)),

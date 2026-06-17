@@ -1,5 +1,7 @@
 const { supabase } = require('../db/client');
 
+const REQUIRED_FIELDS = ['nummer', 'datum', 'titel', 'plaats', 'omschrijving'];
+
 function toCdata(value) {
   const text = String(value ?? '');
   return `<![CDATA[${text.replace(/\]\]>/g, ']]]]><![CDATA[>')}]]>`;
@@ -57,6 +59,52 @@ function mapDraftToFeedItem(draft) {
   };
 }
 
+function createIssue(code, message, field) {
+  return { code, message, field };
+}
+
+function evaluateItemQuality(draft, item) {
+  const issues = [];
+  const formData = draft.form_data || {};
+
+  if (!draft.titel && !formData.functietitel && !formData.titel && !formData.title) {
+    issues.push(createIssue('fallback_title', 'Titel ontbreekt in brondata, fallback gebruikt.', 'titel'));
+  }
+
+  const plaatsCandidate = pickFirst(draft.plaats, formData.locatie);
+  if (!isSinglePlaceName(plaatsCandidate)) {
+    issues.push(
+      createIssue(
+        'fallback_place',
+        'Plaats was ongeldig of leeg, fallback Rotterdam gebruikt.',
+        'plaats'
+      )
+    );
+  }
+
+  if (!draft.omschrijving_nl || String(draft.omschrijving_nl).trim() === '') {
+    issues.push(
+      createIssue(
+        'missing_description',
+        'Omschrijving ontbreekt; dit veld is verplicht volgens XML-specificatie.',
+        'omschrijving'
+      )
+    );
+  }
+
+  const missingRequired = REQUIRED_FIELDS.filter(
+    (field) => item[field] === undefined || item[field] === null || String(item[field]).trim() === ''
+  );
+
+  for (const field of missingRequired) {
+    issues.push(
+      createIssue('missing_required', `Verplicht veld ontbreekt in feed-item: ${field}.`, field)
+    );
+  }
+
+  return issues;
+}
+
 function toJobXml(item) {
   return [
     '  <job>',
@@ -81,6 +129,18 @@ function toJobXml(item) {
 }
 
 async function generateJobsFeedXml() {
+  const { items } = await buildJobsFeedData();
+  const jobsXml = items.map(toJobXml).join('\n');
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<jobs>',
+    jobsXml,
+    '</jobs>',
+  ].join('\n');
+}
+
+async function fetchActiveVacatureDrafts() {
   const { data, error } = await supabase
     .from('drafts')
     .select('id, created_at, form_data, titel, plaats, omschrijving_nl, functie_eisen, wat_wij_bieden, salaris, uren, contract, sollicitatie_url')
@@ -93,17 +153,54 @@ async function generateJobsFeedXml() {
     throw error;
   }
 
-  const items = (data || []).map(mapDraftToFeedItem);
-  const jobsXml = items.map(toJobXml).join('\n');
+  return data || [];
+}
 
-  return [
-    '<?xml version="1.0" encoding="UTF-8"?>',
-    '<jobs>',
-    jobsXml,
-    '</jobs>',
-  ].join('\n');
+async function buildJobsFeedData() {
+  const drafts = await fetchActiveVacatureDrafts();
+  const items = [];
+  const diagnostics = [];
+
+  for (const draft of drafts) {
+    const item = mapDraftToFeedItem(draft);
+    const issues = evaluateItemQuality(draft, item);
+
+    items.push(item);
+
+    if (issues.length > 0) {
+      diagnostics.push({
+        draftId: draft.id,
+        issues,
+      });
+    }
+  }
+
+  return {
+    items,
+    diagnostics,
+  };
+}
+
+async function getJobsFeedStatus() {
+  const { items, diagnostics } = await buildJobsFeedData();
+  const issueCounts = diagnostics.reduce((accumulator, entry) => {
+    for (const issue of entry.issues) {
+      const currentCount = accumulator[issue.code] || 0;
+      accumulator[issue.code] = currentCount + 1;
+    }
+    return accumulator;
+  }, {});
+
+  return {
+    generatedAt: new Date().toISOString(),
+    totalItems: items.length,
+    itemsWithIssues: diagnostics.length,
+    issueCounts,
+    diagnostics,
+  };
 }
 
 module.exports = {
   generateJobsFeedXml,
+  getJobsFeedStatus,
 };

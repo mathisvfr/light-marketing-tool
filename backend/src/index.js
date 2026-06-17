@@ -7,6 +7,7 @@ require('dotenv').config({
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const crypto = require('crypto');
 const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashboard');
 const draftsRoutes = require('./routes/drafts');
@@ -19,6 +20,60 @@ const { requireAuth } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
+
+function secureEquals(left, right) {
+  const leftBuffer = Buffer.from(String(left || ''), 'utf8');
+  const rightBuffer = Buffer.from(String(right || ''), 'utf8');
+
+  if (leftBuffer.length !== rightBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function requireFeedAuth(req, res, next) {
+  const expectedUser = String(process.env.FEEDS_BASIC_AUTH_USERNAME || '').trim();
+  const expectedPassword = String(process.env.FEEDS_BASIC_AUTH_PASSWORD || '').trim();
+
+  // Keep the feed public by default; enable auth only when both vars are present.
+  if (!expectedUser || !expectedPassword) {
+    return next();
+  }
+
+  const header = req.headers.authorization || '';
+  if (!header.startsWith('Basic ')) {
+    res.set('WWW-Authenticate', 'Basic realm="feeds"');
+    return res.status(401).json({ error: 'Authenticatie vereist voor feed.' });
+  }
+
+  let decoded;
+  try {
+    decoded = Buffer.from(header.slice(6), 'base64').toString('utf8');
+  } catch (_error) {
+    res.set('WWW-Authenticate', 'Basic realm="feeds"');
+    return res.status(401).json({ error: 'Ongeldige authenticatieheader.' });
+  }
+
+  const separatorIndex = decoded.indexOf(':');
+  if (separatorIndex < 0) {
+    res.set('WWW-Authenticate', 'Basic realm="feeds"');
+    return res.status(401).json({ error: 'Ongeldige authenticatieheader.' });
+  }
+
+  const providedUser = decoded.slice(0, separatorIndex);
+  const providedPassword = decoded.slice(separatorIndex + 1);
+
+  const validUser = secureEquals(providedUser, expectedUser);
+  const validPassword = secureEquals(providedPassword, expectedPassword);
+
+  if (!validUser || !validPassword) {
+    res.set('WWW-Authenticate', 'Basic realm="feeds"');
+    return res.status(401).json({ error: 'Ongeldige feed-inloggegevens.' });
+  }
+
+  return next();
+}
 
 app.use(
   cors({
@@ -34,7 +89,7 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.use('/feeds', feedsRoutes);
+app.use('/feeds', requireFeedAuth, feedsRoutes);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', requireAuth, dashboardRoutes);

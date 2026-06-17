@@ -97,3 +97,72 @@ Stop:
 - Rotate any key that appeared in terminal output or logs.
 - Do not commit `.env` to git.
 - Keep service role key only on backend side.
+
+## 9) Multiposter XML feed koppelen (uitvoering)
+
+Doel: vacatures met status `actief` inladen in Multiposter via de publieke XML feed.
+
+### 9.1 Voorwaarden
+
+- Productie stack draait en is extern bereikbaar via HTTPS.
+- Feed endpoint werkt: `GET /feeds/jobs.xml`.
+- Alleen vacatures met status `actief` staan in de feed.
+- Verplichte XML velden aanwezig: Nummer, Datum, Titel, Plaats, Omschrijving.
+
+### 9.2 Feed URL bepalen
+
+- Productie URL is: `https://<jouwdomein>/feeds/jobs.xml`.
+- Controleer in browser of met curl dat je XML terugkrijgt met status 200.
+
+### 9.3 Optionele feed-auth configureren
+
+- Standaard is de feed publiek.
+- Voor Basic Auth zet je in `.env`:
+  - `FEEDS_BASIC_AUTH_USERNAME`
+  - `FEEDS_BASIC_AUTH_PASSWORD`
+- Herstart backend na wijzigen van env-vars.
+
+### 9.4 Multiposter wizard (zoals in screenshot)
+
+Stap 1 - Feed gegevens:
+- Feed naam: `Vacatures`
+- Feed URL: `https://<jouwdomein>/feeds/jobs.xml`
+- Authenticatie: uit of Basic (afhankelijk van 9.3)
+- Medewerker: kies verantwoordelijke medewerker
+- Vestiging: kies juiste vestiging (meestal Rotterdam)
+
+Stap 2 - Selecteer vacature veld:
+- Kies de herhalende vacature-node: `job`
+- Controleer dat Multiposter meerdere records uit de feed detecteert
+
+Stap 3 - Velden instellen:
+- Koppel Multiposter-velden aan XML tags:
+  - Nummer (uniek) -> `Nummer`
+  - Datum -> `Datum`
+  - Titel -> `Titel`
+  - Plaats -> `Plaats`
+  - Omschrijving -> `Omschrijving`
+  - Functie -> `Functie`
+  - Functie-eisen -> `FunctieEisen`
+  - Wat wij bieden -> `WatWijBieden`
+  - Opleiding -> `Opleiding`
+  - Carriereniveau -> `CarriereNiveau`
+  - Dienstverband -> `Dienstverband`
+  - Loon/salaris -> `LoonSalaris`
+  - Aantal uur -> `AantalUur`
+  - Contract -> `Contract`
+  - Sollicitatie URL -> `SollicitatieUrl`
+  - E-mailadres -> `Email`
+
+### 9.5 Validatie na koppelen
+
+- Maak 2 testvacatures in de app en zet beide op `actief`.
+- Controleer dat beide in de XML feed staan.
+- Draai Multiposter import/sync en controleer dat beide vacatures zichtbaar zijn.
+- Zet 1 testvacature op `expired` en verifieer dat deze verdwijnt na sync.
+
+### 9.6 Bekende functionele regels
+
+- Iedere XML tag gebruikt CDATA.
+- `Plaats` bevat exact 1 plaatsnaam (geen regio/omgeving).
+- `Nummer` blijft stabiel en uniek (UUID uit drafts).
