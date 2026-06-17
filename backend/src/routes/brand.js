@@ -1,17 +1,10 @@
 const express = require('express');
 const { supabase } = require('../db/client');
 const { requireRole } = require('../middleware/auth');
-const { getCredentialStatus } = require('../services/integrations');
 
 const router = express.Router();
 
-const DEFAULT_CHANNELS = [
-  'linkedin_jobs',
-  'indeed',
-  'facebook_instagram',
-  'wordpress',
-  'google_mijn_bedrijf',
-];
+const DEFAULT_CHANNELS = ['linkedin_jobs', 'indeed', 'facebook_instagram', 'wordpress'];
 const SETTING_KEYS = [
   'bedrijfsnaam',
   'tone_of_voice',
@@ -22,29 +15,15 @@ const SETTING_KEYS = [
   'configured_channels',
 ];
 
-async function buildApiStatus() {
-  const [indeedCred, metaCred, gmbCred, wordpressCred] = await Promise.all([
-    getCredentialStatus('indeed'),
-    getCredentialStatus('meta'),
-    getCredentialStatus('google_mijn_bedrijf'),
-    getCredentialStatus('wordpress'),
-  ]);
-
-  const metaConnected = Boolean(metaCred?.hasAccessToken);
-
+function buildApiStatus() {
   return {
-    linkedin_jobs: false,
-    indeed: Boolean(indeedCred?.hasAccessToken || process.env.INDEED_API_KEY),
-    facebook_instagram: metaConnected,
-    wordpress: Boolean(
-      wordpressCred?.hasAccessToken ||
-      process.env.WORDPRESS_API_URL &&
-        process.env.WORDPRESS_USERNAME &&
-        process.env.WORDPRESS_APP_PASSWORD
+    linkedin_jobs: Boolean(process.env.N8N_WEBHOOK_VACATURE),
+    indeed: Boolean(process.env.N8N_WEBHOOK_VACATURE),
+    facebook_instagram: Boolean(
+      process.env.N8N_WEBHOOK_VACATURE || process.env.N8N_WEBHOOK_MARKETING
     ),
-    linkedin: false,
-    google_mijn_bedrijf: Boolean(gmbCred?.hasAccessToken || process.env.GMB_ACCESS_TOKEN),
-    notifications: String(process.env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true',
+    wordpress: Boolean(process.env.N8N_WEBHOOK_VACATURE),
+    linkedin: Boolean(process.env.N8N_WEBHOOK_MARKETING),
     anthropic: Boolean(process.env.ANTHROPIC_API_KEY),
   };
 }
@@ -87,7 +66,7 @@ router.get('/', async (_req, res, next) => {
     return res.json({
       settings,
       configuredChannels,
-      apiStatus: await buildApiStatus(),
+      apiStatus: buildApiStatus(),
     });
   } catch (error) {
     return next(error);

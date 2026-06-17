@@ -7,7 +7,6 @@
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
     "seed:owner": "node src/db/seedOwner.js",
-    "seed:brand": "node src/db/seedBrand.js",
     "test": "echo \"Geen tests geconfigureerd\""
   },
   "keywords": [],
