@@ -90,6 +90,67 @@
   color: #b91c1c;
 }
 
+.brand-form button[type='submit'],
+.brand-form button[type='button']:not(.brand-channel-connect) {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 8px;
+  padding: 0.5rem 1.1rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: 1.5px solid var(--color-primary);
+  margin-top: 0.5rem;
+}
+
+.brand-form button[type='submit']:hover:not(:disabled),
+.brand-form button[type='button']:not(.brand-channel-connect):hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.brand-form button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.brand-integrations button {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 8px;
+  padding: 0.4rem 0.85rem;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: 1.5px solid var(--color-primary);
+}
+
+.brand-integrations button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.brand-integrations button.disconnect {
+  background: #ffffff;
+  color: var(--light-red);
+  border: 1.5px solid var(--light-red-300);
+}
+
+.brand-integrations button.disconnect:hover:not(:disabled) {
+  background: var(--light-red-50);
+  border-color: var(--light-red);
+}
+
 @media (max-width: 980px) {
   .integration-grid {
     grid-template-columns: 1fr;

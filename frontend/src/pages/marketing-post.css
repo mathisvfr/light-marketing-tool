@@ -49,12 +49,47 @@
   opacity: 0.55;
 }
 
-.marketing-tabs button,
-.marketing-actions button {
+.marketing-tabs button {
   border: 1px solid #cbd5e1;
   background: #f8fafc;
   border-radius: 8px;
   padding: 0.48rem 0.72rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.marketing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.marketing-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: 1.5px solid var(--color-primary);
+}
+
+.marketing-actions button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.marketing-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .marketing-tabs button.active {

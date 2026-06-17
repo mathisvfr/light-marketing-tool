@@ -162,6 +162,7 @@ export default function Gepubliceerd() {
                       {role === 'owner' ? (
                         <button
                           type="button"
+                          className="published-expire-btn"
                           onClick={() => handleExpire(item.id)}
                           disabled={expireMutation.isPending}
                         >

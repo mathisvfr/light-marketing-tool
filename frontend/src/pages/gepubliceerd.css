@@ -114,3 +114,29 @@
 .published-error {
   color: #b91c1c;
 }
+
+.published-expire-btn {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 7px;
+  padding: 0.35rem 0.65rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  background: #ffffff;
+  color: var(--light-red);
+  border: 1.5px solid var(--light-red-300);
+}
+
+.published-expire-btn:hover:not(:disabled) {
+  background: var(--light-red-50);
+  border-color: var(--light-red);
+}
+
+.published-expire-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
