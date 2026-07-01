@@ -38,7 +38,7 @@ export default function Login() {
   return (
     <main className="grid min-h-screen grid-cols-1 lg:grid-cols-[1.05fr_1fr]">
       {/* Brand panel */}
-      <section className="relative hidden flex-col justify-between overflow-hidden bg-grey-900 p-12 text-white lg:flex">
+      <section className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-12 text-white lg:flex">
         {/* subtle brand glow */}
         <div
           aria-hidden="true"
@@ -63,7 +63,7 @@ export default function Login() {
             Marketing tool
           </span>
           <h2 className="mt-6 font-display text-5xl font-bold leading-[1.05] text-white">
-            De productie moet draaien. Punt.
+            De juiste mensen, op de juiste plek
           </h2>
           <p className="mt-5 text-lg leading-relaxed text-white/75">
             Vacatures en marketingcontent voor Light Personeelsdiensten — snel opgesteld, op merk, klaar om te publiceren.
