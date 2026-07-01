@@ -1,7 +1,6 @@
 const { supabase } = require('../db/client');
 const { publishToIndeed } = require('./indeed');
-const linkedinChannel = require('./channels/linkedin');
-const metaChannel = require('./channels/meta');
+const bufferChannel = require('./channels/buffer');
 const wordpressChannel = require('./channels/wordpress');
 const { getCredential } = require('./integrations');
 
@@ -107,16 +106,12 @@ async function publishChannel(channel, draft) {
     return publishToIndeed(draft);
   }
 
-  if (channel === 'facebook_instagram') {
-    return metaChannel.publish(draft);
-  }
-
   if (channel === 'google_mijn_bedrijf') {
     return publishToGoogleMijnBedrijf(draft);
   }
 
-  if (channel === 'linkedin' || channel === 'linkedin_jobs') {
-    return linkedinChannel.publish(draft);
+  if (channel === 'linkedin' || channel === 'facebook_instagram' || channel === 'facebook' || channel === 'instagram') {
+    return bufferChannel.publish(draft, channel);
   }
 
   if (channel === 'wordpress') {

@@ -11,6 +11,7 @@
   - `SUPABASE_URL`
   - `SUPABASE_SERVICE_KEY`
   - `ANTHROPIC_API_KEY` (optional for fallback generation, recommended for production)
+  - `BUFFER_API_KEY` (for marketing posts via Buffer)
   - `N8N_WEBHOOK_VACATURE`
   - `N8N_WEBHOOK_MARKETING`
   - `N8N_WEBHOOK_EXPIRE`
@@ -91,6 +92,11 @@ Stop:
 ### n8n publishing issues
 - Verify webhook URLs are non-empty and reachable.
 - Check backend logs for timeout handling and pending statuses.
+
+### Buffer publishing issues
+- Verify `BUFFER_API_KEY` is valid or the Buffer token is saved under Merk instellingen.
+- Ensure each connected social profile has its Buffer channel ID configured.
+- For Instagram image posts, ensure `PUBLIC_APP_URL` or `APP_BASE_URL` resolves uploaded files publicly over HTTPS.
 
 ## 8) Recommended safety
 

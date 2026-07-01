@@ -4,17 +4,8 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import './merk-instellingen.css';
 
-const CHANNEL_OPTIONS = [
-  { key: 'linkedin_jobs', label: 'LinkedIn Jobs' },
-  { key: 'indeed', label: 'Indeed' },
-  { key: 'facebook_instagram', label: 'Facebook/Instagram' },
-  { key: 'wordpress', label: 'WordPress' },
-  { key: 'linkedin', label: 'LinkedIn (marketing)' },
-];
-
 const PROVIDER_OPTIONS = [
-  { key: 'linkedin', label: 'LinkedIn' },
-  { key: 'meta', label: 'Meta (Facebook/Instagram)' },
+  { key: 'buffer', label: 'Buffer (LinkedIn/Facebook/Instagram)' },
   { key: 'wordpress', label: 'WordPress' },
 ];
 
@@ -65,7 +56,6 @@ export default function MerkInstellingen() {
   const queryClient = useQueryClient();
   const { role } = useAuth();
   const [settingsEdits, setSettingsEdits] = useState({});
-  const [configuredChannelsEdits, setConfiguredChannelsEdits] = useState(undefined);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -89,11 +79,6 @@ export default function MerkInstellingen() {
     [brandQuery.data, settingsEdits]
   );
 
-  const configuredChannels =
-    Array.isArray(configuredChannelsEdits)
-      ? configuredChannelsEdits
-      : brandQuery.data?.configuredChannels || [];
-
   const providersByKey = useMemo(() => {
     const map = new Map();
     for (const provider of integrationsQuery.data?.providers || []) {
@@ -103,25 +88,26 @@ export default function MerkInstellingen() {
     return map;
   }, [integrationsQuery.data]);
 
+  const bufferMetadata = providersByKey.get('buffer')?.metadata || {};
+
   const saveMutation = useMutation({
     mutationFn: () =>
       api('/brand', {
         method: 'PUT',
         body: JSON.stringify({
           settings,
-          configuredChannels,
         }),
       }),
   });
 
   const connectMutation = useMutation({
-    mutationFn: ({ provider, accessToken, expiresAt }) =>
+    mutationFn: ({ provider, accessToken, expiresAt, metadata }) =>
       api(`/integrations/${provider}`, {
         method: 'PUT',
         body: JSON.stringify({
           accessToken,
           expiresAt: expiresAt || null,
-          metadata: {},
+          metadata: metadata || {},
         }),
       }),
     onSuccess: () => {
@@ -129,22 +115,16 @@ export default function MerkInstellingen() {
     },
   });
 
+  const bufferDiscoverMutation = useMutation({
+    mutationFn: () =>
+      api('/integrations/buffer/discover', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      }),
+  });
+
   function updateField(key, value) {
     setSettingsEdits((prev) => ({ ...prev, [key]: value }));
-  }
-
-  function toggleChannel(channelKey) {
-    setConfiguredChannelsEdits((prev) => {
-      const source = Array.isArray(prev)
-        ? prev
-        : brandQuery.data?.configuredChannels || [];
-
-      if (source.includes(channelKey)) {
-        return source.filter((item) => item !== channelKey);
-      }
-
-      return [...source, channelKey];
-    });
   }
 
   async function handleSave(event) {
@@ -165,16 +145,64 @@ export default function MerkInstellingen() {
     setError('');
     setSuccess('');
 
-    const accessToken = window.prompt(`${providerLabel}: plak access token`);
-    if (!accessToken) {
-      return;
-    }
-
-    const expiresAtInput = window.prompt(
-      `${providerLabel}: vervaldatum (optioneel, ISO formaat, bv 2026-07-31T00:00:00Z)`
-    );
-
     try {
+      if (providerKey === 'buffer') {
+        const discovered = await bufferDiscoverMutation.mutateAsync();
+        const organizations = discovered?.discovery?.organizations || [];
+
+        if (organizations.length === 0) {
+          throw new Error('Buffer account heeft geen organisaties.');
+        }
+
+        const selectedOrganization = organizations[0];
+        if (!selectedOrganization) {
+          throw new Error('Geen geldige Buffer-organisatie gekozen.');
+        }
+
+        const linkedInChannels = (selectedOrganization.channels || []).filter(
+          (channel) => channel.service === 'linkedin'
+        );
+
+        if (linkedInChannels.length === 0) {
+          throw new Error('Geen LinkedIn-kanaal gevonden in deze Buffer-organisatie.');
+        }
+
+        const selectedChannel = linkedInChannels[0];
+        if (!selectedChannel) {
+          throw new Error('Geen geldig Buffer LinkedIn-kanaal gekozen.');
+        }
+
+        await connectMutation.mutateAsync({
+          provider: 'buffer',
+          accessToken: null,
+          metadata: {
+            organizationId: selectedOrganization.id,
+            organizationName: selectedOrganization.name,
+            channelIds: {
+              linkedin: selectedChannel.id,
+            },
+            channelNames: {
+              linkedin: selectedChannel.name,
+            },
+            services: {
+              linkedin: selectedChannel.service,
+            },
+          },
+        });
+
+        setSuccess(`Buffer is gekoppeld aan ${selectedChannel.name}.`);
+        return;
+      }
+
+      const accessToken = window.prompt(`${providerLabel}: plak access token`);
+      if (!accessToken) {
+        return;
+      }
+
+      const expiresAtInput = window.prompt(
+        `${providerLabel}: vervaldatum (optioneel, ISO formaat, bv 2026-07-31T00:00:00Z)`
+      );
+
       await connectMutation.mutateAsync({
         provider: providerKey,
         accessToken: accessToken.trim(),
@@ -254,22 +282,6 @@ export default function MerkInstellingen() {
           />
         </label>
 
-        <div className="brand-field">
-          <span>Geconfigureerde kanalen</span>
-          <div className="brand-channels">
-            {CHANNEL_OPTIONS.map((channel) => (
-              <label key={channel.key} className="brand-channel-item">
-                <input
-                  type="checkbox"
-                  checked={configuredChannels.includes(channel.key)}
-                  onChange={() => toggleChannel(channel.key)}
-                />
-                {channel.label}
-              </label>
-            ))}
-          </div>
-        </div>
-
         <button type="submit" disabled={saveMutation.isPending}>
           Opslaan
         </button>
@@ -277,6 +289,12 @@ export default function MerkInstellingen() {
 
       <section className="brand-integrations">
         <h3>Kanaalkoppelingen</h3>
+        {bufferMetadata.organizationName && bufferMetadata.channelNames?.linkedin ? (
+          <p className="brand-meta">
+            Buffer organisatie: {bufferMetadata.organizationName} · LinkedIn-kanaal:{' '}
+            {bufferMetadata.channelNames.linkedin}
+          </p>
+        ) : null}
         <div className="integration-grid">
           {PROVIDER_OPTIONS.map((provider) => {
             const row = providersByKey.get(provider.key);

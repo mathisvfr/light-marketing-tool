@@ -4,9 +4,10 @@ import { api } from '../lib/api';
 import './dashboard.css';
 
 const CHANNEL_LABELS = {
-  linkedin: 'LinkedIn',
-  meta: 'Meta (Facebook/Instagram)',
+  buffer: 'Buffer (LinkedIn/Facebook/Instagram)',
   wordpress: 'WordPress',
+  indeed: 'Indeed',
+  google_mijn_bedrijf: 'Google Mijn Bedrijf',
 };
 
 function formatDate(dateValue) {

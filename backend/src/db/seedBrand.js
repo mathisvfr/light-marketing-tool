@@ -61,11 +61,6 @@ const BRAND_SETTINGS = {
     'het recruitment volledig uit handen willen geven.',
   ].join(' '),
 
-  configured_channels: JSON.stringify([
-    'linkedin_jobs',
-    'facebook_instagram',
-    'wordpress',
-  ]),
 };
 
 async function seedBrand() {

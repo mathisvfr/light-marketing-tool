@@ -150,10 +150,26 @@
   margin-top: 0.55rem;
 }
 
-.marketing-upload {
-  display: grid;
-  gap: 0.35rem;
-  margin-top: 0.65rem;
+.marketing-pick-image {
+  margin-top: 0.75rem;
+  padding: 8px 16px;
+  background: #0b1b32;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.marketing-pick-image:hover:not(:disabled) {
+  background: #be1e2d;
+}
+
+.marketing-pick-image:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .marketing-criticus {

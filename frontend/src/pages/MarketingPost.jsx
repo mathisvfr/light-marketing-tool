@@ -3,11 +3,19 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import MediaPicker from '../components/shared/MediaPicker';
 import './marketing-post.css';
 
 const CHANNEL_OPTIONS = [
   { key: 'linkedin', label: 'LinkedIn' },
-  { key: 'facebook_instagram', label: 'Facebook/Instagram' },
+  { key: 'facebook', label: 'Facebook' },
+  { key: 'instagram', label: 'Instagram' },
+];
+
+const PREVIEW_TABS = [
+  { key: 'linkedin_post', label: 'LinkedIn' },
+  { key: 'social_nl', label: 'Facebook' },
+  { key: 'instagram_caption', label: 'Instagram' },
 ];
 
 const DEFAULT_FORM = {
@@ -24,6 +32,7 @@ export default function MarketingPost() {
   const [formEdits, setFormEdits] = useState({});
   const [contentEdits, setContentEdits] = useState({});
   const [imagePathOverride, setImagePathOverride] = useState(undefined);
+  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
   const [criticusOverride, setCriticusOverride] = useState({
     passed: undefined,
     notes: undefined,
@@ -87,7 +96,15 @@ export default function MarketingPost() {
 
   const effectiveDraftId = draftId || draftIdParam;
 
-  const configuredChannels = brandQuery.data?.configuredChannels || CHANNEL_OPTIONS.map((c) => c.key);
+  const apiStatus = brandQuery.data?.apiStatus || {};
+
+  function isChannelEnabled(key) {
+    if (key === 'facebook' || key === 'instagram') {
+      return Boolean(apiStatus.facebook_instagram);
+    }
+
+    return Boolean(apiStatus[key]);
+  }
 
   const saveMutation = useMutation({
     mutationFn: (status) =>
@@ -158,9 +175,7 @@ export default function MarketingPost() {
     } finally {
       event.target.value = '';
     }
-  }
-
-  async function handleGenerate(event) {
+  }  async function handleGenerate(event) {
     event.preventDefault();
     setError('');
     setSuccess('');
@@ -314,7 +329,7 @@ export default function MarketingPost() {
           <span>Kanalen</span>
           <div className="marketing-channel-group">
             {CHANNEL_OPTIONS.map((channel) => {
-              const disabled = !configuredChannels.includes(channel.key);
+              const disabled = !isChannelEnabled(channel.key);
 
               return (
                 <label
@@ -355,27 +370,21 @@ export default function MarketingPost() {
           ) : null}
 
           <div className="marketing-tabs">
-            <button
-              type="button"
-              className={activeTab === 'linkedin_post' ? 'active' : ''}
-              onClick={() => setActiveTab('linkedin_post')}
-            >
-              LinkedIn post
-            </button>
-            <button
-              type="button"
-              className={activeTab === 'social_nl' ? 'active' : ''}
-              onClick={() => setActiveTab('social_nl')}
-            >
-              Facebook post
-            </button>
-            <button
-              type="button"
-              className={activeTab === 'instagram_caption' ? 'active' : ''}
-              onClick={() => setActiveTab('instagram_caption')}
-            >
-              Instagram caption
-            </button>
+            {PREVIEW_TABS.filter((tab) => {
+              if (tab.key === 'linkedin_post') return form.kanalen.includes('linkedin');
+              if (tab.key === 'social_nl') return form.kanalen.includes('facebook');
+              if (tab.key === 'instagram_caption') return form.kanalen.includes('instagram');
+              return true;
+            }).map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                className={activeTab === tab.key ? 'active' : ''}
+                onClick={() => setActiveTab(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           <textarea
@@ -393,21 +402,24 @@ export default function MarketingPost() {
             {imagePath ? (
               <img src={imagePath} alt="Marketing preview" className="marketing-preview-image" />
             ) : (
-              <p className="marketing-muted">Nog geen afbeelding beschikbaar.</p>
+              <p className="marketing-muted">Nog geen afbeelding geselecteerd.</p>
             )}
 
-            {role === 'owner' ? (
-              <label className="marketing-upload">
-                Eigen afbeelding uploaden (override)
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={handleUploadOverride}
-                  disabled={isBusy}
-                />
-              </label>
-            ) : null}
+            <button
+              type="button"
+              className="marketing-pick-image"
+              onClick={() => setMediaPickerOpen(true)}
+              disabled={isBusy}
+            >
+              {imagePath ? 'Andere afbeelding kiezen' : 'Afbeelding kiezen uit bibliotheek'}
+            </button>
           </div>
+
+          <MediaPicker
+            open={mediaPickerOpen}
+            onSelect={(path) => setImagePathOverride(path)}
+            onClose={() => setMediaPickerOpen(false)}
+          />
 
           <div className="marketing-actions">
             <button type="button" onClick={handleSaveDraft} disabled={isBusy}>

@@ -3,6 +3,7 @@ const {
   SUPPORTED_PROVIDERS,
   isSupportedProvider,
   getAllCredentialStatuses,
+  discoverBufferChannels,
   upsertCredential,
 } = require('../services/integrations');
 const { requireRole } = require('../middleware/auth');
@@ -36,6 +37,21 @@ router.put('/:provider', requireRole('owner'), async (req, res, next) => {
     });
 
     return res.json({ provider: status });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post('/buffer/discover', requireRole('owner'), async (req, res, next) => {
+  try {
+    const accessToken = String(req.body?.accessToken || process.env.BUFFER_API_KEY || '').trim();
+
+    if (!accessToken) {
+      return res.status(400).json({ error: 'Buffer API key ontbreekt.' });
+    }
+
+    const discovery = await discoverBufferChannels(accessToken);
+    return res.json({ discovery });
   } catch (error) {
     return next(error);
   }

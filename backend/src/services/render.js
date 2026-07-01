@@ -3,6 +3,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 const uploadsRoot = path.resolve(__dirname, '..', '..', 'uploads', 'social');
+const libraryRoot = path.resolve(__dirname, '..', '..', 'uploads', 'library');
 
 function escapeXml(value) {
   return String(value || '')
@@ -39,6 +40,10 @@ function splitLines(text, maxLength) {
 
 async function ensureUploadDir() {
   await fs.mkdir(uploadsRoot, { recursive: true });
+}
+
+async function ensureLibraryDir() {
+  await fs.mkdir(libraryRoot, { recursive: true });
 }
 
 async function writeSvgFile(baseName, svg) {
@@ -119,4 +124,54 @@ async function saveUploadedImageDataUrl(dataUrl) {
 module.exports = {
   renderSocialImage,
   saveUploadedImageDataUrl,
+  renderSvgToLibrary,
+  saveDataUrlToLibrary,
 };
+
+async function renderSvgToLibrary(fields) {
+  const svg = createMarketingSvg(fields || {});
+  await ensureLibraryDir();
+  const filename = `generated-${crypto.randomUUID()}.svg`;
+  const absolutePath = path.join(libraryRoot, filename);
+  const buffer = Buffer.from(svg, 'utf8');
+  await fs.writeFile(absolutePath, buffer);
+  return {
+    filePath: `/uploads/library/${filename}`,
+    filename,
+    mimeType: 'image/svg+xml',
+    fileSize: buffer.length,
+  };
+}
+
+async function saveDataUrlToLibrary(dataUrl) {
+  const raw = String(dataUrl || '');
+  const match = raw.match(/^data:(image\/(png|jpeg|jpg|webp));base64,(.+)$/i);
+
+  if (!match) {
+    throw new Error('Ongeldig afbeeldingformaat. Gebruik PNG, JPG of WEBP.');
+  }
+
+  const mimeType = match[1].toLowerCase();
+  const ext = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg';
+  const buffer = Buffer.from(match[3], 'base64');
+
+  if (buffer.length === 0) {
+    throw new Error('Afbeelding is leeg.');
+  }
+
+  if (buffer.length > 10 * 1024 * 1024) {
+    throw new Error('Afbeelding is te groot. Maximum is 10MB.');
+  }
+
+  await ensureLibraryDir();
+  const filename = `upload-${crypto.randomUUID()}.${ext}`;
+  const absolutePath = path.join(libraryRoot, filename);
+  await fs.writeFile(absolutePath, buffer);
+
+  return {
+    filePath: `/uploads/library/${filename}`,
+    filename,
+    mimeType,
+    fileSize: buffer.length,
+  };
+}

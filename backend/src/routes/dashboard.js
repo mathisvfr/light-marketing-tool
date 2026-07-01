@@ -2,6 +2,7 @@ const express = require('express');
 const { supabase } = require('../db/client');
 const { requireRole } = require('../middleware/auth');
 const { getJobsFeedStatus } = require('../services/feed');
+const { getAllCredentialStatuses } = require('../services/integrations');
 
 const router = express.Router();
 
@@ -26,7 +27,29 @@ function toIsoWeekAgo() {
 }
 
 function getKnownChannels() {
-  return ['linkedin', 'meta', 'wordpress'];
+  return ['buffer', 'wordpress', 'indeed', 'google_mijn_bedrijf'];
+}
+
+function getCredentialState(provider) {
+  if (!provider?.hasAccessToken) {
+    return 'disconnected';
+  }
+
+  if (!provider?.expiresAt) {
+    return 'connected';
+  }
+
+  const expiresAt = new Date(provider.expiresAt);
+  if (Number.isNaN(expiresAt.getTime())) {
+    return 'connected';
+  }
+
+  const daysLeft = (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+  if (daysLeft <= 7) {
+    return 'expiring';
+  }
+
+  return 'connected';
 }
 
 router.get('/summary', async (req, res, next) => {
@@ -61,10 +84,7 @@ router.get('/summary', async (req, res, next) => {
         .select('id, type, status, updated_at, form_data')
         .order('updated_at', { ascending: false })
         .limit(10),
-      supabase
-        .from('channel_credentials')
-        .select('channel, status, updated_at')
-        .order('updated_at', { ascending: false }),
+      getAllCredentialStatuses().then((data) => ({ data, error: null })),
       req.user.role === 'owner'
         ? supabase
             .from('drafts')
@@ -96,10 +116,10 @@ router.get('/summary', async (req, res, next) => {
     const channelRows = channelRowsResult.data || [];
 
     for (const row of channelRows) {
-      channelMap.set(row.channel, {
-        channel: row.channel,
-        status: row.status || 'disconnected',
-        updatedAt: row.updated_at,
+      channelMap.set(row.provider, {
+        channel: row.provider,
+        status: getCredentialState(row),
+        updatedAt: row.updatedAt,
       });
     }
 

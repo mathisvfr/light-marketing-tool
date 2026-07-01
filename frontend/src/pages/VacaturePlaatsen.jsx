@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import MediaPicker from '../components/shared/MediaPicker';
 import './vacature-plaatsen.css';
 
 const DEFAULT_FORM = {
@@ -49,6 +50,8 @@ export default function VacaturePlaatsen() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [imagePath, setImagePath] = useState('');
+  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
 
   const existingDraftQuery = useQuery({
     queryKey: ['draft-detail-vacature', draftIdParam],
@@ -57,6 +60,13 @@ export default function VacaturePlaatsen() {
   });
 
   const loadedDraft = existingDraftQuery.data?.draft;
+
+  // Sync imagePath met geladen draft (alleen bij eerste load)
+  const [imageInitialized, setImageInitialized] = useState(false);
+  if (loadedDraft && !imageInitialized) {
+    setImagePath(loadedDraft.image_path || '');
+    setImageInitialized(true);
+  }
 
   const form = useMemo(
     () => ({
@@ -107,6 +117,7 @@ export default function VacaturePlaatsen() {
           omschrijving_pl: content.omschrijving_pl,
           social_nl: content.social_nl,
           social_pl: content.social_pl,
+          image_path: imagePath || null,
           criticus_passed: criticusPassed,
           criticus_notes: criticusNotes,
           status,
@@ -392,6 +403,37 @@ export default function VacaturePlaatsen() {
               }
             />
           </div>
+
+          <div className="vacature-image-block">
+            <p className="vacature-label">Afbeelding (optioneel)</p>
+            {imagePath ? (
+              <img src={imagePath} alt="Vacature afbeelding" className="vacature-preview-image" />
+            ) : null}
+            <button
+              type="button"
+              className="vacature-pick-image"
+              onClick={() => setMediaPickerOpen(true)}
+              disabled={isBusy}
+            >
+              {imagePath ? 'Andere afbeelding kiezen' : 'Afbeelding kiezen uit bibliotheek'}
+            </button>
+            {imagePath ? (
+              <button
+                type="button"
+                className="vacature-remove-image"
+                onClick={() => setImagePath('')}
+                disabled={isBusy}
+              >
+                Afbeelding verwijderen
+              </button>
+            ) : null}
+          </div>
+
+          <MediaPicker
+            open={mediaPickerOpen}
+            onSelect={(path) => setImagePath(path)}
+            onClose={() => setMediaPickerOpen(false)}
+          />
 
           <div className="form-actions">
             <button type="button" onClick={handleSaveDraft} disabled={isBusy}>

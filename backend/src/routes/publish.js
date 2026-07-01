@@ -2,6 +2,7 @@ const express = require('express');
 const { supabase } = require('../db/client');
 const { requireRole } = require('../middleware/auth');
 const n8n = require('../services/n8n');
+const { getCredential } = require('../services/integrations');
 
 const router = express.Router();
 
@@ -11,6 +12,29 @@ function getDraftTitle(formData) {
   }
 
   return formData.functietitel || formData.onderwerp || formData.title || formData.titel || 'Zonder titel';
+}
+
+async function hasProviderConnection(provider) {
+  if (provider === 'buffer') {
+    const credential = await getCredential('buffer');
+    return Boolean(credential?.access_token || process.env.BUFFER_API_KEY);
+  }
+
+  if (provider === 'wordpress') {
+    const credential = await getCredential('wordpress');
+    return Boolean(
+      credential?.access_token ||
+      (process.env.WORDPRESS_API_URL && process.env.WORDPRESS_USERNAME && process.env.WORDPRESS_APP_PASSWORD)
+    );
+  }
+
+  if (provider === 'google_mijn_bedrijf') {
+    const credential = await getCredential('google_mijn_bedrijf');
+    return Boolean(credential?.access_token || process.env.GMB_ACCESS_TOKEN);
+  }
+
+  const credential = await getCredential(provider);
+  return Boolean(credential?.access_token);
 }
 
 router.get('/', async (_req, res, next) => {
@@ -115,10 +139,12 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
     const channels = Array.isArray(draft.form_data?.kanalen) ? draft.form_data.kanalen : [];
 
     const credentialMapping = {
-      linkedin: 'linkedin',
-      facebook_instagram: 'meta',
-      instagram: 'meta',
-      facebook: 'meta',
+      linkedin: 'buffer',
+      facebook_instagram: 'buffer',
+      instagram: 'buffer',
+      facebook: 'buffer',
+      wordpress: 'wordpress',
+      google_mijn_bedrijf: 'google_mijn_bedrijf',
     };
 
     const requiredCredentialChannels = channels.filter((channel) => Boolean(credentialMapping[channel]));
@@ -126,16 +152,10 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
     let connectedMap = new Map();
     if (requiredCredentialChannels.length > 0) {
       const requiredKeys = Array.from(new Set(requiredCredentialChannels.map((channel) => credentialMapping[channel])));
-      const { data: credentialRows, error: credentialError } = await supabase
-        .from('channel_credentials')
-        .select('channel, status')
-        .in('channel', requiredKeys);
-
-      if (credentialError) {
-        throw credentialError;
-      }
-
-      connectedMap = new Map((credentialRows || []).map((row) => [row.channel, row.status === 'connected']));
+      const statuses = await Promise.all(
+        requiredKeys.map(async (provider) => [provider, await hasProviderConnection(provider)])
+      );
+      connectedMap = new Map(statuses);
     }
 
     const publishableChannels = channels.filter((channel) => {
@@ -173,7 +193,13 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
       form_data: fullDraft.form_data,
     };
 
-    await n8n.publish(draftId, fullDraft.type, publishableChannels, contentPayload);
+    const publishResult = await n8n.publish(draftId, fullDraft.type, publishableChannels, contentPayload);
+
+    if (!publishResult || publishResult.successCount === 0) {
+      return res.status(400).json({
+        error: 'Publiceren mislukt voor alle gekozen kanalen. Controleer de Buffer- of kanaalinstellingen.',
+      });
+    }
 
     const { error: updateError } = await supabase
       .from('drafts')

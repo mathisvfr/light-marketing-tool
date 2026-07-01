@@ -4,7 +4,6 @@ const { requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-const DEFAULT_CHANNELS = ['linkedin_jobs', 'indeed', 'facebook_instagram', 'wordpress'];
 const SETTING_KEYS = [
   'bedrijfsnaam',
   'tone_of_voice',
@@ -12,10 +11,18 @@ const SETTING_KEYS = [
   'aanbod_opdrachtgevers',
   'doelgroep_werknemers',
   'doelgroep_opdrachtgevers',
-  'configured_channels',
 ];
 
 function buildApiStatus() {
+  const explicitProvider = String(process.env.AI_PROVIDER || '').trim().toLowerCase();
+  const effectiveProvider =
+    explicitProvider ||
+    (process.env.GREENPT_API_KEY
+      ? 'greenpt'
+      : process.env.GOOGLE_AI_STUDIO_API_KEY
+      ? 'gemini'
+      : 'anthropic');
+
   return {
     linkedin_jobs: Boolean(process.env.N8N_WEBHOOK_VACATURE),
     indeed: Boolean(process.env.N8N_WEBHOOK_VACATURE),
@@ -24,32 +31,11 @@ function buildApiStatus() {
     ),
     wordpress: Boolean(process.env.N8N_WEBHOOK_VACATURE),
     linkedin: Boolean(process.env.N8N_WEBHOOK_MARKETING),
+    ai_provider: effectiveProvider,
     anthropic: Boolean(process.env.ANTHROPIC_API_KEY),
+    gemini: Boolean(process.env.GOOGLE_AI_STUDIO_API_KEY),
+    greenpt: Boolean(process.env.GREENPT_API_KEY),
   };
-}
-
-function parseConfiguredChannels(value) {
-  if (!value) {
-    return DEFAULT_CHANNELS;
-  }
-
-  try {
-    const parsed = JSON.parse(value);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
-    }
-  } catch (_error) {
-    const split = String(value)
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-    if (split.length > 0) {
-      return split;
-    }
-  }
-
-  return DEFAULT_CHANNELS;
 }
 
 router.get('/', async (_req, res, next) => {
@@ -61,11 +47,9 @@ router.get('/', async (_req, res, next) => {
     }
 
     const settings = Object.fromEntries((data || []).map((row) => [row.key, row.value]));
-    const configuredChannels = parseConfiguredChannels(settings.configured_channels);
 
     return res.json({
       settings,
-      configuredChannels,
       apiStatus: buildApiStatus(),
     });
   } catch (error) {
@@ -76,9 +60,6 @@ router.get('/', async (_req, res, next) => {
 router.put('/', requireRole('owner'), async (req, res, next) => {
   try {
     const incomingSettings = req.body?.settings;
-    const configuredChannels = Array.isArray(req.body?.configuredChannels)
-      ? req.body.configuredChannels
-      : [];
 
     if (!incomingSettings || typeof incomingSettings !== 'object') {
       return res.status(400).json({ error: 'Instellingen ontbreken.' });
@@ -87,15 +68,6 @@ router.put('/', requireRole('owner'), async (req, res, next) => {
     const rows = [];
 
     for (const key of SETTING_KEYS) {
-      if (key === 'configured_channels') {
-        rows.push({
-          key,
-          value: JSON.stringify(configuredChannels),
-          updated_at: new Date().toISOString(),
-        });
-        continue;
-      }
-
       if (Object.prototype.hasOwnProperty.call(incomingSettings, key)) {
         rows.push({
           key,
