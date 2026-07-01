@@ -1,7 +1,7 @@
 const express = require('express');
 const { supabase } = require('../db/client');
 const { requireRole } = require('../middleware/auth');
-const n8n = require('../services/n8n');
+const publishGateway = require('../services/publishGateway');
 const { getCredential } = require('../services/integrations');
 
 const router = express.Router();
@@ -193,7 +193,7 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
       form_data: fullDraft.form_data,
     };
 
-    const publishResult = await n8n.publish(draftId, fullDraft.type, publishableChannels, contentPayload);
+    const publishResult = await publishGateway.publish(draftId, fullDraft.type, publishableChannels, contentPayload);
 
     if (!publishResult || publishResult.successCount === 0) {
       return res.status(400).json({
@@ -250,7 +250,7 @@ router.post('/:id/expire', requireRole('owner'), async (req, res, next) => {
     }
 
     const externalIds = (publicationRows || []).map((row) => row.external_id).filter(Boolean);
-    await n8n.expire(draftId, externalIds);
+    await publishGateway.expire(draftId, externalIds);
 
     const { error: updateDraftError } = await supabase
       .from('drafts')

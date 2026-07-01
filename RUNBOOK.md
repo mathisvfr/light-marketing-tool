@@ -12,8 +12,6 @@
   - `SUPABASE_SERVICE_KEY`
   - `ANTHROPIC_API_KEY` (optional for fallback generation, recommended for production)
   - `BUFFER_API_KEY` (for marketing posts via Buffer)
-  - `N8N_WEBHOOK_VACATURE` (legacy: only drives channel-status flags in the UI, see `docs/publish-path-findings.md`)
-  - `N8N_WEBHOOK_MARKETING` (legacy: only drives channel-status flags in the UI, see `docs/publish-path-findings.md`)
   - `DOMAIN` (production with Caddy)
 
 ## 2) Database schema check
@@ -102,10 +100,6 @@ Stop:
 ### Authentication issues
 - Ensure `JWT_SECRET` is set and stable across restarts.
 - Ensure browser allows cookies for your domain.
-
-### n8n publishing issues
-- Verify webhook URLs are non-empty and reachable.
-- Check backend logs for timeout handling and pending statuses.
 
 ### Buffer publishing issues
 - Verify `BUFFER_API_KEY` is valid or the Buffer token is saved under Merk instellingen.

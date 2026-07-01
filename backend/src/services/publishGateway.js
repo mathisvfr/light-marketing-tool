@@ -1,3 +1,6 @@
+// Publish gateway: reshapes route payloads and delegates to the channel publishers
+// in services/publication.js (Buffer for social, WordPress for blogs, XML feed for
+// vacatures via Multiposter). This is NOT an n8n integration; no webhooks are called.
 const { publishDraft, expirePublishedDraft } = require('./publication');
 
 async function publish(draftId, type, channels, contentPayload) {

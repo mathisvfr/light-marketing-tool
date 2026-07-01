@@ -1,6 +1,14 @@
 # Findings: social publish path reconciliation (Task 1)
 
-Status: **investigation only, no code removed.** Awaiting confirmation before any deletion.
+Status: **investigation complete. Recommendation (retire n8n) was confirmed and executed.**
+
+> Update: the owner confirmed the tool uses only Buffer, WordPress, and the XML feed
+> (via Multiposter). The n8n module and env vars have been retired:
+> - `services/n8n.js` renamed to `services/publishGateway.js` (it never called any
+>   webhook; it delegates to `services/publication.js`).
+> - `routes/brand.js` channel-status now derives from real Buffer/WordPress
+>   credentials instead of `N8N_WEBHOOK_*`.
+> - `N8N_WEBHOOK_*` removed from `.env.example` and `RUNBOOK.md`.
 
 ## Question
 

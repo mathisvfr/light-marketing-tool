@@ -1,6 +1,7 @@
 const express = require('express');
 const { supabase } = require('../db/client');
 const { requireRole } = require('../middleware/auth');
+const { getCredential } = require('../services/integrations');
 
 const router = express.Router();
 
@@ -13,7 +14,27 @@ const SETTING_KEYS = [
   'doelgroep_opdrachtgevers',
 ];
 
-function buildApiStatus() {
+// Mirrors the credential check used in routes/publish.js so the status shown in the
+// UI matches what actually gates publishing.
+async function hasProviderConnection(provider) {
+  if (provider === 'buffer') {
+    const credential = await getCredential('buffer');
+    return Boolean(credential?.access_token || process.env.BUFFER_API_KEY);
+  }
+
+  if (provider === 'wordpress') {
+    const credential = await getCredential('wordpress');
+    return Boolean(
+      credential?.access_token ||
+        (process.env.WORDPRESS_API_URL && process.env.WORDPRESS_USERNAME && process.env.WORDPRESS_APP_PASSWORD)
+    );
+  }
+
+  const credential = await getCredential(provider);
+  return Boolean(credential?.access_token);
+}
+
+async function buildApiStatus() {
   const explicitProvider = String(process.env.AI_PROVIDER || '').trim().toLowerCase();
   const effectiveProvider =
     explicitProvider ||
@@ -23,14 +44,22 @@ function buildApiStatus() {
       ? 'gemini'
       : 'anthropic');
 
+  const [bufferConnected, wordpressConnected] = await Promise.all([
+    hasProviderConnection('buffer'),
+    hasProviderConnection('wordpress'),
+  ]);
+
   return {
-    linkedin_jobs: Boolean(process.env.N8N_WEBHOOK_VACATURE),
-    indeed: Boolean(process.env.N8N_WEBHOOK_VACATURE),
-    facebook_instagram: Boolean(
-      process.env.N8N_WEBHOOK_VACATURE || process.env.N8N_WEBHOOK_MARKETING
-    ),
-    wordpress: Boolean(process.env.N8N_WEBHOOK_VACATURE),
-    linkedin: Boolean(process.env.N8N_WEBHOOK_MARKETING),
+    // Type A vacatures distribueren via de publieke XML feed -> Multiposter.
+    // De feed wordt altijd geserveerd, dus deze kanalen zijn altijd beschikbaar.
+    feed: true,
+    linkedin_jobs: true,
+    indeed: true,
+    // Type B social loopt via Buffer (LinkedIn/Facebook/Instagram).
+    linkedin: bufferConnected,
+    facebook_instagram: bufferConnected,
+    // Website/blogs via WordPress REST API.
+    wordpress: wordpressConnected,
     ai_provider: effectiveProvider,
     anthropic: Boolean(process.env.ANTHROPIC_API_KEY),
     gemini: Boolean(process.env.GOOGLE_AI_STUDIO_API_KEY),
@@ -50,7 +79,7 @@ router.get('/', async (_req, res, next) => {
 
     return res.json({
       settings,
-      apiStatus: buildApiStatus(),
+      apiStatus: await buildApiStatus(),
     });
   } catch (error) {
     return next(error);
