@@ -132,16 +132,6 @@ CREATE TABLE IF NOT EXISTS publications (
   published_at TIMESTAMPTZ
 );
 
-CREATE TABLE IF NOT EXISTS channel_credentials (
-  channel TEXT PRIMARY KEY,
-  access_token TEXT,
-  refresh_token TEXT,
-  expires_at TIMESTAMPTZ,
-  status TEXT DEFAULT 'disconnected'
-    CHECK (status IN ('connected', 'expiring', 'disconnected')),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
 CREATE TABLE IF NOT EXISTS brand_settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL,

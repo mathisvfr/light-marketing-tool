@@ -21,7 +21,7 @@ The app expects (at minimum) these tables in the Supabase public schema:
 - drafts
 - publications (must include the `expired_at` column)
 - brand_settings
-- channel_credentials
+- seo_pages
 - media_library
 
 For a fresh Supabase project, apply the migrations in
@@ -29,10 +29,9 @@ For a fresh Supabase project, apply the migrations in
 
 1. `001_init.sql`
 2. `002_seo_pages.sql`
-3. `003_integrations_and_social_insights.sql`
-4. `004_step1_claude_schema.sql`
-5. `005_media_library.sql`
-6. `006_publications_expired_at.sql`
+3. `004_step1_claude_schema.sql`
+4. `005_media_library.sql`
+5. `006_publications_expired_at.sql`
 
 All migrations are idempotent (`CREATE TABLE IF NOT EXISTS` / `ADD COLUMN IF NOT
 EXISTS`), so re-running them is safe. `006` guarantees `publications.expired_at`
