@@ -17,8 +17,11 @@
   encode zstd gzip
 
   # Feed-subdomein serveert uitsluitend de XML-feed; al het andere is 404.
-  @feeds path /feeds/*
-  reverse_proxy @feeds backend:3001
+  handle /feeds/* {
+    reverse_proxy backend:3001
+  }
 
-  respond 404
+  handle {
+    respond 404
+  }
 }
