@@ -6,8 +6,6 @@ import './dashboard.css';
 const CHANNEL_LABELS = {
   buffer: 'Buffer (LinkedIn/Facebook/Instagram)',
   wordpress: 'WordPress',
-  indeed: 'Indeed',
-  google_mijn_bedrijf: 'Google Mijn Bedrijf',
 };
 
 function formatDate(dateValue) {

@@ -1,18 +1,8 @@
 const { supabase } = require('../db/client');
-const { publishToIndeed } = require('./indeed');
 const bufferChannel = require('./channels/buffer');
 const wordpressChannel = require('./channels/wordpress');
-const { getCredential } = require('./integrations');
 
 const REQUEST_TIMEOUT_MS = 15000;
-
-function getDraftTitle(formData) {
-  if (!formData || typeof formData !== 'object') {
-    return 'Zonder titel';
-  }
-
-  return formData.functietitel || formData.onderwerp || formData.title || formData.titel || 'Zonder titel';
-}
 
 async function postJson(url, body, headers = {}) {
   const controller = new AbortController();
@@ -42,50 +32,6 @@ async function postJson(url, body, headers = {}) {
   }
 }
 
-function contentForChannel(draft) {
-  if (draft.type === 'marketing-post') {
-    return {
-      linkedin_post: draft.linkedin_post,
-      facebook_post: draft.social_nl,
-    };
-  }
-
-  return {
-    vacature_nl: draft.content_nl,
-    social_nl: draft.social_nl,
-    vacature_pl: draft.content_pl,
-    social_pl: draft.social_pl,
-  };
-}
-
-async function publishToGoogleMijnBedrijf(draft) {
-  const apiUrl = process.env.GMB_API_URL;
-  const credential = await getCredential('google_mijn_bedrijf');
-  const token = credential?.access_token || process.env.GMB_ACCESS_TOKEN;
-
-  if (!apiUrl || !token) {
-    return { status: 'failed', error: 'Google Mijn Bedrijf API is niet geconfigureerd.' };
-  }
-
-  const result = await postJson(
-    apiUrl,
-    {
-      draftId: draft.id,
-      type: draft.type,
-      title: getDraftTitle(draft.form_data),
-      formData: draft.form_data,
-      content: contentForChannel(draft),
-    },
-    { Authorization: `Bearer ${token}` }
-  );
-
-  return {
-    status: result?.status === 'failed' ? 'failed' : 'success',
-    externalId: result?.externalId || result?.external_id || result?.name || null,
-    error: result?.error || result?.error_message || null,
-  };
-}
-
 async function publishToWordPress(draft) {
   return wordpressChannel.publish({
     ...draft,
@@ -102,14 +48,6 @@ function placeholderChannel(channel) {
 }
 
 async function publishChannel(channel, draft) {
-  if (channel === 'indeed') {
-    return publishToIndeed(draft);
-  }
-
-  if (channel === 'google_mijn_bedrijf') {
-    return publishToGoogleMijnBedrijf(draft);
-  }
-
   if (channel === 'linkedin' || channel === 'facebook_instagram' || channel === 'facebook' || channel === 'instagram') {
     return bufferChannel.publish(draft, channel);
   }
@@ -181,7 +119,7 @@ async function publishDraft(draft, channels) {
 }
 
 async function expirePublishedDraft(_draft, publicationRows) {
-  // Placeholder for direct per-channel expire actions (Indeed/WordPress/GMB).
+  // Placeholder for direct per-channel expire actions (WordPress).
   // We still mark drafts/publications as expired in the DB route layer.
   return {
     attempted: Array.isArray(publicationRows) ? publicationRows.length : 0,

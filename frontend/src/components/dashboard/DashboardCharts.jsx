@@ -37,9 +37,7 @@ const COLOR = {
 };
 
 const CHANNEL_LABELS = {
-  linkedin_jobs: 'LinkedIn Jobs',
   linkedin: 'LinkedIn',
-  indeed: 'Indeed',
   facebook_instagram: 'Facebook/Instagram',
   wordpress: 'WordPress',
   onbekend: 'Onbekend',

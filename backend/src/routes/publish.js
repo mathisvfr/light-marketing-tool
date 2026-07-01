@@ -28,11 +28,6 @@ async function hasProviderConnection(provider) {
     );
   }
 
-  if (provider === 'google_mijn_bedrijf') {
-    const credential = await getCredential('google_mijn_bedrijf');
-    return Boolean(credential?.access_token || process.env.GMB_ACCESS_TOKEN);
-  }
-
   const credential = await getCredential(provider);
   return Boolean(credential?.access_token);
 }
@@ -144,7 +139,6 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
       instagram: 'buffer',
       facebook: 'buffer',
       wordpress: 'wordpress',
-      google_mijn_bedrijf: 'google_mijn_bedrijf',
     };
 
     const requiredCredentialChannels = channels.filter((channel) => Boolean(credentialMapping[channel]));

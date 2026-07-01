@@ -51,10 +51,8 @@ async function buildApiStatus() {
 
   return {
     // Type A vacatures distribueren via de publieke XML feed -> Multiposter.
-    // De feed wordt altijd geserveerd, dus deze kanalen zijn altijd beschikbaar.
+    // De feed wordt altijd geserveerd, dus dit kanaal is altijd beschikbaar.
     feed: true,
-    linkedin_jobs: true,
-    indeed: true,
     // Type B social loopt via Buffer (LinkedIn/Facebook/Instagram).
     linkedin: bufferConnected,
     facebook_instagram: bufferConnected,

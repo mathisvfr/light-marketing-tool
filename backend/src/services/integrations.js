@@ -1,7 +1,7 @@
 const { supabase } = require('../db/client');
 
 const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://api.buffer.com';
-const SUPPORTED_PROVIDERS = ['buffer', 'linkedin', 'meta', 'wordpress', 'indeed', 'google_mijn_bedrijf'];
+const SUPPORTED_PROVIDERS = ['buffer', 'wordpress'];
 const INTEGRATION_KEY_PREFIX = 'integration_';
 
 function integrationKey(provider) {
