@@ -104,8 +104,15 @@ app.use('/api/media', requireAuth, mediaRoutes);
 app.use(errorHandler);
 
 const port = process.env.PORT || 3001;
-app.listen(port, () => {
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`Backend draait op poort ${port}`);
-  }
-});
+
+// Only start listening when run directly (node src/index.js), so tests can
+// import the configured app without binding a fixed port.
+if (require.main === module) {
+  app.listen(port, () => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`Backend draait op poort ${port}`);
+    }
+  });
+}
+
+module.exports = app;

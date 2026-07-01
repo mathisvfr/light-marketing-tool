@@ -45,7 +45,7 @@ Hoogste waarde, minste externe afhankelijkheid. Eerst af.
 | # | Taak | CLAUDE.md |
 |---|------|-----------|
 | 8 | **Vacature-generatie.** Form, Claude gestructureerde velden NL/PL, Criticus, preview, approve→actief. | Stap 5 |
-| 9 | **XML feed.** /jobs.xml, CDATA, één-plaats-validatie, DB-mapping. Lokaal testbaar in browser. | Stap 6 |
+| 9 | **XML feed.** /feeds/jobs.xml, CDATA, één-plaats-validatie, DB-mapping. Lokaal testbaar in browser. | Stap 6 |
 | 10 | **Wachtrij + Gepubliceerd.** Lifecycle-views, vacature sluiten = uit feed. | Stap 7-8 |
 
 **Mijlpaal:** vacature-helft werkt end-to-end behalve de live-handoff naar Jobit

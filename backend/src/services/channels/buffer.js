@@ -83,6 +83,14 @@ async function callBuffer(query, accessToken) {
 }
 
 async function createPost({ accessToken, channelId, text, imageUrl }) {
+  // VERIFY: Buffer's GraphQL createPost input shape and whether it accepts
+  // GraphQL *variables* (e.g. `mutation($input: PostCreateInput!) { createPost(input: $input) }`).
+  // Buffer's public GraphQL schema and the exact input type name are not documented
+  // in this repo, so we cannot safely switch to variables without guessing the type.
+  // Until confirmed against the live Buffer API docs, we interpolate JSON.stringify'd
+  // values. JSON.stringify produces valid GraphQL string literals (GraphQL string
+  // syntax matches JSON), which prevents string-break/injection for text/urls, but
+  // variables would still be cleaner. Check: https://buffer.com (API) / Buffer support.
   const assetBlock = imageUrl
     ? `
           assets: [
@@ -122,11 +130,19 @@ async function createPost({ accessToken, channelId, text, imageUrl }) {
   const result = data?.createPost;
 
   if (!result) {
-    throw new Error('Buffer gaf geen antwoord terug.');
+    return {
+      status: 'failed',
+      externalId: null,
+      error: 'Buffer gaf geen antwoord terug.',
+    };
   }
 
   if (result.__typename === 'MutationError') {
-    throw new Error(result.message || 'Buffer kon het bericht niet aanmaken.');
+    return {
+      status: 'failed',
+      externalId: null,
+      error: result.message || 'Buffer kon het bericht niet aanmaken.',
+    };
   }
 
   return {
@@ -140,27 +156,52 @@ async function publishSingle(channel, draft) {
   const credential = await getBufferCredential();
 
   if (!credential.access_token) {
-    throw new Error('Buffer is niet gekoppeld.');
+    return {
+      status: 'failed',
+      externalId: null,
+      error: 'Buffer is niet gekoppeld. Stel BUFFER_API_KEY in of koppel Buffer in Merk instellingen.',
+    };
   }
 
   const text = contentForChannel(channel, draft).trim();
   if (!text) {
-    throw new Error(`Geen ${channel}-tekst om te publiceren.`);
+    return {
+      status: 'failed',
+      externalId: null,
+      error: `Geen ${channel}-tekst om te publiceren.`,
+    };
   }
 
   const channelId = getChannelId(credential.metadata, channel);
   if (!channelId) {
-    throw new Error(`Buffer kanaal-ID ontbreekt voor ${channel}.`);
+    return {
+      status: 'failed',
+      externalId: null,
+      error: `Buffer kanaal-ID ontbreekt voor ${channel}. Vul het channel-ID in bij Merk instellingen.`,
+    };
   }
 
+  // VERIFY: LinkedIn is intentionally sent WITHOUT an image here. It is currently
+  // unclear whether this is a hard Buffer constraint (LinkedIn createPost rejecting
+  // image assets) or a bug to revisit. Do not silently attach an image until this is
+  // confirmed against the live Buffer docs (createPost asset support per channel):
+  // https://buffer.com (API). Other channels (facebook/instagram) do receive the image.
   const imageUrl = channel === 'linkedin' ? null : getPublicImageUrl(draft.image_path, credential.metadata);
 
-  return createPost({
-    accessToken: credential.access_token,
-    channelId,
-    text,
-    imageUrl,
-  });
+  try {
+    return await createPost({
+      accessToken: credential.access_token,
+      channelId,
+      text,
+      imageUrl,
+    });
+  } catch (error) {
+    return {
+      status: 'failed',
+      externalId: null,
+      error: error.message || `Publiceren naar ${channel} via Buffer mislukt.`,
+    };
+  }
 }
 
 async function publish(draft, requestedChannel) {

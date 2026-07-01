@@ -12,20 +12,34 @@
   - `SUPABASE_SERVICE_KEY`
   - `ANTHROPIC_API_KEY` (optional for fallback generation, recommended for production)
   - `BUFFER_API_KEY` (for marketing posts via Buffer)
-  - `N8N_WEBHOOK_VACATURE`
-  - `N8N_WEBHOOK_MARKETING`
-  - `N8N_WEBHOOK_EXPIRE`
+  - `N8N_WEBHOOK_VACATURE` (legacy: only drives channel-status flags in the UI, see `docs/publish-path-findings.md`)
+  - `N8N_WEBHOOK_MARKETING` (legacy: only drives channel-status flags in the UI, see `docs/publish-path-findings.md`)
   - `DOMAIN` (production with Caddy)
 
 ## 2) Database schema check
 
-The app expects these tables in Supabase public schema:
+The app expects (at minimum) these tables in the Supabase public schema:
 - users
 - drafts
-- publications
+- publications (must include the `expired_at` column)
 - brand_settings
+- channel_credentials
+- media_library
 
-If missing, apply `backend/src/db/migrations/001_init.sql` in Supabase SQL editor.
+For a fresh Supabase project, apply the migrations in
+`backend/src/db/migrations/` in numeric order via the Supabase SQL editor:
+
+1. `001_init.sql`
+2. `002_seo_pages.sql`
+3. `003_integrations_and_social_insights.sql`
+4. `004_step1_claude_schema.sql`
+5. `005_media_library.sql`
+6. `006_publications_expired_at.sql`
+
+All migrations are idempotent (`CREATE TABLE IF NOT EXISTS` / `ADD COLUMN IF NOT
+EXISTS`), so re-running them is safe. `006` guarantees `publications.expired_at`
+exists even on databases first created from `004` alone (the published page reads
+that column and would otherwise 500).
 
 ## 3) Seed owner account
 
@@ -122,11 +136,19 @@ Doel: vacatures met status `actief` inladen in Multiposter via de publieke XML f
 
 ### 9.3 Optionele feed-auth configureren
 
-- Standaard is de feed publiek.
-- Voor Basic Auth zet je in `.env`:
+**Beslissing voor de Multiposter-test: houd de feed PUBLIEK (geen Basic Auth).**
+Reden: de feed bevat uitsluitend vacature-content die sowieso publiek verspreid
+wordt, en Multiposter's ondersteuning voor Basic Auth op een pull-feed is niet
+bevestigd. Publiek starten voorkomt dat een auth-probleem de eerste pull blokkeert.
+Zet auth pas aan nadat de pull werkt en alleen als Multiposter Basic Auth aantoonbaar
+ondersteunt.
+
+- Standaard is de feed publiek (auth staat uit tenzij beide onderstaande vars gezet zijn).
+- Om later Basic Auth aan te zetten, zet je in `.env`:
   - `FEEDS_BASIC_AUTH_USERNAME`
   - `FEEDS_BASIC_AUTH_PASSWORD`
 - Herstart backend na wijzigen van env-vars.
+- Auth wordt nooit stilzwijgend geactiveerd: als één van beide vars leeg is, blijft de feed publiek.
 
 ### 9.4 Multiposter wizard (zoals in screenshot)
 

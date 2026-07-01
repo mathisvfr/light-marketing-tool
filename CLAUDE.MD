@@ -55,7 +55,7 @@ Deze drie sporen mogen in code, database en UI nooit door elkaar lopen.
 VACATURES (Type A)
   tool genereert gestructureerde NL/PL vacature
   → goedkeuren zet status 'actief'
-  → vacature verschijnt in XML feed op vaste URL (feed.lightpersoneelsdiensten.nl/jobs.xml)
+  → vacature verschijnt in XML feed op vaste URL (feed.lightpersoneelsdiensten.nl/feeds/jobs.xml)
   → Jobit/Multiposter pullt de feed, distribueert naar boards + eigen pagina's
   → stats later terug te pullen (methode nog te bevestigen)
 
@@ -305,7 +305,7 @@ CREATE TABLE proposals (
 
 ## XML feed-specificatie (Jobit/Multiposter)
 
-Wij hosten een feed op `GET /jobs.xml` (op subdomein
+Wij hosten een feed op `GET /feeds/jobs.xml` (op subdomein
 feed.lightpersoneelsdiensten.nl) met alle vacatures met status 'actief'.
 Veldnamen mogen vrij gekozen worden (Jobit mapt ze in hun UI), maar houd ze
 schoon en consistent.
@@ -385,7 +385,7 @@ Korte omschrijving (max 400 tekens, teller), Taal (NL | NL+PL), Contract.
   "Goedkeuren" (owner → status 'actief' → in feed).
 
 ### Stap 6 — XML feed (feed.js)
-- GET /jobs.xml: alle vacatures status 'actief' → XML per spec hierboven.
+- GET /feeds/jobs.xml: alle vacatures status 'actief' → XML per spec hierboven.
   CDATA om elke tag. Valideer Plaats = één plaatsnaam.
 - Lokaal testbaar in de browser; geen externe afhankelijkheid.
 
@@ -485,7 +485,7 @@ aanwezig. Retourneert ALLEEN JSON: { passed: bool, notes: string }.
 
 ### Stap 16 — Docker + deploy
 - docker-compose.yml: backend (3001), frontend (Nginx, gebouwde dist), Caddy
-  (reverse proxy, auto-HTTPS, /api/* → backend, /* → frontend, /jobs.xml →
+  (reverse proxy, auto-HTTPS, /api/* → backend, /* → frontend, /feeds/jobs.xml →
   backend op feed-subdomein).
 - docker-compose.dev.yml: nodemon backend, Vite dev server, geen Caddy.
 - .env.example met alle keys (zie onder).
