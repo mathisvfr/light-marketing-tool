@@ -49,7 +49,7 @@ function getCredentialLabel(state) {
     return 'Verloopt binnenkort';
   }
 
-  return 'Opnieuw koppelen';
+  return 'Niet verbonden';
 }
 
 export default function MerkInstellingen() {
@@ -100,29 +100,6 @@ export default function MerkInstellingen() {
       }),
   });
 
-  const connectMutation = useMutation({
-    mutationFn: ({ provider, accessToken, expiresAt, metadata }) =>
-      api(`/integrations/${provider}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          accessToken,
-          expiresAt: expiresAt || null,
-          metadata: metadata || {},
-        }),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['integrations-status-owner'] });
-    },
-  });
-
-  const bufferDiscoverMutation = useMutation({
-    mutationFn: () =>
-      api('/integrations/buffer/discover', {
-        method: 'POST',
-        body: JSON.stringify({}),
-      }),
-  });
-
   function updateField(key, value) {
     setSettingsEdits((prev) => ({ ...prev, [key]: value }));
   }
@@ -138,79 +115,6 @@ export default function MerkInstellingen() {
       queryClient.invalidateQueries({ queryKey: ['brand-settings-owner'] });
     } catch (err) {
       setError(err.message || 'Opslaan mislukt.');
-    }
-  }
-
-  async function handleConnect(providerKey, providerLabel) {
-    setError('');
-    setSuccess('');
-
-    try {
-      if (providerKey === 'buffer') {
-        const discovered = await bufferDiscoverMutation.mutateAsync();
-        const organizations = discovered?.discovery?.organizations || [];
-
-        if (organizations.length === 0) {
-          throw new Error('Buffer account heeft geen organisaties.');
-        }
-
-        const selectedOrganization = organizations[0];
-        if (!selectedOrganization) {
-          throw new Error('Geen geldige Buffer-organisatie gekozen.');
-        }
-
-        const linkedInChannels = (selectedOrganization.channels || []).filter(
-          (channel) => channel.service === 'linkedin'
-        );
-
-        if (linkedInChannels.length === 0) {
-          throw new Error('Geen LinkedIn-kanaal gevonden in deze Buffer-organisatie.');
-        }
-
-        const selectedChannel = linkedInChannels[0];
-        if (!selectedChannel) {
-          throw new Error('Geen geldig Buffer LinkedIn-kanaal gekozen.');
-        }
-
-        await connectMutation.mutateAsync({
-          provider: 'buffer',
-          accessToken: null,
-          metadata: {
-            organizationId: selectedOrganization.id,
-            organizationName: selectedOrganization.name,
-            channelIds: {
-              linkedin: selectedChannel.id,
-            },
-            channelNames: {
-              linkedin: selectedChannel.name,
-            },
-            services: {
-              linkedin: selectedChannel.service,
-            },
-          },
-        });
-
-        setSuccess(`Buffer is gekoppeld aan ${selectedChannel.name}.`);
-        return;
-      }
-
-      const accessToken = window.prompt(`${providerLabel}: plak access token`);
-      if (!accessToken) {
-        return;
-      }
-
-      const expiresAtInput = window.prompt(
-        `${providerLabel}: vervaldatum (optioneel, ISO formaat, bv 2026-07-31T00:00:00Z)`
-      );
-
-      await connectMutation.mutateAsync({
-        provider: providerKey,
-        accessToken: accessToken.trim(),
-        expiresAt: expiresAtInput ? expiresAtInput.trim() : null,
-      });
-      setSuccess(`${providerLabel} is bijgewerkt.`);
-    } catch (err) {
-      setError(err.message || 'Koppelen mislukt.');
     }
   }
 
@@ -300,7 +204,6 @@ export default function MerkInstellingen() {
             const row = providersByKey.get(provider.key);
             const state = getCredentialState(row);
             const stateLabel = getCredentialLabel(state);
-            const buttonLabel = state === 'disconnected' ? 'Koppelen' : 'Opnieuw koppelen';
 
             return (
               <article key={provider.key} className="integration-card">
@@ -311,13 +214,9 @@ export default function MerkInstellingen() {
                     {stateLabel}
                   </span>
                 </p>
-                <button
-                  type="button"
-                  onClick={() => handleConnect(provider.key, provider.label)}
-                  disabled={connectMutation.isPending || integrationsQuery.isLoading}
-                >
-                  {buttonLabel}
-                </button>
+                <p className="integration-hint">
+                  Wordt beheerd via serverconfiguratie (.env).
+                </p>
               </article>
             );
           })}

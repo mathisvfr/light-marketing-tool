@@ -13,6 +13,14 @@ function isSupportedProvider(provider) {
   return SUPPORTED_PROVIDERS.includes(provider);
 }
 
+function wordpressEnvConfigured() {
+  return Boolean(
+    (process.env.WORDPRESS_API_URL || process.env.WORDPRESS_URL) &&
+      process.env.WORDPRESS_USERNAME &&
+      process.env.WORDPRESS_APP_PASSWORD
+  );
+}
+
 function sanitizeCredential(row) {
   if (!row) {
     return null;
@@ -34,10 +42,11 @@ function sanitizeCredential(row) {
 
   const provider = row.key.replace(INTEGRATION_KEY_PREFIX, '');
   const bufferConnected = provider === 'buffer' && Boolean(process.env.BUFFER_API_KEY);
+  const wordpressConnected = provider === 'wordpress' && wordpressEnvConfigured();
 
   return {
     provider,
-    hasAccessToken: Boolean(payload.access_token) || bufferConnected,
+    hasAccessToken: Boolean(payload.access_token) || bufferConnected || wordpressConnected,
     hasRefreshToken: Boolean(payload.refresh_token),
     expiresAt: payload.expires_at || null,
     metadata: payload.metadata || {},
@@ -80,16 +89,29 @@ async function getCredentialStatus(provider) {
 }
 
 async function getAllCredentialStatuses() {
-  const bufferFallback = process.env.BUFFER_API_KEY
-    ? [{
-        key: integrationKey('buffer'),
-        value: JSON.stringify({
-          access_token: process.env.BUFFER_API_KEY,
-          metadata: {},
-        }),
-        updated_at: null,
-      }]
-    : [];
+  const fallbackRows = [];
+
+  if (process.env.BUFFER_API_KEY) {
+    fallbackRows.push({
+      key: integrationKey('buffer'),
+      value: JSON.stringify({
+        access_token: process.env.BUFFER_API_KEY,
+        metadata: {},
+      }),
+      updated_at: null,
+    });
+  }
+
+  if (wordpressEnvConfigured()) {
+    fallbackRows.push({
+      key: integrationKey('wordpress'),
+      value: JSON.stringify({
+        access_token: 'env',
+        metadata: {},
+      }),
+      updated_at: null,
+    });
+  }
 
   const { data, error } = await supabase
     .from('brand_settings')
@@ -102,7 +124,7 @@ async function getAllCredentialStatuses() {
   }
 
   const map = new Map(
-    [...bufferFallback, ...(data || [])].map((row) => [row.key.replace(INTEGRATION_KEY_PREFIX, ''), sanitizeCredential(row)])
+    [...fallbackRows, ...(data || [])].map((row) => [row.key.replace(INTEGRATION_KEY_PREFIX, ''), sanitizeCredential(row)])
   );
   return SUPPORTED_PROVIDERS.map((provider) => map.get(provider) || {
     provider,
