@@ -6,6 +6,14 @@ const { saveDataUrlToLibrary, renderSvgToLibrary } = require('../services/render
 
 const router = express.Router();
 
+// Only owners and recruiters may create media; viewers are read-only.
+function requireWriteRole(req, res, next) {
+  if (!['owner', 'recruiter'].includes(req.user?.role)) {
+    return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
+  }
+  return next();
+}
+
 // GET /api/media — lijst ophalen
 // Query params: source ('upload'|'generated'), search (zoekterm op alt_text)
 router.get('/', async (req, res, next) => {
@@ -36,7 +44,7 @@ router.get('/', async (req, res, next) => {
 });
 
 // POST /api/media/upload — eigen foto uploaden (allen)
-router.post('/upload', async (req, res, next) => {
+router.post('/upload', requireWriteRole, async (req, res, next) => {
   try {
     const dataUrl = String(req.body?.dataUrl || '').trim();
     const altText = String(req.body?.altText || '').trim().slice(0, 255);
@@ -70,7 +78,7 @@ router.post('/upload', async (req, res, next) => {
 });
 
 // POST /api/media/generate — nieuwe branded afbeelding genereren
-router.post('/generate', async (req, res, next) => {
+router.post('/generate', requireWriteRole, async (req, res, next) => {
   try {
     const onderwerp = String(req.body?.onderwerp || '').trim();
     const caption = String(req.body?.caption || '').trim();

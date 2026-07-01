@@ -6,6 +6,8 @@ require('dotenv').config({
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
 const authRoutes = require('./routes/auth');
@@ -76,15 +78,24 @@ function requireFeedAuth(req, res, next) {
   return next();
 }
 
+app.use(helmet());
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
     credentials: true,
   })
 );
-app.use(express.json({ limit: '6mb' }));
+app.use(express.json({ limit: '15mb' }));
 app.use(cookieParser());
 app.use('/uploads', express.static(path.resolve(__dirname, '..', 'uploads')));
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Te veel inlogpogingen. Probeer het later opnieuw.' },
+});
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
@@ -92,6 +103,7 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/feeds', requireFeedAuth, feedsRoutes);
 
+app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', requireAuth, dashboardRoutes);
 app.use('/api/drafts', requireAuth, draftsRoutes);

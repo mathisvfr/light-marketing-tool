@@ -188,3 +188,69 @@ Stap 3 - Velden instellen:
 - Iedere XML tag gebruikt CDATA.
 - `Plaats` bevat exact 1 plaatsnaam (geen regio/omgeving).
 - `Nummer` blijft stabiel en uniek (UUID uit drafts).
+
+## 10) Productie-deploy naar de VPS (twee subdomeinen)
+
+De tool draait op `tool.lightpersoneelsdiensten.nl`, de XML-feed op
+`feed.lightpersoneelsdiensten.nl`. Beide subdomeinen wijzen via DNS (A-record)
+naar het publieke IP van de VPS. Caddy regelt automatisch HTTPS voor beide.
+
+### 10.1 Eenmalige voorwaarden op de VPS
+
+- Docker + Docker Compose geïnstalleerd.
+- Poorten 80 en 443 vrij en open in de firewall (geen andere webserver bindt eraan).
+- Beide subdomeinen resolven al naar het VPS-IP.
+
+### 10.2 Code op de VPS zetten (git)
+
+```bash
+# op de VPS, als de juiste gebruiker
+git clone https://github.com/mathisvfr/light-marketing-tool.git
+cd light-marketing-tool
+# latere updates:
+git pull
+```
+
+### 10.3 Secrets (.env) op de VPS zetten
+
+`.env` staat NIET in git (staat in `.gitignore`) en moet apart en veilig
+overgezet worden. Kopieer het lokale `.env` naar de projectroot op de VPS.
+
+Vanaf de lokale Windows-machine (PowerShell), vervang gebruiker/host/pad:
+
+```powershell
+scp .env user@VPS_IP:/home/user/light-marketing-tool/.env
+```
+
+Controleer op de VPS dat het bestand er staat en de juiste rechten heeft:
+
+```bash
+ls -l .env
+chmod 600 .env   # alleen leesbaar voor de eigenaar
+```
+
+Let op: zet `.env` nooit in git en deel het niet via chat/e-mail. Bevat o.a.
+`JWT_SECRET`, `CREDENTIALS_ENCRYPTION_KEY`, `SUPABASE_SERVICE_KEY` en alle API-keys.
+
+### 10.4 Starten
+
+```bash
+docker compose -f docker-compose.yml up --build -d
+docker compose -f docker-compose.yml logs -f caddy   # wacht op cert-uitgifte
+```
+
+### 10.5 Verifiëren
+
+- `https://tool.lightpersoneelsdiensten.nl/api/health` -> `{"status":"ok"}`
+- Inloggen als owner werkt (wachtwoord daarna wijzigen via Gebruikers).
+- `https://feed.lightpersoneelsdiensten.nl/feeds/jobs.xml` -> XML (200).
+
+### 10.6 Updaten na een codewijziging
+
+```bash
+git pull
+docker compose -f docker-compose.yml up --build -d
+```
+
+`.env` hoeft alleen opnieuw gekopieerd te worden als er nieuwe variabelen bijkomen.
+

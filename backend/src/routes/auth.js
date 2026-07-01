@@ -1,10 +1,15 @@
 const express = require('express');
+const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { supabase } = require('../db/client');
 const { AUTH_COOKIE_NAME, requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
+
+// Bcrypt hash of a random throwaway value. Used to equalize response timing
+// when the account does not exist, preventing user enumeration.
+const DUMMY_HASH = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 12);
 
 function getCookieConfig() {
   return {
@@ -31,6 +36,9 @@ router.post('/login', async (req, res, next) => {
       .maybeSingle();
 
     if (error || !user) {
+      // Still run a compare against a dummy hash so the response timing does
+      // not reveal whether the e-mail exists.
+      await bcrypt.compare(password, DUMMY_HASH);
       return res.status(401).json({ error: 'Ongeldige inloggegevens.' });
     }
 

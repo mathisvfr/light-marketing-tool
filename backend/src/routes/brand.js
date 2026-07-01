@@ -67,7 +67,10 @@ async function buildApiStatus() {
 
 router.get('/', async (_req, res, next) => {
   try {
-    const { data, error } = await supabase.from('brand_settings').select('key, value');
+    const { data, error } = await supabase
+      .from('brand_settings')
+      .select('key, value')
+      .in('key', SETTING_KEYS);
 
     if (error) {
       throw error;

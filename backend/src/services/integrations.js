@@ -1,4 +1,5 @@
 const { supabase } = require('../db/client');
+const { encryptValue, decryptValue } = require('./crypto');
 
 const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://api.buffer.com';
 const SUPPORTED_PROVIDERS = ['buffer', 'wordpress'];
@@ -20,11 +21,13 @@ function sanitizeCredential(row) {
   let payload = {};
 
   try {
-    payload = typeof row.value === 'string' && row.value.trim()
-      ? JSON.parse(row.value)
-      : row.value && typeof row.value === 'object'
-        ? row.value
-        : {};
+    if (typeof row.value === 'string' && row.value.trim()) {
+      payload = JSON.parse(decryptValue(row.value));
+    } else if (row.value && typeof row.value === 'object') {
+      payload = row.value;
+    } else {
+      payload = {};
+    }
   } catch (_error) {
     payload = {};
   }
@@ -122,7 +125,7 @@ async function upsertCredential(provider, input) {
 
   const row = {
     key: integrationKey(provider),
-    value: JSON.stringify(credentialPayload),
+    value: encryptValue(JSON.stringify(credentialPayload)),
     updated_at: new Date().toISOString(),
   };
 

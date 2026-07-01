@@ -12,3 +12,13 @@
 
   reverse_proxy frontend:80
 }
+
+{$FEED_DOMAIN} {
+  encode zstd gzip
+
+  # Feed-subdomein serveert uitsluitend de XML-feed; al het andere is 404.
+  @feeds path /feeds/*
+  reverse_proxy @feeds backend:3001
+
+  respond 404
+}
