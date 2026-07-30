@@ -52,6 +52,7 @@ export default function VacaturePlaatsen() {
   const [success, setSuccess] = useState('');
   const [imagePath, setImagePath] = useState('');
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const existingDraftQuery = useQuery({
     queryKey: ['draft-detail-vacature', draftIdParam],
@@ -402,6 +403,17 @@ export default function VacaturePlaatsen() {
                 }))
               }
             />
+            <button
+              type="button"
+              className="copy-text-btn"
+              onClick={() => {
+                navigator.clipboard.writeText(content[activeTab] || '');
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              }}
+            >
+              {copied ? 'Gekopieerd!' : 'Kopieer tekst'}
+            </button>
           </div>
 
           <div className="vacature-image-block">

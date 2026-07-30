@@ -3,7 +3,7 @@
 ## Wat dit is
 Een gehoste, multi-user marketing automation tool voor **Light Personeelsdiensten
 B.V.**, een uitzendbureau in Rotterdam gespecialiseerd in logistiek-, productie-
-en schoonmaakpersoneel (SNF- en Normec VRO-gecertificeerd). De eindgebruikers zijn
+en schoonmaakpersoneel (SNA-gecertificeerd). De eindgebruikers zijn
 niet-technisch. Meerdere mensen met verschillende rollen gebruiken de tool via de
 browser. De tool draait op een VPS en wordt lokaal ontwikkeld.
 
@@ -471,11 +471,12 @@ Inline rol wijzigen. Laatste owner kan niet verwijderd/gedegradeerd worden.
 uitzendbureau in no-nonsense Rotterdamse toon. Retourneert ALLEEN JSON met keys:
 omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, en bij PL ook
 omschrijving_pl, social_pl. Verzin nooit salarissen ("salaris conform CAO" als
-leeg). Noem transport/huisvesting als merkcontext die bevat.
+leeg). Vermeld standaard "Geen huisvesting" tenzij expliciet anders aangegeven.
+Vervoer mag standaard benoemd worden.
 
 **prompts/marketing-post.md** — Type B. Bij "Opdrachtgevers": professionele NL
 LinkedIn-post voor HR/operations-managers in food/logistiek (150-200 woorden),
-noem certificeringen (SNF, Normec VRO) waar relevant. Bij "Kandidaten":
+noem certificering (SNA) waar relevant. Bij "Kandidaten":
 informele NL Facebook-post. Retourneert ALLEEN JSON: linkedin_post,
 facebook_post, instagram_caption.
 

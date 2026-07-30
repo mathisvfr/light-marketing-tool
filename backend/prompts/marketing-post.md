@@ -17,7 +17,7 @@ Regels:
    - Type Opdrachtgevers: professionele LinkedIn-post voor HR- en operations-managers.
    - Type Kandidaten: informele Facebook-post voor werkzoekenden.
 4. Houd claims feitelijk en verzin geen certificeringen of resultaten.
-5. Noem SNF en Normec VRO alleen wanneer relevant voor de boodschap.
+5. Alleen SNA (Stichting Normering Arbeid) mag als certificering genoemd worden, en alleen wanneer relevant voor de boodschap. Noem NOOIT SNF, Normec VRO of andere niet-bevestigde certificeringen.
 6. Voeg in instagram_caption altijd een duidelijke CTA toe.
 
 Inhoudsdoelen:

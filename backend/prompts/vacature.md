@@ -19,7 +19,7 @@ Belangrijke regels:
    - `taal = PL`    → genereer ALLEEN Poolse velden: omschrijving_pl, social_pl. Laat omschrijving_nl, functie_eisen, wat_wij_bieden en social_nl weg uit de output.
 4. Verzin nooit salarissen of harde arbeidsvoorwaarden die niet in de input staan.
 5. Als salaris ontbreekt of leeg is, benoem dit als "salaris conform CAO".
-6. Noem transport en huisvesting alleen als dit in merkrichtlijnen of input wordt ondersteund.
+6. Vermeld standaard "Geen huisvesting" in wat_wij_bieden, tenzij de input expliciet anders aangeeft. Vervoer mag standaard benoemd worden.
 7. Sluit social_nl (en social_pl indien aanwezig) af met een concrete CTA.
 
 Inhoudsdoelen:

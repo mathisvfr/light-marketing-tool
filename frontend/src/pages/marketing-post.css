@@ -124,6 +124,27 @@
   margin-bottom: 0.8rem;
 }
 
+.copy-text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.copy-text-btn:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
 .marketing-image-block {
   margin: 0.4rem 0 0.8rem;
   padding: 0.8rem;

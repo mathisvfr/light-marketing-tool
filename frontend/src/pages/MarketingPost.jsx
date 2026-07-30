@@ -38,6 +38,7 @@ export default function MarketingPost() {
     notes: undefined,
   });
   const [activeTab, setActiveTab] = useState('linkedin_post');
+  const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -396,6 +397,17 @@ export default function MarketingPost() {
               }))
             }
           />
+          <button
+            type="button"
+            className="copy-text-btn"
+            onClick={() => {
+              navigator.clipboard.writeText(content[activeTab] || '');
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            }}
+          >
+            {copied ? 'Gekopieerd!' : 'Kopieer tekst'}
+          </button>
 
           <div className="marketing-image-block">
             <p className="marketing-label">Afbeelding preview</p>
