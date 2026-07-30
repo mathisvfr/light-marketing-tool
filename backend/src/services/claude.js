@@ -74,8 +74,13 @@ function extractTextFromAnthropicResponse(responseJson) {
 }
 
 function parseJsonOrThrow(rawText) {
+  let cleaned = rawText.trim();
+  const fenceMatch = cleaned.match(/^```(?:json)?\s*\n([\s\S]*?)\n```$/);
+  if (fenceMatch) {
+    cleaned = fenceMatch[1].trim();
+  }
   try {
-    return JSON.parse(rawText);
+    return JSON.parse(cleaned);
   } catch (_error) {
     throw new Error('AI-provider gaf geen geldige JSON terug.');
   }
