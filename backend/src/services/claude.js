@@ -1,7 +1,7 @@
 const { supabase } = require('../db/client');
 const { loadPrompt, loadBrandKnowledge } = require('./prompts');
 
-const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-20250514';
+const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-5';
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 const DEFAULT_GEMINI_FALLBACK_MODEL = 'gemini-2.5-flash-lite';
 const DEFAULT_GREENPT_MODEL = 'green-r-raw';

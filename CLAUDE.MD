@@ -39,7 +39,7 @@ Deze drie sporen mogen in code, database en UI nooit door elkaar lopen.
 - Backend: Node.js + Express, volledig gescheiden in /backend
 - Database: PostgreSQL via Supabase (MCP gekoppeld, gebruik bestaand project)
 - Auth: JWT (jsonwebtoken) + bcrypt, httpOnly cookies
-- AI: Anthropic Claude API (claude-sonnet-4-20250514)
+- AI: Anthropic Claude API (claude-sonnet-5)
 - Beeld-rendering: Satori (HTML/JSX → PNG) voor branded social images
 - Social publicatie (Type B): **Buffer API (GraphQL)** — LinkedIn, Facebook, Instagram
 - Vacaturedistributie (Type A): Jobit/Multiposter via XML feed (wij hosten de feed)
