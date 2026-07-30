@@ -1,5 +1,5 @@
 const { supabase } = require('../db/client');
-const { loadPrompt } = require('./prompts');
+const { loadPrompt, loadBrandKnowledge } = require('./prompts');
 
 const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-20250514';
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
@@ -81,7 +81,7 @@ function parseJsonOrThrow(rawText) {
   }
 }
 
-async function callAnthropic(systemPrompt, formData) {
+async function callAnthropic(systemBlocks, formData) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const model = process.env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL;
 
@@ -100,7 +100,7 @@ async function callAnthropic(systemPrompt, formData) {
       model,
       max_tokens: 1400,
       temperature: 0.2,
-      system: systemPrompt,
+      system: systemBlocks,
       messages: [
         {
           role: 'user',
@@ -119,7 +119,18 @@ async function callAnthropic(systemPrompt, formData) {
     throw new Error('Anthropic API gaf een fout tijdens genereren.');
   }
 
-  return response.json();
+  const json = await response.json();
+
+  if (process.env.NODE_ENV !== 'production') {
+    const u = json.usage || {};
+    const status = u.cache_read_input_tokens > 0 ? 'HIT'
+      : u.cache_creation_input_tokens > 0 ? 'WRITE' : 'NONE';
+    console.log(
+      `[cache ${status}] read=${u.cache_read_input_tokens || 0} write=${u.cache_creation_input_tokens || 0} input=${u.input_tokens || 0}`
+    );
+  }
+
+  return json;
 }
 
 function extractTextFromGeminiResponse(responseJson) {
@@ -312,18 +323,22 @@ async function callGemini(systemPrompt, payload) {
   throw lastError || new Error('Gemini API gaf een fout tijdens genereren.');
 }
 
-async function callProvider(provider, systemPrompt, payload) {
-  if (provider === 'greenpt') {
-    const responseJson = await callGreenPt(systemPrompt, payload);
-    return extractTextFromOpenAiCompatResponse(responseJson, 'GreenPT');
-  }
+async function callProvider(provider, systemInput, payload) {
+  if (provider === 'greenpt' || provider === 'gemini') {
+    const systemPrompt = Array.isArray(systemInput)
+      ? systemInput.map((b) => b.text).join('\n\n')
+      : systemInput;
 
-  if (provider === 'gemini') {
+    if (provider === 'greenpt') {
+      const responseJson = await callGreenPt(systemPrompt, payload);
+      return extractTextFromOpenAiCompatResponse(responseJson, 'GreenPT');
+    }
+
     const responseJson = await callGemini(systemPrompt, payload);
     return extractTextFromGeminiResponse(responseJson);
   }
 
-  const responseJson = await callAnthropic(systemPrompt, payload);
+  const responseJson = await callAnthropic(systemInput, payload);
   return extractTextFromAnthropicResponse(responseJson);
 }
 
@@ -349,27 +364,49 @@ async function callAnthropicExpectingJson(systemPrompt, payload) {
   throw new Error('Genereren mislukte door ongeldige JSON-respons.');
 }
 
+function buildSystemBlocks(brandKnowledge, brandContext, templatePrompt) {
+  const blocks = [];
+
+  if (brandKnowledge) {
+    blocks.push({
+      type: 'text',
+      text: brandKnowledge,
+      cache_control: { type: 'ephemeral' },
+    });
+  }
+
+  blocks.push({
+    type: 'text',
+    text: `${brandContext}\n\n${templatePrompt}`,
+    cache_control: { type: 'ephemeral' },
+  });
+
+  return blocks;
+}
+
 async function generate(type, formData) {
   const promptName =
     type === 'marketing-post' ? 'marketing-post' : type === 'seo-page' ? 'seo-page' : 'vacature';
-  const [brandContext, templatePrompt] = await Promise.all([
+  const [brandKnowledge, brandContext, templatePrompt] = await Promise.all([
+    loadBrandKnowledge(),
     loadBrandContext(),
     loadPrompt(promptName),
   ]);
 
-  const systemPrompt = `${brandContext}\n\n${templatePrompt}`;
+  const systemBlocks = buildSystemBlocks(brandKnowledge, brandContext, templatePrompt);
 
-  return callAnthropicExpectingJson(systemPrompt, formData);
+  return callAnthropicExpectingJson(systemBlocks, formData);
 }
 
 async function criticus(input) {
-  const [brandContext, criticusPrompt] = await Promise.all([
+  const [brandKnowledge, brandContext, criticusPrompt] = await Promise.all([
+    loadBrandKnowledge(),
     loadBrandContext(),
     loadPrompt('criticus'),
   ]);
 
-  const systemPrompt = `${brandContext}\n\n${criticusPrompt}`;
-  const result = await callAnthropicExpectingJson(systemPrompt, input);
+  const systemBlocks = buildSystemBlocks(brandKnowledge, brandContext, criticusPrompt);
+  const result = await callAnthropicExpectingJson(systemBlocks, input);
 
   return {
     passed: Boolean(result?.passed),

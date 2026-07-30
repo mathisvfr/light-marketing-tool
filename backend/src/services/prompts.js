@@ -12,6 +12,24 @@ async function loadPrompt(name) {
   }
 }
 
+async function loadBrandKnowledge() {
+  const candidates = [
+    path.resolve(__dirname, '../../brand', 'brand-knowledge.md'),
+    path.resolve(__dirname, '../../../brand', 'brand-knowledge.md'),
+  ];
+
+  for (const filePath of candidates) {
+    try {
+      return await fs.readFile(filePath, 'utf8');
+    } catch (_e) {
+      // try next candidate
+    }
+  }
+
+  return '';
+}
+
 module.exports = {
   loadPrompt,
+  loadBrandKnowledge,
 };
