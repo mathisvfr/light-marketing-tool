@@ -103,7 +103,7 @@ async function callAnthropic(systemBlocks, formData) {
     },
     body: JSON.stringify({
       model,
-      max_tokens: 1400,
+      max_tokens: 4096,
       system: systemBlocks,
       messages: [
         {
