@@ -3,8 +3,8 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { renderToPng } = require('./render/engine');
 
-const uploadsRoot = path.resolve(__dirname, '..', 'uploads', 'social');
-const libraryRoot = path.resolve(__dirname, '..', 'uploads', 'library');
+const uploadsRoot = path.resolve(__dirname, '..', '..', 'uploads', 'social');
+const libraryRoot = path.resolve(__dirname, '..', '..', 'uploads', 'library');
 
 async function ensureUploadDir() {
   await fs.mkdir(uploadsRoot, { recursive: true });

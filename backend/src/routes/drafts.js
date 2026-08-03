@@ -291,9 +291,7 @@ router.post('/:id/generate', async (req, res, next) => {
         await supabase.from('drafts').update(bgUpdate).eq('id', draft.id);
       })
       .catch((err) => {
-        if (process.env.NODE_ENV !== 'production') {
-          console.error('Background criticus/render failed:', err);
-        }
+        console.error('Background criticus/render failed:', err);
       });
 
     return;
