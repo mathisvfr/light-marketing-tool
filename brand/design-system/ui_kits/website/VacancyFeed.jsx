@@ -19,9 +19,12 @@ function VacancyFeed({ onNav }) {
     <section style={{ background: 'var(--color-bg)' }}>
       <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '72px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 16, marginBottom: 28 }}>
-          <div>
-            <span className="light-eyebrow">Vacatures</span>
-            <h2 className="light-h2" style={{ marginTop: 10 }}>Enkele van onze vacatures</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+            <img src="../../assets/light-logo-beeldmerk.png" alt="Light Personeelsdiensten" style={{ height: 56, width: 'auto', flex: 'none' }} />
+            <div>
+              <span className="light-eyebrow">Vacatures</span>
+              <h2 className="light-h2" style={{ marginTop: 10 }}>Enkele van onze vacatures</h2>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {cats.map((c) => (

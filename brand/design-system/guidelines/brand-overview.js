@@ -23,9 +23,9 @@
 
   // ---------- static: type list ----------
   const type = [
-    ['Display · 64 · Montserrat 900', '<span style="font-family:var(--font-display);font-weight:900;font-size:64px;letter-spacing:-0.02em;line-height:1">Light</span>'],
-    ['H1 · 44 · 800', '<span class="light-h1">De productie moet draaien</span>'],
-    ['H2 · 32 · 800', '<span class="light-h2">Enkele van onze vacatures</span>'],
+    ['Display · 64 · Montserrat 800', '<span style="font-family:var(--font-display);font-weight:800;font-size:64px;letter-spacing:-0.02em;line-height:1">Light</span>'],
+    ['H1 · 44 · 700', '<span class="light-h1">De productie moet draaien</span>'],
+    ['H2 · 32 · 700', '<span class="light-h2">Enkele van onze vacatures</span>'],
     ['H3 · 24 · 700', '<span class="light-h3">Werken bij Light</span>'],
     ['Lead · 20 · Open Sans', '<span class="light-lead">Specialist in productie, logistiek en schoonmaak.</span>'],
     ['Body · 16 / 1.6', '<span class="light-body">Wij kennen de klappen van de zweep — en regelen het juiste personeel op locatie.</span>'],

@@ -1,6 +1,23 @@
 import React from 'react';
 import { Card } from './Card.jsx';
 
+function JobIcon({ name, size = 18, color, style = {} }) {
+  if (!name) return null;
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.lucide) return;
+    el.innerHTML = '<i data-lucide="' + name + '"></i>';
+    try { window.lucide.createIcons(); } catch (e) { /* noop */ }
+    const svg = el.querySelector('svg');
+    if (svg) { svg.setAttribute('width', size); svg.setAttribute('height', size); }
+  }, [name, size]);
+  return React.createElement('span', {
+    ref, 'aria-hidden': true,
+    style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, color, flex: 'none', ...style },
+  });
+}
+
 /**
  * Light Personeelsdiensten — JobCard (vacaturekaart)
  * Domain card for a single vacancy: photo, title, location/hours meta,
@@ -26,7 +43,7 @@ export function JobCard({
 
   const Meta = ({ icon, children }) => (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>
-      <i data-lucide={icon} style={{ width: 14, height: 14 }} />
+      <JobIcon name={icon} size={14} />
       {children}
     </span>
   );
@@ -36,14 +53,14 @@ export function JobCard({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <span style={{
           alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 6,
-          fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 11, letterSpacing: '0.08em',
+          fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 11, letterSpacing: '0.08em',
           textTransform: 'uppercase', color: 'var(--color-primary)',
           background: 'var(--color-primary-soft)', padding: '5px 10px', borderRadius: 'var(--radius-pill)',
         }}>
-          <i data-lucide={catIcon} style={{ width: 13, height: 13 }} />{category}
+          <JobIcon name={catIcon} size={13} />{category}
         </span>
 
-        <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20, lineHeight: 1.2, color: 'var(--color-text)', margin: 0 }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, lineHeight: 1.2, color: 'var(--color-text)', margin: 0 }}>
           {title}
         </h3>
 
@@ -59,8 +76,8 @@ export function JobCard({
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 14, color: 'var(--color-primary)' }}>
-            Lees meer <i data-lucide="arrow-right" style={{ width: 16, height: 16 }} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: 'var(--color-primary)' }}>
+            Lees meer <JobIcon name="arrow-right" size={16} />
           </span>
           {readTime && (
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--color-text-subtle)' }}>{readTime}</span>

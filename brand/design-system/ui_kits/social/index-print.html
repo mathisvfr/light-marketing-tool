@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Light — Social media kit (print)</title>
+<link rel="stylesheet" href="../../styles.css" />
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;background:#e9eaec;font-family:var(--font-body);color:var(--color-text);}
+
+  /* shared post primitives (real px) */
+  .p-eyebrow{font-family:var(--font-display);font-weight:700;text-transform:uppercase;letter-spacing:0.16em;}
+  .p-title{font-family:var(--font-display);font-weight:800;letter-spacing:-0.015em;line-height:1.04;}
+  .p-meta{display:flex;gap:28px;align-items:center;font-family:var(--font-body);font-weight:600;}
+  .p-meta span{display:inline-flex;align-items:center;gap:10px;}
+  .notch{clip-path:var(--clip-notch);}
+  .logo-chip{background:#fff;border-radius:14px;display:flex;}
+  .pill{display:inline-flex;align-items:center;gap:12px;border-radius:999px;font-family:var(--font-display);font-weight:700;}
+
+  /* one page per post */
+  .page{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+        padding:48px 40px 60px;gap:22px;min-height:100vh;}
+  .page-head{width:100%;max-width:760px;text-align:center;}
+  .page-head .lbl{font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:var(--grey-600);}
+  .page-head .dim{font-family:var(--font-mono);font-size:12px;color:var(--color-text-subtle);margin-top:4px;}
+  .stage{position:relative;border-radius:10px;overflow:hidden;box-shadow:0 10px 30px rgba(31,33,35,0.18);background:#fff;}
+  .post{position:absolute;top:0;left:0;transform-origin:top left;overflow:hidden;}
+
+  @media print {
+    @page { size: A4 portrait; margin: 0.6cm; }
+    html, body { background:#fff !important; }
+    *, *::before, *::after {
+      -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+      animation-delay:-99s !important; animation-duration:.001s !important;
+      animation-iteration-count:1 !important; animation-fill-mode:both !important;
+      transition-duration:0s !important;
+    }
+    .page{min-height:auto;break-after:page;padding:0;justify-content:flex-start;gap:16px;}
+    .page:last-child{break-after:auto;}
+    .stage{break-inside:avoid;box-shadow:none;border:1px solid var(--color-border);}
+  }
+</style>
+</head>
+<body>
+<div id="pages"></div>
+
+<script src="templates.js"></script>
+<script>
+(function () {
+  const T = window.LIGHT_TEMPLATES || {};
+  const pages = document.getElementById('pages');
+
+  // Print scales: fit each format to an A4 page (≈720px usable width, ≈1040px height @96dpi).
+  const PRINT_SCALE = { '1080x1080': 0.66, '1080x1920': 0.52, '1200x627': 0.60 };
+
+  function addPage(t) {
+    const key = t.w + 'x' + t.h;
+    const scale = PRINT_SCALE[key] || t.scale;
+    const dw = Math.round(t.w * scale);
+    const dh = Math.round(t.h * scale);
+
+    const page = document.createElement('div');
+    page.className = 'page';
+
+    const head = document.createElement('div');
+    head.className = 'page-head';
+    head.innerHTML = '<div class="lbl">' + t.cap + '</div><div class="dim">' + t.w + ' × ' + t.h + ' px</div>';
+
+    const stage = document.createElement('div');
+    stage.className = 'stage';
+    stage.style.width = dw + 'px';
+    stage.style.height = dh + 'px';
+
+    const post = document.createElement('div');
+    post.className = 'post';
+    post.style.width = t.w + 'px';
+    post.style.height = t.h + 'px';
+    post.style.transform = 'scale(' + scale + ')';
+    post.innerHTML = t.html;
+
+    stage.appendChild(post);
+    page.appendChild(head);
+    page.appendChild(stage);
+    pages.appendChild(page);
+  }
+
+  [].concat(T.square || [], T.story || [], T.li || []).forEach(addPage);
+
+  function icons() { if (window.lucide) lucide.createIcons(); }
+  icons();
+  setTimeout(icons, 200);
+
+  // Auto-print once fonts + icons are ready.
+  function go() {
+    icons();
+    const fire = () => setTimeout(() => window.print(), 600);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fire); else fire();
+  }
+  if (document.readyState === 'complete') setTimeout(go, 300);
+  else window.addEventListener('load', () => setTimeout(go, 300));
+})();
+</script>
+</body>
+</html>

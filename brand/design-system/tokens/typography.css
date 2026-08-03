@@ -1,6 +1,6 @@
 /* ============================================================
    Light Personeelsdiensten — Typography tokens
-   Display: Montserrat (700–900)  ·  Body: Open Sans  ·  Mono: JetBrains Mono
+   Display: Montserrat — headings 700, display peak 800  ·  Body: Open Sans  ·  Mono: JetBrains Mono
    ============================================================ */
 :root {
   /* Families */
@@ -60,8 +60,8 @@
   color: var(--color-primary);
 }
 
-.light-h1 { font-family: var(--font-display); font-weight: var(--fw-extrabold); font-size: var(--fs-h1); line-height: var(--lh-heading); letter-spacing: var(--ls-heading); color: var(--color-text); margin: 0; text-wrap: balance; }
-.light-h2 { font-family: var(--font-display); font-weight: var(--fw-extrabold); font-size: var(--fs-h2); line-height: var(--lh-heading); letter-spacing: var(--ls-heading); color: var(--color-text); margin: 0; text-wrap: balance; }
+.light-h1 { font-family: var(--font-display); font-weight: var(--fw-bold); font-size: var(--fs-h1); line-height: var(--lh-heading); letter-spacing: var(--ls-heading); color: var(--color-text); margin: 0; text-wrap: balance; }
+.light-h2 { font-family: var(--font-display); font-weight: var(--fw-bold); font-size: var(--fs-h2); line-height: var(--lh-heading); letter-spacing: var(--ls-heading); color: var(--color-text); margin: 0; text-wrap: balance; }
 .light-h3 { font-family: var(--font-display); font-weight: var(--fw-bold); font-size: var(--fs-h3); line-height: var(--lh-snug); color: var(--color-text); margin: 0; }
 .light-h4 { font-family: var(--font-display); font-weight: var(--fw-bold); font-size: var(--fs-h4); line-height: var(--lh-snug); color: var(--color-text); margin: 0; }
 .light-lead { font-family: var(--font-body); font-weight: var(--fw-regular); font-size: var(--fs-lead); line-height: var(--lh-snug); color: var(--color-text-muted); margin: 0; }

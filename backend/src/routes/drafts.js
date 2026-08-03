@@ -31,6 +31,8 @@ function formatDraftForResponse(draft) {
     functie_eisen: draft.functie_eisen,
     wat_wij_bieden: draft.wat_wij_bieden,
     omschrijving_pl: draft.omschrijving_pl,
+    functie_eisen_pl: draft.functie_eisen_pl,
+    wat_wij_bieden_pl: draft.wat_wij_bieden_pl,
     social_nl: draft.social_nl,
     social_pl: draft.social_pl,
     linkedin_post: draft.linkedin_post,
@@ -107,7 +109,7 @@ router.get('/:id', async (req, res, next) => {
     const { data, error } = await supabase
       .from('drafts')
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, created_by'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, created_by'
       )
       .eq('id', draftId)
       .maybeSingle();
@@ -155,7 +157,7 @@ router.post('/', async (req, res, next) => {
       .from('drafts')
       .insert(payload)
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
       )
       .single();
 
@@ -180,7 +182,7 @@ router.post('/:id/generate', async (req, res, next) => {
     const { data: draft, error: draftError } = await supabase
       .from('drafts')
       .select(
-        'id, type, form_data, created_by, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path'
+        'id, type, form_data, created_by, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path'
       )
       .eq('id', draftId)
       .maybeSingle();
@@ -199,35 +201,21 @@ router.post('/:id/generate', async (req, res, next) => {
 
     const generated = await generate(draft.type, draft.form_data);
 
-    const criticusResult = await criticus({
-      type: draft.type,
-      formData: draft.form_data,
-      content: generated,
-    });
-
-    let renderedImagePath = draft.image_path || null;
-    if (draft.type === 'marketing-post') {
-      renderedImagePath = await renderSocialImage('marketing', {
-        onderwerp: draft.form_data?.onderwerp,
-        subtitle: draft.form_data?.type || 'Marketingcampagne',
-        caption: generated.instagram_caption || generated.facebook_post || generated.linkedin_post || '',
-      });
-    }
-
+    // Save generated content immediately (criticus_passed = null signals "pending")
     const updatePayload =
       draft.type === 'marketing-post'
         ? {
             linkedin_post: generated.linkedin_post || draft.linkedin_post || null,
             social_nl: generated.facebook_post || draft.social_nl || null,
             instagram_caption: generated.instagram_caption || draft.instagram_caption || null,
-            image_path: renderedImagePath,
+            image_path: draft.image_path || null,
             omschrijving_nl: null,
             functie_eisen: null,
             wat_wij_bieden: null,
             omschrijving_pl: null,
             social_pl: null,
-            criticus_passed: criticusResult.passed,
-            criticus_notes: criticusResult.notes || null,
+            criticus_passed: null,
+            criticus_notes: null,
             updated_at: new Date().toISOString(),
           }
         : {
@@ -235,11 +223,13 @@ router.post('/:id/generate', async (req, res, next) => {
             functie_eisen: generated.functie_eisen || draft.functie_eisen || null,
             wat_wij_bieden: generated.wat_wij_bieden || draft.wat_wij_bieden || null,
             omschrijving_pl: generated.omschrijving_pl || null,
+            functie_eisen_pl: generated.functie_eisen_pl || null,
+            wat_wij_bieden_pl: generated.wat_wij_bieden_pl || null,
             social_nl: generated.social_nl || draft.social_nl || null,
             social_pl: generated.social_pl || null,
             linkedin_post: null,
-            criticus_passed: criticusResult.passed,
-            criticus_notes: criticusResult.notes || null,
+            criticus_passed: null,
+            criticus_notes: null,
             updated_at: new Date().toISOString(),
           };
 
@@ -248,7 +238,7 @@ router.post('/:id/generate', async (req, res, next) => {
       .update(updatePayload)
       .eq('id', draft.id)
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
       )
       .single();
 
@@ -256,7 +246,57 @@ router.post('/:id/generate', async (req, res, next) => {
       throw updateError;
     }
 
-    return res.json({ draft: formatDraftForResponse(updatedDraft) });
+    // Respond immediately with generated content (criticus_passed = null)
+    res.json({ draft: formatDraftForResponse(updatedDraft) });
+
+    // Run criticus + image render in background (don't block the response)
+    const backgroundTasks = [
+      criticus({ type: draft.type, formData: draft.form_data, content: generated }),
+    ];
+
+    if (draft.type === 'marketing-post') {
+      // Select statement template based on primary channel
+      const channelTemplateMap = { linkedin: 'statement-li', facebook: 'statement-fb', instagram: 'statement' };
+      const primaryChannel = (draft.form_data?.kanalen || ['instagram'])[0];
+      const templateName = channelTemplateMap[primaryChannel] || 'statement';
+      backgroundTasks.push(
+        renderSocialImage(templateName, {
+          headline: draft.form_data?.onderwerp || undefined,
+          accent: draft.form_data?.type || undefined,
+        })
+      );
+    } else if (draft.type === 'vacature') {
+      backgroundTasks.push(
+        renderSocialImage('vacancy', {
+          title: draft.form_data?.functietitel || generated.titel || undefined,
+          location: draft.form_data?.locatie || undefined,
+          hours: draft.form_data?.uren || undefined,
+          category: draft.form_data?.sector || undefined,
+        })
+      );
+    }
+
+    Promise.all(backgroundTasks)
+      .then(async ([criticusResult, renderedImagePath]) => {
+        const bgUpdate = {
+          criticus_passed: criticusResult.passed,
+          criticus_notes: criticusResult.notes || null,
+          updated_at: new Date().toISOString(),
+        };
+
+        if (renderedImagePath) {
+          bgUpdate.image_path = renderedImagePath;
+        }
+
+        await supabase.from('drafts').update(bgUpdate).eq('id', draft.id);
+      })
+      .catch((err) => {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('Background criticus/render failed:', err);
+        }
+      });
+
+    return;
   } catch (error) {
     return next(error);
   }
@@ -293,6 +333,8 @@ router.put('/:id', async (req, res, next) => {
       functie_eisen: req.body?.functie_eisen || null,
       wat_wij_bieden: req.body?.wat_wij_bieden || null,
       omschrijving_pl: req.body?.omschrijving_pl || null,
+      functie_eisen_pl: req.body?.functie_eisen_pl || null,
+      wat_wij_bieden_pl: req.body?.wat_wij_bieden_pl || null,
       social_nl: req.body?.social_nl || null,
       social_pl: req.body?.social_pl || null,
       linkedin_post: req.body?.linkedin_post || null,
@@ -309,7 +351,7 @@ router.put('/:id', async (req, res, next) => {
       .update(payload)
       .eq('id', draft.id)
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
       )
       .single();
 
@@ -354,7 +396,7 @@ router.post('/:id/submit', async (req, res, next) => {
       .update({ status: 'pending_approval', updated_at: new Date().toISOString() })
       .eq('id', draft.id)
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
       )
       .single();
 
@@ -401,7 +443,7 @@ router.post('/:id/approve', async (req, res, next) => {
       })
       .eq('id', draftId)
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
       )
       .maybeSingle();
 
@@ -457,7 +499,7 @@ router.post('/:id/reject', async (req, res, next) => {
       })
       .eq('id', draftId)
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
       )
       .maybeSingle();
 

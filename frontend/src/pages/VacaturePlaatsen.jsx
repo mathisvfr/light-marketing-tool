@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -14,6 +14,7 @@ const DEFAULT_FORM = {
   korteOmschrijving: '',
   taal: 'NL',
   contract: '',
+  email: 'vacature@lightpersoneelsdiensten.nl',
 };
 
 function createTabs(content) {
@@ -26,6 +27,14 @@ function createTabs(content) {
 
   if (content.omschrijving_pl) {
     tabs.push({ key: 'omschrijving_pl', label: 'Omschrijving PL' });
+  }
+
+  if (content.functie_eisen_pl) {
+    tabs.push({ key: 'functie_eisen_pl', label: 'Functie-eisen PL' });
+  }
+
+  if (content.wat_wij_bieden_pl) {
+    tabs.push({ key: 'wat_wij_bieden_pl', label: 'Wat wij bieden PL' });
   }
 
   if (content.social_pl) {
@@ -84,6 +93,8 @@ export default function VacaturePlaatsen() {
       functie_eisen: loadedDraft?.functie_eisen || '',
       wat_wij_bieden: loadedDraft?.wat_wij_bieden || '',
       omschrijving_pl: loadedDraft?.omschrijving_pl || '',
+      functie_eisen_pl: loadedDraft?.functie_eisen_pl || '',
+      wat_wij_bieden_pl: loadedDraft?.wat_wij_bieden_pl || '',
       social_nl: loadedDraft?.social_nl || '',
       social_pl: loadedDraft?.social_pl || '',
       ...contentEdits,
@@ -105,6 +116,41 @@ export default function VacaturePlaatsen() {
 
   const effectiveDraftId = draftId || draftIdParam;
 
+  // Poll for criticus result when it's pending (null)
+  const pollCountRef = useRef(0);
+  useEffect(() => {
+    if (criticusPassed !== null || !effectiveDraftId || isGenerating) {
+      pollCountRef.current = 0;
+      return;
+    }
+
+    const interval = setInterval(async () => {
+      pollCountRef.current += 1;
+      if (pollCountRef.current > 8) {
+        clearInterval(interval);
+        return;
+      }
+
+      try {
+        const result = await api(`/drafts/${effectiveDraftId}`);
+        if (typeof result?.draft?.criticus_passed === 'boolean') {
+          setCriticusOverride({
+            passed: result.draft.criticus_passed,
+            notes: result.draft.criticus_notes || '',
+          });
+          if (result.draft.image_path) {
+            setImagePath(result.draft.image_path);
+          }
+          clearInterval(interval);
+        }
+      } catch {
+        // Ignore poll errors
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [criticusPassed, effectiveDraftId, isGenerating]);
+
   const tabs = useMemo(() => createTabs(content), [content]);
 
   const saveMutation = useMutation({
@@ -116,6 +162,8 @@ export default function VacaturePlaatsen() {
           functie_eisen: content.functie_eisen,
           wat_wij_bieden: content.wat_wij_bieden,
           omschrijving_pl: content.omschrijving_pl,
+          functie_eisen_pl: content.functie_eisen_pl,
+          wat_wij_bieden_pl: content.wat_wij_bieden_pl,
           social_nl: content.social_nl,
           social_pl: content.social_pl,
           image_path: imagePath || null,
@@ -173,6 +221,8 @@ export default function VacaturePlaatsen() {
         functie_eisen: generated?.draft?.functie_eisen || '',
         wat_wij_bieden: generated?.draft?.wat_wij_bieden || '',
         omschrijving_pl: generated?.draft?.omschrijving_pl || '',
+        functie_eisen_pl: generated?.draft?.functie_eisen_pl || '',
+        wat_wij_bieden_pl: generated?.draft?.wat_wij_bieden_pl || '',
         social_nl: generated?.draft?.social_nl || '',
         social_pl: generated?.draft?.social_pl || '',
       };
@@ -373,7 +423,9 @@ export default function VacaturePlaatsen() {
         <section className="vacature-preview">
           <h3>Voorbeeld en bewerken</h3>
 
-          {criticusPassed !== null ? (
+          {criticusPassed === null && effectiveDraftId ? (
+            <div className="skeleton">Criticus controleren...</div>
+          ) : criticusPassed !== null ? (
             <div className={`criticus-box ${criticusPassed ? 'pass' : 'fail'}`}>
               <strong>{criticusPassed ? 'Criticus: akkoord' : 'Criticus: aandacht nodig'}</strong>
               <p>{criticusNotes || 'Geen opmerkingen.'}</p>

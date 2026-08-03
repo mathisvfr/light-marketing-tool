@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1128" height="191" viewBox="0 0 1128 191">
+  <defs>
+    <linearGradient id="g" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0%" stop-color="#1f2123" stop-opacity="0.90"></stop>
+      <stop offset="50%" stop-color="#1f2123" stop-opacity="0.60"></stop>
+      <stop offset="100%" stop-color="#1f2123" stop-opacity="0.08"></stop>
+    </linearGradient>
+    <clipPath id="frame"><rect width="1128" height="191"></rect></clipPath>
+  </defs>
+  <g clip-path="url(#frame)">
+    <image href="https://images.unsplash.com/photo-1652211955967-99c892925469?w=3600&amp;q=90" x="0" y="0" width="377" height="191" preserveAspectRatio="xMidYMid slice"></image>
+    <image href="https://images.unsplash.com/photo-1616432043562-3671ea2e5242?w=3600&amp;q=90" x="376" y="0" width="377" height="191" preserveAspectRatio="xMidYMid slice"></image>
+    <image href="https://images.unsplash.com/photo-1749214317455-efbdd57df844?w=3600&amp;q=90" x="752" y="0" width="377" height="191" preserveAspectRatio="xMidYMid slice"></image>
+    <rect width="1128" height="191" fill="url(#g)"></rect>
+    <text x="293" y="70.6" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="36" fill="#ffffff" letter-spacing="-0.5">De juiste mensen, <tspan fill="#be1e2d">op de juiste plek.</tspan></text>
+    <text x="293" y="100.3" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="12" letter-spacing="2" fill="rgba(255,255,255,0.78)">PRODUCTIE · LOGISTIEK · SCHOONMAAK</text>
+    <rect x="293" y="117.5" width="174" height="31" rx="15.5" fill="#ffffff"></rect>
+    <circle cx="314.0" cy="133.0" r="8.0" fill="none" stroke="#be1e2d" stroke-width="1.4"></circle>
+    <polyline points="310.4,133.0 313.2,135.8 318.0,130.2" fill="none" stroke="#be1e2d" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></polyline>
+    <text x="329.0" y="137.2" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="12" fill="#be1e2d">SNA-gecertificeerd</text>
+  </g>
+</svg>

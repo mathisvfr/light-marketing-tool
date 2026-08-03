@@ -23,6 +23,16 @@
   <div id="root" class="light-body" style="min-height:100vh;">Laden…</div>
 
   <script>
+    // Feedback round 2 — open questions the team is comparing (logo background,
+    // heading weight, CTA statement). Toggle Tweaks to switch live.
+    window.TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "logoBg": "soft",
+      "headingWeight": 700,
+      "statement": "De juiste mensen, op de juiste plek."
+    }/*EDITMODE-END*/;
+  </script>
+
+  <script>
   (async function () {
     try {
     // Resolve the design-system components: prefer the compiled bundle's
@@ -60,7 +70,7 @@
     if (!DS) DS = await buildFallback();
 
     // Load the screen components, share scope, inject DS components by name.
-    const screens = ['Header.jsx', 'Hero.jsx', 'ServiceTiles.jsx', 'VacancyFeed.jsx', 'CtaBand.jsx', 'Footer.jsx', 'App.jsx'];
+    const screens = ['tweaks-panel.jsx', 'Header.jsx', 'Hero.jsx', 'ServiceTiles.jsx', 'VacancyFeed.jsx', 'CtaBand.jsx', 'Footer.jsx', 'PageShared.jsx', 'OverOns.jsx', 'ZakelijkeDiensten.jsx', 'VacaturesPage.jsx', 'ContactPage.jsx', 'App.jsx'];
     let src = '';
     for (const f of screens) {
       let t = await (await fetch(f)).text();

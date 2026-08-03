@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -96,6 +96,41 @@ export default function MarketingPost() {
       : loadedDraft?.criticus_notes || '';
 
   const effectiveDraftId = draftId || draftIdParam;
+
+  // Poll for criticus result when it's pending (null)
+  const pollCountRef = useRef(0);
+  useEffect(() => {
+    if (criticusPassed !== null || !effectiveDraftId || isGenerating) {
+      pollCountRef.current = 0;
+      return;
+    }
+
+    const interval = setInterval(async () => {
+      pollCountRef.current += 1;
+      if (pollCountRef.current > 8) {
+        clearInterval(interval);
+        return;
+      }
+
+      try {
+        const result = await api(`/drafts/${effectiveDraftId}`);
+        if (typeof result?.draft?.criticus_passed === 'boolean') {
+          setCriticusOverride({
+            passed: result.draft.criticus_passed,
+            notes: result.draft.criticus_notes || '',
+          });
+          if (result.draft.image_path) {
+            setImagePathOverride(result.draft.image_path);
+          }
+          clearInterval(interval);
+        }
+      } catch {
+        // Ignore poll errors
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [criticusPassed, effectiveDraftId, isGenerating]);
 
   const apiStatus = brandQuery.data?.apiStatus || {};
 
@@ -260,10 +295,30 @@ export default function MarketingPost() {
     try {
       await saveMutation.mutateAsync('draft');
       await api(`/drafts/${effectiveDraftId}/approve`, { method: 'POST' });
+    } catch (err) {
+      setError(err.message || 'Goedkeuren is mislukt.');
+      return;
+    }
+
+    try {
       await publishMutation.mutateAsync();
       setSuccess('Marketingpost is goedgekeurd en gepubliceerd op gekoppelde kanalen.');
     } catch (err) {
-      setError(err.message || 'Publiceren is mislukt.');
+      setError(
+        `Goedgekeurd, maar publiceren is mislukt: ${err.message || 'Onbekende fout.'} Controleer de kanaalinstellingen in Merk instellingen en probeer opnieuw.`
+      );
+    }
+  }
+
+  async function handleRetryPublish() {
+    setError('');
+    setSuccess('');
+
+    try {
+      await publishMutation.mutateAsync();
+      setSuccess('Marketingpost is succesvol gepubliceerd.');
+    } catch (err) {
+      setError(`Publiceren mislukt: ${err.message || 'Controleer kanaalinstellingen.'}`);
     }
   }
 
@@ -363,7 +418,9 @@ export default function MarketingPost() {
         <section className="marketing-preview">
           <h3>Voorbeeld en bewerken</h3>
 
-          {criticusPassed !== null ? (
+          {criticusPassed === null && effectiveDraftId ? (
+            <div className="marketing-skeleton">Criticus controleren...</div>
+          ) : criticusPassed !== null ? (
             <div className={`marketing-criticus ${criticusPassed ? 'pass' : 'fail'}`}>
               <strong>{criticusPassed ? 'Criticus: akkoord' : 'Criticus: aandacht nodig'}</strong>
               <p>{criticusNotes || 'Geen opmerkingen.'}</p>
@@ -444,7 +501,13 @@ export default function MarketingPost() {
               </button>
             ) : null}
 
-            {role === 'owner' ? (
+            {role === 'owner' && loadedDraft?.status === 'approved' ? (
+              <button type="button" onClick={handleRetryPublish} disabled={isBusy}>
+                Opnieuw publiceren
+              </button>
+            ) : null}
+
+            {role === 'owner' && loadedDraft?.status !== 'approved' ? (
               <button type="button" onClick={handleApproveAndPublish} disabled={isBusy}>
                 Goedkeuren en publiceren
               </button>

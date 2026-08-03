@@ -190,8 +190,15 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
     const publishResult = await publishGateway.publish(draftId, fullDraft.type, publishableChannels, contentPayload);
 
     if (!publishResult || publishResult.successCount === 0) {
+      const failedDetails = (publishResult?.rows || [])
+        .filter((r) => r.status === 'failed')
+        .map((r) => `${r.channel}: ${r.error || 'onbekende fout'}`)
+        .join('; ');
+
       return res.status(400).json({
-        error: 'Publiceren mislukt voor alle gekozen kanalen. Controleer de Buffer- of kanaalinstellingen.',
+        error: failedDetails
+          ? `Publiceren mislukt: ${failedDetails}`
+          : 'Publiceren mislukt voor alle gekozen kanalen. Controleer de Buffer- of kanaalinstellingen.',
       });
     }
 

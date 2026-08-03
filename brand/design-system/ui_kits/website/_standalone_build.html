@@ -1,0 +1,1893 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Light Personeelsdiensten — Website</title>
+  <link rel="stylesheet" href="../../styles.css" />
+  <meta name="ext-resource-dependency" content="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=900&amp;q=70" data-resource-id="img0" />
+  <meta name="ext-resource-dependency" content="https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=700&amp;q=70" data-resource-id="img1" />
+  <meta name="ext-resource-dependency" content="https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=700&amp;q=70" data-resource-id="img2" />
+  <meta name="ext-resource-dependency" content="https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=700&amp;q=70" data-resource-id="img3" />
+  <meta name="ext-resource-dependency" content="https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=700&amp;q=70" data-resource-id="img4" />
+  <meta name="ext-resource-dependency" content="https://images.unsplash.com/photo-1606756790138-261d2b21cd75?w=700&amp;q=70" data-resource-id="img5" />
+  <meta name="ext-resource-dependency" content="https://images.unsplash.com/photo-1565891741441-64926e441838?w=700&amp;q=70" data-resource-id="img6" />
+  <meta name="ext-resource-dependency" content="https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=900&amp;q=70" data-resource-id="img7" />
+  <style>
+    *{box-sizing:border-box;} html,body{margin:0;} a{color:inherit;}
+    #__bundler_thumbnail{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#fff;z-index:9999;}
+    #__bundler_thumbnail svg{width:38%;height:38%;object-fit:contain;}
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    window.TWEAK_DEFAULTS = { logoBg: "soft", headingWeight: 700, statement: "De juiste mensen, op de juiste plek." };
+  </script>
+</head>
+<body>
+  <div id="root" class="light-body" style="min-height:100vh;">Laden…</div>
+
+  <script type="text/babel" data-presets="react">
+
+// ===== components/cards/Card.jsx =====
+
+
+/**
+ * Light Personeelsdiensten — Card
+ * White surface, 1px border, soft shadow that lifts on hover and gains a
+ * faint red border. Optional image header with a subtle zoom on hover.
+ */
+function Card({
+  image = null,
+  imageAlt = '',
+  imageHeight = 180,
+  interactive = false,
+  padding = 24,
+  children,
+  style = {},
+  onClick,
+}) {
+  const [hover, setHover] = React.useState(false);
+  const active = interactive && hover;
+
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: 'var(--color-bg)',
+        border: '1px solid',
+        borderColor: active ? 'var(--light-red-300)' : 'var(--color-border)',
+        borderRadius: 'var(--radius-md)',
+        boxShadow: active ? 'var(--shadow-md)' : 'var(--shadow-xs)',
+        overflow: 'hidden',
+        cursor: interactive ? 'pointer' : 'default',
+        transition: 'box-shadow var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out)',
+        transform: active ? 'translateY(-2px)' : 'none',
+        ...style,
+      }}
+    >
+      {image && (
+        <div style={{ height: imageHeight, overflow: 'hidden' }}>
+          <img
+            src={image}
+            alt={imageAlt}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+              transition: 'transform var(--dur-slow) var(--ease-out)',
+              transform: active ? 'scale(1.04)' : 'scale(1)',
+            }}
+          />
+        </div>
+      )}
+      <div style={{ padding }}>{children}</div>
+    </div>
+  );
+}
+
+
+// ===== components/buttons/Button.jsx =====
+
+
+/**
+ * Safe Lucide icon for React: renders a <span> wrapper that React manages,
+ * and injects the Lucide <svg> imperatively as the span's innerHTML. Because
+ * React never manages the swapped node, re-renders (hover/press) can't trigger
+ * the "removeChild: node is not a child" crash that global lucide.createIcons()
+ * causes when it replaces React-rendered <i data-lucide> elements.
+ */
+function BtnIcon({ name, size = 18, color, style = {} }) {
+  if (!name) return null;
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.lucide) return;
+    el.innerHTML = '<i data-lucide="' + name + '"></i>';
+    try { window.lucide.createIcons(); } catch (e) { /* noop */ }
+    const svg = el.querySelector('svg');
+    if (svg) { svg.setAttribute('width', size); svg.setAttribute('height', size); }
+  }, [name, size]);
+  return React.createElement('span', {
+    ref,
+    'aria-hidden': true,
+    style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, color, flex: 'none', ...style },
+  });
+}
+
+/**
+ * Light Personeelsdiensten — Button
+ * Industrial, confident CTAs. Primary = brand red; the "notch" variant
+ * applies the logo's cut-corner silhouette.
+ */
+function Button({
+  variant = 'primary',
+  size = 'md',
+  notch = false,
+  icon = null,
+  iconRight = null,
+  disabled = false,
+  type = 'button',
+  onClick,
+  children,
+  style = {},
+}) {
+  const [hover, setHover] = React.useState(false);
+  const [press, setPress] = React.useState(false);
+
+  const sizes = {
+    sm: { fontSize: 13, padding: '8px 14px', gap: 6, icon: 16 },
+    md: { fontSize: 15, padding: '12px 22px', gap: 8, icon: 18 },
+    lg: { fontSize: 17, padding: '15px 30px', gap: 10, icon: 20 },
+  };
+  const s = sizes[size] || sizes.md;
+
+  const base = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: s.gap,
+    fontFamily: 'var(--font-display)',
+    fontWeight: 700,
+    fontSize: s.fontSize,
+    letterSpacing: '0.005em',
+    padding: s.padding,
+    border: '2px solid transparent',
+    borderRadius: notch ? 0 : 'var(--radius-md)',
+    clipPath: notch ? 'var(--clip-notch)' : 'none',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.5 : 1,
+    transition: 'background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out)',
+    lineHeight: 1.1,
+    textDecoration: 'none',
+    whiteSpace: 'nowrap',
+  };
+
+  const fill = (rest, hov, prs) => press ? prs : (hover ? hov : rest);
+
+  const variants = {
+    primary: {
+      background: fill('var(--color-primary)', 'var(--color-primary-hover)', 'var(--color-primary-press)'),
+      color: 'var(--color-on-primary)',
+      boxShadow: hover && !disabled ? 'var(--shadow-red)' : 'none',
+    },
+    secondary: {
+      background: fill('var(--grey-800)', 'var(--grey-900)', '#000'),
+      color: '#fff',
+    },
+    outline: {
+      background: hover ? 'var(--color-primary-soft)' : 'transparent',
+      color: 'var(--color-primary)',
+      borderColor: 'var(--color-primary)',
+    },
+    ghost: {
+      background: hover ? 'var(--grey-100)' : 'transparent',
+      color: 'var(--color-text)',
+    },
+  };
+
+  const Icon = ({ name, sz }) =>
+    name ? <BtnIcon name={name} size={sz} /> : null;
+
+  return (
+    <button
+      type={type}
+      disabled={disabled}
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setPress(false); }}
+      onMouseDown={() => setPress(true)}
+      onMouseUp={() => setPress(false)}
+      style={{ ...base, ...(variants[variant] || variants.primary), ...style }}
+    >
+      <Icon name={icon} sz={s.icon} />
+      {children}
+      <Icon name={iconRight} sz={s.icon} />
+    </button>
+  );
+}
+
+
+// ===== components/feedback/Badge.jsx =====
+
+
+function BadgeIcon({ name, size = 18, color, style = {} }) {
+  if (!name) return null;
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.lucide) return;
+    el.innerHTML = '<i data-lucide="' + name + '"></i>';
+    try { window.lucide.createIcons(); } catch (e) { /* noop */ }
+    const svg = el.querySelector('svg');
+    if (svg) { svg.setAttribute('width', size); svg.setAttribute('height', size); }
+  }, [name, size]);
+  return React.createElement('span', {
+    ref, 'aria-hidden': true,
+    style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, color, flex: 'none', ...style },
+  });
+}
+
+/**
+ * Light Personeelsdiensten — Badge
+ * Small status pill. "tone" sets the colour; "solid" fills it.
+ */
+function Badge({ tone = 'red', solid = false, icon = null, children, style = {} }) {
+  const tones = {
+    red:     { fg: 'var(--light-red)',  bg: 'var(--light-red-50)',  solidBg: 'var(--light-red)' },
+    grey:    { fg: 'var(--grey-700)',   bg: 'var(--grey-100)',      solidBg: 'var(--grey-700)' },
+    green:   { fg: 'var(--green)',      bg: '#e7f3ec',              solidBg: 'var(--green)' },
+    amber:   { fg: 'var(--amber)',      bg: '#f7eed9',              solidBg: 'var(--amber)' },
+    blue:    { fg: 'var(--blue)',       bg: '#e4eef5',              solidBg: 'var(--blue)' },
+    dark:    { fg: '#fff',              bg: 'var(--grey-800)',      solidBg: 'var(--grey-800)' },
+  };
+  const t = tones[tone] || tones.red;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 11.5,
+      letterSpacing: '0.05em', textTransform: 'uppercase',
+      padding: '4px 10px', borderRadius: 'var(--radius-pill)',
+      color: solid ? '#fff' : t.fg,
+      background: solid ? t.solidBg : t.bg,
+      whiteSpace: 'nowrap', ...style,
+    }}>
+      {icon && <BadgeIcon name={icon} size={13} />}
+      {children}
+    </span>
+  );
+}
+
+
+// ===== components/feedback/Tag.jsx =====
+
+
+function TagIcon({ name, size = 18, color, onClick, style = {} }) {
+  if (!name) return null;
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.lucide) return;
+    el.innerHTML = '<i data-lucide="' + name + '"></i>';
+    try { window.lucide.createIcons(); } catch (e) { /* noop */ }
+    const svg = el.querySelector('svg');
+    if (svg) { svg.setAttribute('width', size); svg.setAttribute('height', size); }
+  }, [name, size]);
+  return React.createElement('span', {
+    ref, onClick, 'aria-hidden': true,
+    style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, color, flex: 'none', ...style },
+  });
+}
+
+/**
+ * Light Personeelsdiensten — Tag
+ * Neutral filter/keyword chip. Optional selected + removable states.
+ */
+function Tag({ selected = false, removable = false, onRemove, children, onClick, style = {} }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <span
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 13.5,
+        padding: '6px 12px', borderRadius: 'var(--radius-pill)',
+        border: '1px solid',
+        borderColor: selected ? 'var(--light-red)' : (hover ? 'var(--border-color-strong, var(--color-border-strong))' : 'var(--color-border)'),
+        background: selected ? 'var(--light-red)' : (hover ? 'var(--grey-50)' : 'var(--color-bg)'),
+        color: selected ? '#fff' : 'var(--color-text)',
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'all var(--dur-fast) var(--ease-out)',
+        ...style,
+      }}
+    >
+      {children}
+      {removable && (
+        <TagIcon
+          name="x"
+          size={14}
+          onClick={(e) => { e.stopPropagation(); onRemove && onRemove(); }}
+          style={{ cursor: 'pointer', opacity: 0.8 }}
+        />
+      )}
+    </span>
+  );
+}
+
+
+// ===== components/forms/Input.jsx =====
+
+
+function InputIcon({ name, size = 18, color, style = {} }) {
+  if (!name) return null;
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.lucide) return;
+    el.innerHTML = '<i data-lucide="' + name + '"></i>';
+    try { window.lucide.createIcons(); } catch (e) { /* noop */ }
+    const svg = el.querySelector('svg');
+    if (svg) { svg.setAttribute('width', size); svg.setAttribute('height', size); }
+  }, [name, size]);
+  return React.createElement('span', {
+    ref, 'aria-hidden': true,
+    style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, color, flex: 'none', ...style },
+  });
+}
+
+/**
+ * Light Personeelsdiensten — Input (text field)
+ * Label + field with red focus ring. Optional leading Lucide icon.
+ */
+function Input({
+  label,
+  type = 'text',
+  placeholder = '',
+  value,
+  defaultValue,
+  onChange,
+  icon = null,
+  hint = null,
+  error = null,
+  required = false,
+  id,
+  style = {},
+}) {
+  const [focus, setFocus] = React.useState(false);
+  const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+  const borderColor = error ? 'var(--light-red)' : (focus ? 'var(--light-red)' : 'var(--color-border-strong)');
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, ...style }}>
+      {label && (
+        <label htmlFor={inputId} style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, color: 'var(--color-text)' }}>
+          {label}{required && <span style={{ color: 'var(--light-red)' }}> *</span>}
+        </label>
+      )}
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        {icon && (
+          <InputIcon name={icon} size={17} style={{ position: 'absolute', left: 12, color: 'var(--color-text-subtle)', pointerEvents: 'none' }} />
+        )}
+        <input
+          id={inputId}
+          type={type}
+          placeholder={placeholder}
+          value={value}
+          defaultValue={defaultValue}
+          onChange={onChange}
+          onFocus={() => setFocus(true)}
+          onBlur={() => setFocus(false)}
+          style={{
+            width: '100%',
+            boxSizing: 'border-box',
+            fontFamily: 'var(--font-body)',
+            fontSize: 15,
+            color: 'var(--color-text)',
+            padding: icon ? '11px 14px 11px 38px' : '11px 14px',
+            background: 'var(--color-bg)',
+            border: `1.5px solid ${borderColor}`,
+            borderRadius: 'var(--radius-sm)',
+            outline: 'none',
+            boxShadow: focus ? '0 0 0 3px var(--color-focus-ring)' : 'none',
+            transition: 'border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out)',
+          }}
+        />
+      </div>
+      {(hint || error) && (
+        <span style={{ fontFamily: 'var(--font-body)', fontSize: 12.5, color: error ? 'var(--light-red)' : 'var(--color-text-muted)' }}>
+          {error || hint}
+        </span>
+      )}
+    </div>
+  );
+}
+
+
+// ===== components/forms/Select.jsx =====
+
+
+function SelIcon({ name, size = 18, color, style = {} }) {
+  if (!name) return null;
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.lucide) return;
+    el.innerHTML = '<i data-lucide="' + name + '"></i>';
+    try { window.lucide.createIcons(); } catch (e) { /* noop */ }
+    const svg = el.querySelector('svg');
+    if (svg) { svg.setAttribute('width', size); svg.setAttribute('height', size); }
+  }, [name, size]);
+  return React.createElement('span', {
+    ref, 'aria-hidden': true,
+    style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, color, flex: 'none', ...style },
+  });
+}
+
+/**
+ * Light Personeelsdiensten — Select (dropdown)
+ * Native select styled to match Input, with a Lucide chevron.
+ */
+function Select({ label, options = [], value, defaultValue, onChange, required = false, id, style = {} }) {
+  const [focus, setFocus] = React.useState(false);
+  const selId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+  const norm = options.map((o) => (typeof o === 'string' ? { value: o, label: o } : o));
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, ...style }}>
+      {label && (
+        <label htmlFor={selId} style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, color: 'var(--color-text)' }}>
+          {label}{required && <span style={{ color: 'var(--light-red)' }}> *</span>}
+        </label>
+      )}
+      <div style={{ position: 'relative' }}>
+        <select
+          id={selId}
+          value={value}
+          defaultValue={defaultValue}
+          onChange={onChange}
+          onFocus={() => setFocus(true)}
+          onBlur={() => setFocus(false)}
+          style={{
+            width: '100%',
+            boxSizing: 'border-box',
+            appearance: 'none',
+            WebkitAppearance: 'none',
+            fontFamily: 'var(--font-body)',
+            fontSize: 15,
+            color: 'var(--color-text)',
+            padding: '11px 38px 11px 14px',
+            background: 'var(--color-bg)',
+            border: `1.5px solid ${focus ? 'var(--light-red)' : 'var(--color-border-strong)'}`,
+            borderRadius: 'var(--radius-sm)',
+            outline: 'none',
+            boxShadow: focus ? '0 0 0 3px var(--color-focus-ring)' : 'none',
+            cursor: 'pointer',
+            transition: 'border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out)',
+          }}
+        >
+          {norm.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        <SelIcon name="chevron-down" size={18} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-subtle)', pointerEvents: 'none' }} />
+      </div>
+    </div>
+  );
+}
+
+
+// ===== components/cards/JobCard.jsx =====
+
+
+
+function JobIcon({ name, size = 18, color, style = {} }) {
+  if (!name) return null;
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.lucide) return;
+    el.innerHTML = '<i data-lucide="' + name + '"></i>';
+    try { window.lucide.createIcons(); } catch (e) { /* noop */ }
+    const svg = el.querySelector('svg');
+    if (svg) { svg.setAttribute('width', size); svg.setAttribute('height', size); }
+  }, [name, size]);
+  return React.createElement('span', {
+    ref, 'aria-hidden': true,
+    style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, color, flex: 'none', ...style },
+  });
+}
+
+/**
+ * Light Personeelsdiensten — JobCard (vacaturekaart)
+ * Domain card for a single vacancy: photo, title, location/hours meta,
+ * short teaser, read-time, and a red "Lees meer" affordance.
+ */
+function JobCard({
+  title,
+  image,
+  imageAlt = '',
+  category = 'Productie',      // Productie | Logistiek | Schoonmaak
+  location = 'Rotterdam',
+  hours = 'Fulltime',
+  teaser,
+  readTime,
+  onClick,
+  style = {},
+}) {
+  const catIcon = {
+    Productie: 'factory',
+    Logistiek: 'truck',
+    Schoonmaak: 'spray-can',
+  }[category] || 'briefcase';
+
+  const Meta = ({ icon, children }) => (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>
+      <JobIcon name={icon} size={14} />
+      {children}
+    </span>
+  );
+
+  return (
+    <Card image={image} imageAlt={imageAlt} interactive padding={20} onClick={onClick} style={style}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <span style={{
+          alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 6,
+          fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 11, letterSpacing: '0.08em',
+          textTransform: 'uppercase', color: 'var(--color-primary)',
+          background: 'var(--color-primary-soft)', padding: '5px 10px', borderRadius: 'var(--radius-pill)',
+        }}>
+          <JobIcon name={catIcon} size={13} />{category}
+        </span>
+
+        <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, lineHeight: 1.2, color: 'var(--color-text)', margin: 0 }}>
+          {title}
+        </h3>
+
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          <Meta icon="map-pin">{location}</Meta>
+          <Meta icon="clock">{hours}</Meta>
+        </div>
+
+        {teaser && (
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: 14.5, lineHeight: 1.55, color: 'var(--color-text-muted)', margin: 0 }}>
+            {teaser}
+          </p>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: 'var(--color-primary)' }}>
+            Lees meer <JobIcon name="arrow-right" size={16} />
+          </span>
+          {readTime && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--color-text-subtle)' }}>{readTime}</span>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+
+// ===== ui_kits/website/tweaks-panel.jsx =====
+// @ds-adherence-ignore -- omelette starter scaffold (raw elements/hex/px by design)
+
+/* BEGIN USAGE */
+// tweaks-panel.jsx
+// Reusable Tweaks shell + form-control helpers.
+// Exports (to window): useTweaks, TweaksPanel, TweakSection, TweakRow, TweakSlider,
+//   TweakToggle, TweakRadio, TweakSelect, TweakText, TweakNumber, TweakColor, TweakButton.
+//
+// Owns the host protocol (listens for __activate_edit_mode / __deactivate_edit_mode,
+// posts __edit_mode_available / __edit_mode_set_keys / __edit_mode_dismissed) so
+// individual prototypes don't re-roll it. Ships a consistent set of controls so you
+// don't hand-draw <input type="range">, segmented radios, steppers, etc.
+//
+// Usage (in an HTML file that loads React + Babel):
+//
+//   const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+//     "primaryColor": "#D97757",
+//     "palette": ["#D97757", "#29261b", "#f6f4ef"],
+//     "fontSize": 16,
+//     "density": "regular",
+//     "dark": false
+//   }/*EDITMODE-END*/;
+//
+//   function App() {
+//     const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+//     return (
+//       <div style={{ fontSize: t.fontSize, color: t.primaryColor }}>
+//         Hello
+//         <TweaksPanel>
+//           <TweakSection label="Typography" />
+//           <TweakSlider label="Font size" value={t.fontSize} min={10} max={32} unit="px"
+//                        onChange={(v) => setTweak('fontSize', v)} />
+//           <TweakRadio  label="Density" value={t.density}
+//                        options={['compact', 'regular', 'comfy']}
+//                        onChange={(v) => setTweak('density', v)} />
+//           <TweakSection label="Theme" />
+//           <TweakColor  label="Primary" value={t.primaryColor}
+//                        options={['#D97757', '#2A6FDB', '#1F8A5B', '#7A5AE0']}
+//                        onChange={(v) => setTweak('primaryColor', v)} />
+//           <TweakColor  label="Palette" value={t.palette}
+//                        options={[['#D97757', '#29261b', '#f6f4ef'],
+//                                  ['#475569', '#0f172a', '#f1f5f9']]}
+//                        onChange={(v) => setTweak('palette', v)} />
+//           <TweakToggle label="Dark mode" value={t.dark}
+//                        onChange={(v) => setTweak('dark', v)} />
+//         </TweaksPanel>
+//       </div>
+//     );
+//   }
+//
+// TweakRadio is the segmented control for 2–3 short options (auto-falls-back to
+// TweakSelect past ~16/~10 chars per label); reach for TweakSelect directly when
+// options are many or long. For color tweaks always curate 3-4 options rather than
+// a free picker; an option can also be a whole 2–5 color palette (the stored value
+// is the array). The Tweak* controls are a floor, not a ceiling — build custom
+// controls inside the panel if a tweak calls for UI they don't cover.
+/* END USAGE */
+// ─────────────────────────────────────────────────────────────────────────────
+
+const __TWEAKS_STYLE = `
+  .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
+    max-height:calc(100vh - 32px);display:flex;flex-direction:column;
+    transform:scale(var(--dc-inv-zoom,1));transform-origin:bottom right;
+    background:rgba(250,249,247,.78);color:#29261b;
+    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+    border:.5px solid rgba(255,255,255,.6);border-radius:14px;
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 40px rgba(0,0,0,.18);
+    font:11.5px/1.4 ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
+  .twk-hd{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 8px 10px 14px;cursor:move;user-select:none}
+  .twk-hd b{font-size:12px;font-weight:600;letter-spacing:.01em}
+  .twk-x{appearance:none;border:0;background:transparent;color:rgba(41,38,27,.55);
+    width:22px;height:22px;border-radius:6px;cursor:default;font-size:13px;line-height:1}
+  .twk-x:hover{background:rgba(0,0,0,.06);color:#29261b}
+  .twk-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px;
+    overflow-y:auto;overflow-x:hidden;min-height:0;
+    scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.15) transparent}
+  .twk-body::-webkit-scrollbar{width:8px}
+  .twk-body::-webkit-scrollbar-track{background:transparent;margin:2px}
+  .twk-body::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:4px;
+    border:2px solid transparent;background-clip:content-box}
+  .twk-body::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.25);
+    border:2px solid transparent;background-clip:content-box}
+  .twk-row{display:flex;flex-direction:column;gap:5px}
+  .twk-row-h{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+  .twk-lbl{display:flex;justify-content:space-between;align-items:baseline;
+    color:rgba(41,38,27,.72)}
+  .twk-lbl>span:first-child{font-weight:500}
+  .twk-val{color:rgba(41,38,27,.5);font-variant-numeric:tabular-nums}
+
+  .twk-sect{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:rgba(41,38,27,.45);padding:10px 0 0}
+  .twk-sect:first-child{padding-top:0}
+
+  .twk-field{appearance:none;box-sizing:border-box;width:100%;min-width:0;height:26px;padding:0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;
+    background:rgba(255,255,255,.6);color:inherit;font:inherit;outline:none}
+  .twk-field:focus{border-color:rgba(0,0,0,.25);background:rgba(255,255,255,.85)}
+  select.twk-field{padding-right:22px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='rgba(0,0,0,.5)' d='M0 0h10L5 6z'/></svg>");
+    background-repeat:no-repeat;background-position:right 8px center}
+
+  .twk-slider{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:6px 0;
+    border-radius:999px;background:rgba(0,0,0,.12);outline:none}
+  .twk-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:14px;height:14px;border-radius:50%;background:#fff;
+    border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+  .twk-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;
+    background:#fff;border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+
+  .twk-seg{position:relative;display:flex;padding:2px;border-radius:8px;
+    background:rgba(0,0,0,.06);user-select:none}
+  .twk-seg-thumb{position:absolute;top:2px;bottom:2px;border-radius:6px;
+    background:rgba(255,255,255,.9);box-shadow:0 1px 2px rgba(0,0,0,.12);
+    transition:left .15s cubic-bezier(.3,.7,.4,1),width .15s}
+  .twk-seg.dragging .twk-seg-thumb{transition:none}
+  .twk-seg button{appearance:none;position:relative;z-index:1;flex:1;border:0;
+    background:transparent;color:inherit;font:inherit;font-weight:500;min-height:22px;
+    border-radius:6px;cursor:default;padding:4px 6px;line-height:1.2;
+    overflow-wrap:anywhere}
+
+  .twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:999px;
+    background:rgba(0,0,0,.15);transition:background .15s;cursor:default;padding:0}
+  .twk-toggle[data-on="1"]{background:#34c759}
+  .twk-toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+  .twk-toggle[data-on="1"] i{transform:translateX(14px)}
+
+  .twk-num{display:flex;align-items:center;box-sizing:border-box;min-width:0;height:26px;padding:0 0 0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;background:rgba(255,255,255,.6)}
+  .twk-num-lbl{font-weight:500;color:rgba(41,38,27,.6);cursor:ew-resize;
+    user-select:none;padding-right:8px}
+  .twk-num input{flex:1;min-width:0;height:100%;border:0;background:transparent;
+    font:inherit;font-variant-numeric:tabular-nums;text-align:right;padding:0 8px 0 0;
+    outline:none;color:inherit;-moz-appearance:textfield}
+  .twk-num input::-webkit-inner-spin-button,.twk-num input::-webkit-outer-spin-button{
+    -webkit-appearance:none;margin:0}
+  .twk-num-unit{padding-right:8px;color:rgba(41,38,27,.45)}
+
+  .twk-btn{appearance:none;height:26px;padding:0 12px;border:0;border-radius:7px;
+    background:rgba(0,0,0,.78);color:#fff;font:inherit;font-weight:500;cursor:default}
+  .twk-btn:hover{background:rgba(0,0,0,.88)}
+  .twk-btn.secondary{background:rgba(0,0,0,.06);color:inherit}
+  .twk-btn.secondary:hover{background:rgba(0,0,0,.1)}
+
+  .twk-swatch{appearance:none;-webkit-appearance:none;width:56px;height:22px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:6px;padding:0;cursor:default;
+    background:transparent;flex-shrink:0}
+  .twk-swatch::-webkit-color-swatch-wrapper{padding:0}
+  .twk-swatch::-webkit-color-swatch{border:0;border-radius:5.5px}
+  .twk-swatch::-moz-color-swatch{border:0;border-radius:5.5px}
+
+  .twk-chips{display:flex;gap:6px}
+  .twk-chip{position:relative;appearance:none;flex:1;min-width:0;height:46px;
+    padding:0;border:0;border-radius:6px;overflow:hidden;cursor:default;
+    box-shadow:0 0 0 .5px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.06);
+    transition:transform .12s cubic-bezier(.3,.7,.4,1),box-shadow .12s}
+  .twk-chip:hover{transform:translateY(-1px);
+    box-shadow:0 0 0 .5px rgba(0,0,0,.18),0 4px 10px rgba(0,0,0,.12)}
+  .twk-chip[data-on="1"]{box-shadow:0 0 0 1.5px rgba(0,0,0,.85),
+    0 2px 6px rgba(0,0,0,.15)}
+  .twk-chip>span{position:absolute;top:0;bottom:0;right:0;width:34%;
+    display:flex;flex-direction:column;box-shadow:-1px 0 0 rgba(0,0,0,.1)}
+  .twk-chip>span>i{flex:1;box-shadow:0 -1px 0 rgba(0,0,0,.1)}
+  .twk-chip>span>i:first-child{box-shadow:none}
+  .twk-chip svg{position:absolute;top:6px;left:6px;width:13px;height:13px;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+`;
+
+// ── useTweaks ───────────────────────────────────────────────────────────────
+// Single source of truth for tweak values. setTweak persists via the host
+// (__edit_mode_set_keys → host rewrites the EDITMODE block on disk).
+function useTweaks(defaults) {
+  const [values, setValues] = React.useState(defaults);
+  // Accepts either setTweak('key', value) or setTweak({ key: value, ... }) so a
+  // useState-style call doesn't write a "[object Object]" key into the persisted
+  // JSON block.
+  const setTweak = React.useCallback((keyOrEdits, val) => {
+    const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null
+      ? keyOrEdits : { [keyOrEdits]: val };
+    setValues((prev) => ({ ...prev, ...edits }));
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+    // Same-window signal so in-page listeners (deck-stage rail thumbnails)
+    // can react — the parent message only reaches the host, not peers.
+    window.dispatchEvent(new CustomEvent('tweakchange', { detail: edits }));
+  }, []);
+  return [values, setTweak];
+}
+
+// ── TweaksPanel ─────────────────────────────────────────────────────────────
+// Floating shell. Registers the protocol listener BEFORE announcing
+// availability — if the announce ran first, the host's activate could land
+// before our handler exists and the toolbar toggle would silently no-op.
+// The close button posts __edit_mode_dismissed so the host's toolbar toggle
+// flips off in lockstep; the host echoes __deactivate_edit_mode back which
+// is what actually hides the panel.
+function TweaksPanel({ title = 'Tweaks', children }) {
+  const [open, setOpen] = React.useState(false);
+  const dragRef = React.useRef(null);
+  const offsetRef = React.useRef({ x: 16, y: 16 });
+  const PAD = 16;
+
+  const clampToViewport = React.useCallback(() => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const w = panel.offsetWidth, h = panel.offsetHeight;
+    const maxRight = Math.max(PAD, window.innerWidth - w - PAD);
+    const maxBottom = Math.max(PAD, window.innerHeight - h - PAD);
+    offsetRef.current = {
+      x: Math.min(maxRight, Math.max(PAD, offsetRef.current.x)),
+      y: Math.min(maxBottom, Math.max(PAD, offsetRef.current.y)),
+    };
+    panel.style.right = offsetRef.current.x + 'px';
+    panel.style.bottom = offsetRef.current.y + 'px';
+  }, []);
+
+  React.useEffect(() => {
+    if (!open) return;
+    clampToViewport();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', clampToViewport);
+      return () => window.removeEventListener('resize', clampToViewport);
+    }
+    const ro = new ResizeObserver(clampToViewport);
+    ro.observe(document.documentElement);
+    return () => ro.disconnect();
+  }, [open, clampToViewport]);
+
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      const t = e?.data?.type;
+      if (t === '__activate_edit_mode') setOpen(true);
+      else if (t === '__deactivate_edit_mode') setOpen(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const dismiss = () => {
+    setOpen(false);
+    window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
+  };
+
+  const onDragStart = (e) => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const r = panel.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    const startRight = window.innerWidth - r.right;
+    const startBottom = window.innerHeight - r.bottom;
+    const move = (ev) => {
+      offsetRef.current = {
+        x: startRight - (ev.clientX - sx),
+        y: startBottom - (ev.clientY - sy),
+      };
+      clampToViewport();
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+
+  if (!open) return null;
+  return (
+    <>
+      <style>{__TWEAKS_STYLE}</style>
+      <div ref={dragRef} className="twk-panel" data-omelette-chrome=""
+           style={{ right: offsetRef.current.x, bottom: offsetRef.current.y }}>
+        <div className="twk-hd" onMouseDown={onDragStart}>
+          <b>{title}</b>
+          <button className="twk-x" aria-label="Close tweaks"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={dismiss}>✕</button>
+        </div>
+        <div className="twk-body">
+          {children}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Layout helpers ──────────────────────────────────────────────────────────
+
+function TweakSection({ label, children }) {
+  return (
+    <>
+      <div className="twk-sect">{label}</div>
+      {children}
+    </>
+  );
+}
+
+function TweakRow({ label, value, children, inline = false }) {
+  return (
+    <div className={inline ? 'twk-row twk-row-h' : 'twk-row'}>
+      <div className="twk-lbl">
+        <span>{label}</span>
+        {value != null && <span className="twk-val">{value}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ── Controls ────────────────────────────────────────────────────────────────
+
+function TweakSlider({ label, value, min = 0, max = 100, step = 1, unit = '', onChange }) {
+  return (
+    <TweakRow label={label} value={`${value}${unit}`}>
+      <input type="range" className="twk-slider" min={min} max={max} step={step}
+             value={value} onChange={(e) => onChange(Number(e.target.value))} />
+    </TweakRow>
+  );
+}
+
+function TweakToggle({ label, value, onChange }) {
+  return (
+    <div className="twk-row twk-row-h">
+      <div className="twk-lbl"><span>{label}</span></div>
+      <button type="button" className="twk-toggle" data-on={value ? '1' : '0'}
+              role="switch" aria-checked={!!value}
+              onClick={() => onChange(!value)}><i /></button>
+    </div>
+  );
+}
+
+function TweakRadio({ label, value, options, onChange }) {
+  const trackRef = React.useRef(null);
+  const [dragging, setDragging] = React.useState(false);
+  // The active value is read by pointer-move handlers attached for the lifetime
+  // of a drag — ref it so a stale closure doesn't fire onChange for every move.
+  const valueRef = React.useRef(value);
+  valueRef.current = value;
+
+  // Segments wrap mid-word once per-segment width runs out. The track is
+  // ~248px (280 panel − 28 body pad − 4 seg pad), each button loses 12px
+  // to its own padding, and 11.5px system-ui averages ~6.3px/char — so 2
+  // options fit ~16 chars each, 3 fit ~10. Past that (or >3 options), fall
+  // back to a dropdown rather than wrap.
+  const labelLen = (o) => String(typeof o === 'object' ? o.label : o).length;
+  const maxLen = options.reduce((m, o) => Math.max(m, labelLen(o)), 0);
+  const fitsAsSegments = maxLen <= ({ 2: 16, 3: 10 }[options.length] ?? 0);
+  if (!fitsAsSegments) {
+    // <select> emits strings — map back to the original option value so the
+    // fallback stays type-preserving (numbers, booleans) like the segment path.
+    const resolve = (s) => {
+      const m = options.find((o) => String(typeof o === 'object' ? o.value : o) === s);
+      return m === undefined ? s : typeof m === 'object' ? m.value : m;
+    };
+    return <TweakSelect label={label} value={value} options={options}
+                        onChange={(s) => onChange(resolve(s))} />;
+  }
+  const opts = options.map((o) => (typeof o === 'object' ? o : { value: o, label: o }));
+  const idx = Math.max(0, opts.findIndex((o) => o.value === value));
+  const n = opts.length;
+
+  const segAt = (clientX) => {
+    const r = trackRef.current.getBoundingClientRect();
+    const inner = r.width - 4;
+    const i = Math.floor(((clientX - r.left - 2) / inner) * n);
+    return opts[Math.max(0, Math.min(n - 1, i))].value;
+  };
+
+  const onPointerDown = (e) => {
+    setDragging(true);
+    const v0 = segAt(e.clientX);
+    if (v0 !== valueRef.current) onChange(v0);
+    const move = (ev) => {
+      if (!trackRef.current) return;
+      const v = segAt(ev.clientX);
+      if (v !== valueRef.current) onChange(v);
+    };
+    const up = () => {
+      setDragging(false);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  return (
+    <TweakRow label={label}>
+      <div ref={trackRef} role="radiogroup" onPointerDown={onPointerDown}
+           className={dragging ? 'twk-seg dragging' : 'twk-seg'}>
+        <div className="twk-seg-thumb"
+             style={{ left: `calc(2px + ${idx} * (100% - 4px) / ${n})`,
+                      width: `calc((100% - 4px) / ${n})` }} />
+        {opts.map((o) => (
+          <button key={o.value} type="button" role="radio" aria-checked={o.value === value}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </TweakRow>
+  );
+}
+
+function TweakSelect({ label, value, options, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <select className="twk-field" value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o) => {
+          const v = typeof o === 'object' ? o.value : o;
+          const l = typeof o === 'object' ? o.label : o;
+          return <option key={v} value={v}>{l}</option>;
+        })}
+      </select>
+    </TweakRow>
+  );
+}
+
+function TweakText({ label, value, placeholder, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <input className="twk-field" type="text" value={value} placeholder={placeholder}
+             onChange={(e) => onChange(e.target.value)} />
+    </TweakRow>
+  );
+}
+
+function TweakNumber({ label, value, min, max, step = 1, unit = '', onChange }) {
+  const clamp = (n) => {
+    if (min != null && n < min) return min;
+    if (max != null && n > max) return max;
+    return n;
+  };
+  const startRef = React.useRef({ x: 0, val: 0 });
+  const onScrubStart = (e) => {
+    e.preventDefault();
+    startRef.current = { x: e.clientX, val: value };
+    const decimals = (String(step).split('.')[1] || '').length;
+    const move = (ev) => {
+      const dx = ev.clientX - startRef.current.x;
+      const raw = startRef.current.val + dx * step;
+      const snapped = Math.round(raw / step) * step;
+      onChange(clamp(Number(snapped.toFixed(decimals))));
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  return (
+    <div className="twk-num">
+      <span className="twk-num-lbl" onPointerDown={onScrubStart}>{label}</span>
+      <input type="number" value={value} min={min} max={max} step={step}
+             onChange={(e) => onChange(clamp(Number(e.target.value)))} />
+      {unit && <span className="twk-num-unit">{unit}</span>}
+    </div>
+  );
+}
+
+// Relative-luminance contrast pick — checkmarks drawn over a swatch need to
+// read on both #111 and #fafafa without per-option configuration. Hex input
+// only (#rgb / #rrggbb); named or rgb()/hsl() colors fall through to "light".
+function __twkIsLight(hex) {
+  const h = String(hex).replace('#', '');
+  const x = h.length === 3 ? h.replace(/./g, (c) => c + c) : h.padEnd(6, '0');
+  const n = parseInt(x.slice(0, 6), 16);
+  if (Number.isNaN(n)) return true;
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return r * 299 + g * 587 + b * 114 > 148000;
+}
+
+const __TwkCheck = ({ light }) => (
+  <svg viewBox="0 0 14 14" aria-hidden="true">
+    <path d="M3 7.2 5.8 10 11 4.2" fill="none" strokeWidth="2.2"
+          strokeLinecap="round" strokeLinejoin="round"
+          stroke={light ? 'rgba(0,0,0,.78)' : '#fff'} />
+  </svg>
+);
+
+// TweakColor — curated color/palette picker. Each option is either a single
+// hex string or an array of 1-5 hex strings; the card adapts — a lone color
+// renders solid, a palette renders colors[0] as the hero (left ~2/3) with the
+// rest stacked in a sharp column on the right. onChange emits the
+// option in the shape it was passed (string stays string, array stays array).
+// Without options it falls back to the native color input for back-compat.
+function TweakColor({ label, value, options, onChange }) {
+  if (!options || !options.length) {
+    return (
+      <div className="twk-row twk-row-h">
+        <div className="twk-lbl"><span>{label}</span></div>
+        <input type="color" className="twk-swatch" value={value}
+               onChange={(e) => onChange(e.target.value)} />
+      </div>
+    );
+  }
+  // Native <input type=color> emits lowercase hex per the HTML spec, so
+  // compare case-insensitively. String() guards JSON.stringify(undefined),
+  // which returns the primitive undefined (no .toLowerCase).
+  const key = (o) => String(JSON.stringify(o)).toLowerCase();
+  const cur = key(value);
+  return (
+    <TweakRow label={label}>
+      <div className="twk-chips" role="radiogroup">
+        {options.map((o, i) => {
+          const colors = Array.isArray(o) ? o : [o];
+          const [hero, ...rest] = colors;
+          const sup = rest.slice(0, 4);
+          const on = key(o) === cur;
+          return (
+            <button key={i} type="button" className="twk-chip" role="radio"
+                    aria-checked={on} data-on={on ? '1' : '0'}
+                    aria-label={colors.join(', ')} title={colors.join(' · ')}
+                    style={{ background: hero }}
+                    onClick={() => onChange(o)}>
+              {sup.length > 0 && (
+                <span>
+                  {sup.map((c, j) => <i key={j} style={{ background: c }} />)}
+                </span>
+              )}
+              {on && <__TwkCheck light={__twkIsLight(hero)} />}
+            </button>
+          );
+        })}
+      </div>
+    </TweakRow>
+  );
+}
+
+function TweakButton({ label, onClick, secondary = false }) {
+  return (
+    <button type="button" className={secondary ? 'twk-btn secondary' : 'twk-btn'}
+            onClick={onClick}>{label}</button>
+  );
+}
+
+Object.assign(window, {
+  useTweaks, TweaksPanel, TweakSection, TweakRow,
+  TweakSlider, TweakToggle, TweakRadio, TweakSelect,
+  TweakText, TweakNumber, TweakColor, TweakButton,
+});
+
+
+// ===== ui_kits/website/PageShared.jsx =====
+// PageShared — building blocks reused across the Light subpages.
+// Pure presentational helpers; the DS primitives (Button/Card/Tag/Input) are
+// injected into scope by the index.html bootstrap.
+
+// Page masthead: small beeldmerk + eyebrow, big title, lead, optional photo.
+function PageHero({ eyebrow, title, intro, image }) {
+  return (
+    <section style={{ background: 'var(--grey-50)', borderBottom: '1px solid var(--color-border)' }}>
+      <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '64px 24px',
+        display: 'grid', gridTemplateColumns: image ? '1.05fr 0.95fr' : '1fr', gap: 52, alignItems: 'center' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 18 }}>
+            <img src="data:image/png;base64,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" alt="Light Personeelsdiensten" style={{ height: 48, width: 'auto', flex: 'none' }} />
+            <span className="light-eyebrow">{eyebrow}</span>
+          </div>
+          <h1 className="light-h1" style={{ maxWidth: 660 }}>{title}</h1>
+          {intro && <p className="light-lead" style={{ marginTop: 18, maxWidth: 620 }}>{intro}</p>}
+        </div>
+        {image && (
+          <div style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-md)', height: 320 }}>
+            <img src={image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ContentSection({ children, soft = false, style = {} }) {
+  return (
+    <section style={{ background: soft ? 'var(--color-bg-soft)' : 'var(--color-bg)',
+      borderTop: soft ? '1px solid var(--color-border)' : 'none', ...style }}>
+      <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '64px 24px' }}>{children}</div>
+    </section>
+  );
+}
+
+function SectionEyebrow({ children }) {
+  return <span className="light-eyebrow" style={{ display: 'block', marginBottom: 10 }}>{children}</span>;
+}
+
+function Para({ children, style = {} }) {
+  return (
+    <p className="light-body" style={{ fontSize: 16.5, color: 'var(--color-text-muted)', margin: '0 0 18px', maxWidth: 780, ...style }}>
+      {children}
+    </p>
+  );
+}
+
+function CheckList({ items, columns = 1 }) {
+  return (
+    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid',
+      gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: '14px 28px' }}>
+      {items.map((it) => (
+        <li key={it} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <span style={{ width: 26, height: 26, borderRadius: '999px', background: 'var(--color-primary-soft)',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none', marginTop: 1 }}>
+            <i data-lucide="check" style={{ width: 15, height: 15, color: 'var(--light-red)' }} />
+          </span>
+          <span className="light-body" style={{ fontSize: 15.5, lineHeight: 1.5 }}>{it}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// Icon-on-tile feature block used inside content sections.
+function FeatureCard({ icon, title, children }) {
+  return (
+    <Card padding={26} style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
+      <span style={{ width: 46, height: 46, borderRadius: 'var(--radius-md)', background: 'var(--color-primary-soft)',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+        <i data-lucide={icon} style={{ width: 22, height: 22, color: 'var(--light-red)' }} />
+      </span>
+      <h3 className="light-h3" style={{ fontSize: 20 }}>{title}</h3>
+      <p className="light-body" style={{ fontSize: 14.5, color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.6 }}>{children}</p>
+    </Card>
+  );
+}
+
+
+// ===== ui_kits/website/Header.jsx =====
+// Header — utility strip + sticky nav. Mirrors the live site's "mail direct" row.
+function Header({ onNav, active, headerBg = 'var(--grey-50)' }) {
+  const links = ['Home', 'Over ons', 'Zakelijke diensten', 'Vacatures', 'Contact'];
+  const Social = ({ icon }) => (
+    <a href="#" onClick={(e) => e.preventDefault()} style={{ display: 'inline-flex', color: '#c4c7c9' }}>
+      <i data-lucide={icon} style={{ width: 15, height: 15 }} />
+    </a>
+  );
+  return (
+    <header style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+      {/* utility strip */}
+      <div style={{ background: 'var(--grey-900)', color: '#fff' }}>
+        <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '7px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, fontSize: 13 }}>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+            <Social icon="facebook" /><Social icon="linkedin" /><Social icon="twitter" />
+          </div>
+          <div style={{ color: '#c4c7c9', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <span>mail direct:</span>
+            <a href="mailto:administratie@lightpersoneelsdiensten.nl" style={{ color: '#fff', fontWeight: 600, textDecoration: 'none' }}>opdrachtgevers</a>
+            <span>of</span>
+            <a href="mailto:vacature@lightpersoneelsdiensten.nl" style={{ color: '#fff', fontWeight: 600, textDecoration: 'none' }}>werkzoekenden</a>
+          </div>
+        </div>
+      </div>
+      {/* main nav */}
+      <div style={{ background: headerBg, borderBottom: '1px solid var(--color-border)' }}>
+        <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24 }}>
+          <a href="#" onClick={(e) => { e.preventDefault(); onNav('Home'); }} style={{ display: 'flex', alignItems: 'center' }}>
+            <img src="data:image/png;base64,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" alt="Light Personeelsdiensten" style={{ height: 52 }} />
+          </a>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {links.map((l) => (
+              <a key={l} href="#" onClick={(e) => { e.preventDefault(); onNav(l); }}
+                 style={{
+                   fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15,
+                   color: active === l ? 'var(--light-red)' : 'var(--grey-800)',
+                   textDecoration: 'none', padding: '8px 12px', borderRadius: 'var(--radius-sm)',
+                 }}>
+                {l}
+              </a>
+            ))}
+            <Button variant="primary" size="sm" iconRight="arrow-right" onClick={() => onNav('Vacatures')} style={{ marginLeft: 8 }}>Vacatures</Button>
+          </nav>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+
+// ===== ui_kits/website/Hero.jsx =====
+// Hero — two-column: brand statement + production photo with notched badge.
+function Hero({ onNav }) {
+  const sectors = [
+    { icon: 'factory', label: 'Productie' },
+    { icon: 'truck', label: 'Logistiek' },
+    { icon: 'spray-can', label: 'Schoonmaak' },
+  ];
+  return (
+    <section style={{ background: 'var(--color-bg)' }}>
+      <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '72px 24px', display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: 56, alignItems: 'center' }}>
+        <div>
+          <span className="light-eyebrow">Light Personeelsdiensten B.V.</span>
+          <h1 className="light-h1" style={{ fontSize: 'var(--fs-h1)', marginTop: 14, marginBottom: 20 }}>
+            Specialist in het uitzenden van productie&#8209;, logistiek en schoonmaakpersoneel
+          </h1>
+          <p className="light-lead" style={{ maxWidth: 520, marginBottom: 28 }}>
+            Omdat wij al jarenlang medewerkers inzetten van het begin tot aan het eindproduct, kennen wij de klappen van de zweep.
+          </p>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 30 }}>
+            <Button variant="primary" size="lg" iconRight="arrow-right" onClick={() => onNav('Vacatures')}>Bekijk vacatures</Button>
+            <Button variant="outline" size="lg" onClick={() => onNav('Zakelijke diensten')}>Voor opdrachtgevers</Button>
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {sectors.map((s) => (
+              <span key={s.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-pill)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, color: 'var(--grey-700)' }}>
+                <i data-lucide={s.icon} style={{ width: 15, height: 15, color: 'var(--light-red)' }} />{s.label}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div style={{ position: 'relative' }}>
+          <div style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-md)', height: 420 }}>
+            <img src={window.__resources.img0} alt="Logistiek magazijn" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          </div>
+          <div style={{ position: 'absolute', left: -14, bottom: 28, background: 'var(--light-red)', color: '#fff', padding: '16px 22px', clipPath: 'var(--clip-notch)', boxShadow: 'var(--shadow-red)' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, lineHeight: 1.1 }}>SNA-gecertificeerd</div>
+            <div style={{ fontSize: 12.5, opacity: 0.92, marginTop: 3 }}>Stichting Normering Arbeid</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+// ===== ui_kits/website/ServiceTiles.jsx =====
+// ServiceTiles — the three top-level service cards from the live site.
+function ServiceTiles({ onNav }) {
+  const tiles = [
+    {
+      title: 'Light Personeelsdiensten B.V.',
+      image: window.__resources.img1,
+      body: 'Wij zetten al jaren medewerkers in van het begin tot aan het eindproduct. Het vinden van deze specifieke mensen is een vak apart — en laat dit nu net ons vak zijn.',
+      to: 'Over ons',
+    },
+    {
+      title: 'Werken bij…',
+      image: window.__resources.img2,
+      body: 'Wij zoeken echte doorzetters die gemotiveerd zijn dit productiewerk fulltime uit te voeren, onder de geldende veiligheids- en hygiëneregels op locatie.',
+      to: 'Vacatures',
+    },
+    {
+      title: 'Zakelijke diensten',
+      image: window.__resources.img3,
+      body: 'Door onze kennis van de branche weten wij wat er speelt op de markt én op de werkvloer. Wij geven persoonlijk advies dat aansluit bij uw bedrijf.',
+      to: 'Zakelijke diensten',
+    },
+  ];
+  return (
+    <section style={{ background: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-border)' }}>
+      <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '72px 24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+          {tiles.map((t) => (
+            <Card key={t.title} image={t.image} imageAlt={t.title} interactive padding={26} onClick={() => onNav(t.to)} style={{ display: 'flex', flexDirection: 'column' }}>
+              <h3 className="light-h3" style={{ marginBottom: 12 }}>{t.title}</h3>
+              <p className="light-body" style={{ fontSize: 14.5, color: 'var(--color-text-muted)', margin: '0 0 18px', flex: 1 }}>{t.body}</p>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14.5, color: 'var(--light-red)' }}>
+                Lees meer <i data-lucide="arrow-right" style={{ width: 16, height: 16 }} />
+              </span>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+// ===== ui_kits/website/VacancyFeed.jsx =====
+// VacancyFeed — "Enkele van onze vacatures": filter tags + JobCard grid.
+function VacancyFeed({ onNav }) {
+  const all = [
+    { title: 'Meewerkend chauffeur', category: 'Logistiek', location: 'Rotterdam', hours: 'Fulltime', readTime: '1,2 min',
+      teaser: 'Ben je graag onderweg en wil je dit combineren met je nieuwe baan? Dan is deze vacature echt iets voor jou.',
+      image: window.__resources.img4 },
+    { title: 'Medewerker snijhal (portioneren)', category: 'Productie', location: 'Rotterdam', hours: 'Fulltime', readTime: '1,1 min',
+      teaser: 'Voor een totaalleverancier van kip-, wild- en gevogelteproducten zoeken wij collega’s voor de snijhal.',
+      image: window.__resources.img5 },
+    { title: 'Medewerker etiketteermachine', category: 'Productie', location: 'Rotterdam', hours: 'Fulltime', readTime: '1,3 min',
+      teaser: 'Voor dezelfde opdrachtgever zoeken wij een nauwkeurige etiketteerder voor de verpakkingslijn.',
+      image: window.__resources.img6 },
+  ];
+  const [filter, setFilter] = React.useState('Alle');
+  const cats = ['Alle', 'Productie', 'Logistiek', 'Schoonmaak'];
+  const shown = filter === 'Alle' ? all : all.filter((v) => v.category === filter);
+
+  return (
+    <section style={{ background: 'var(--color-bg)' }}>
+      <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '72px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 16, marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+            <img src="data:image/png;base64,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" alt="Light Personeelsdiensten" style={{ height: 56, width: 'auto', flex: 'none' }} />
+            <div>
+              <span className="light-eyebrow">Vacatures</span>
+              <h2 className="light-h2" style={{ marginTop: 10 }}>Enkele van onze vacatures</h2>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {cats.map((c) => (
+              <Tag key={c} selected={filter === c} onClick={() => setFilter(c)}>{c}</Tag>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, minHeight: 380 }}>
+          {shown.map((v) => <JobCard key={v.title} {...v} onClick={() => onNav('Vacatures')} />)}
+          {shown.length === 0 && (
+            <p className="light-body" style={{ color: 'var(--color-text-muted)' }}>Geen openstaande vacatures in deze categorie.</p>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 40 }}>
+          <Button variant="secondary" size="lg" iconRight="arrow-right" onClick={() => onNav('Vacatures')}>Bekijk alle vacatures</Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+// ===== ui_kits/website/CtaBand.jsx =====
+// CtaBand — full-width red call to action with the notched-corner motif.
+function CtaBand({ onNav, statement = 'Wij houden de productie draaiend.' }) {
+  return (
+    <section style={{ background: 'var(--light-red)' }}>
+      <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '56px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+          <img src="data:image/png;base64,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" alt="Light Personeelsdiensten" style={{ height: 92, width: 'auto', flex: 'none', opacity: 0.96 }} />
+          <div style={{ color: '#fff' }}>
+            <h2 className="cta-title" style={{ fontFamily: 'var(--font-display)', fontSize: 30, lineHeight: 1.12, margin: 0 }}>{statement}</h2>
+            <p style={{ fontFamily: 'var(--font-body)', fontSize: 16.5, opacity: 0.94, margin: '12px 0 0', maxWidth: 560 }}>
+              Personeel nodig voor productie, logistiek of schoonmaak? Wij regelen screening, planning en begeleiding op locatie.
+            </p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          <Button variant="secondary" size="lg" notch icon="phone" onClick={() => onNav('Contact')}>Neem contact op</Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+// ===== ui_kits/website/Footer.jsx =====
+// Footer — dark grey, logo + address + links + SNA certification.
+function Footer({ onNav }) {
+  const Col = ({ title, children }) => (
+    <div>
+      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', marginBottom: 16 }}>{title}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{children}</div>
+    </div>
+  );
+  const FLink = ({ children, onClick }) => (
+    <a href="#" onClick={(e) => { e.preventDefault(); onClick && onClick(); }} style={{ color: 'var(--color-text-on-dark-muted)', textDecoration: 'none', fontSize: 14.5 }}>{children}</a>
+  );
+  return (
+    <footer style={{ background: 'var(--grey-900)', color: '#fff' }}>
+      <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '56px 24px 32px', display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1fr', gap: 40 }}>
+        <div>
+          <div style={{ background: '#fff', display: 'inline-block', padding: 12, borderRadius: 'var(--radius-md)' }}>
+            <img src="data:image/png;base64,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" alt="Light Personeelsdiensten" style={{ height: 64, display: 'block' }} />
+          </div>
+          <p style={{ color: 'var(--color-text-on-dark-muted)', fontSize: 14.5, lineHeight: 1.7, margin: '18px 0 0' }}>
+            Light Personeelsdiensten B.V.<br />Selma Lagerlöfweg 63<br />3069 BT Rotterdam
+          </p>
+          <a href="tel:+31107600857" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#fff', fontFamily: 'var(--font-mono)', fontSize: 15, textDecoration: 'none', marginTop: 14 }}>
+            <i data-lucide="phone" style={{ width: 16, height: 16 }} /> +31 10 760 0857
+          </a>
+        </div>
+        <Col title="Diensten">
+          <FLink onClick={() => onNav('Over ons')}>Over ons</FLink>
+          <FLink onClick={() => onNav('Zakelijke diensten')}>Zakelijke diensten</FLink>
+          <FLink onClick={() => onNav('Vacatures')}>Vacatures</FLink>
+        </Col>
+        <Col title="Contact">
+          <FLink onClick={() => onNav('Contact')}>Contact</FLink>
+          <a href="mailto:administratie@lightpersoneelsdiensten.nl" style={{ color: 'var(--color-text-on-dark-muted)', textDecoration: 'none', fontSize: 14.5 }}>Opdrachtgevers</a>
+          <a href="mailto:vacature@lightpersoneelsdiensten.nl" style={{ color: 'var(--color-text-on-dark-muted)', textDecoration: 'none', fontSize: 14.5 }}>Werkzoekenden</a>
+        </Col>
+        <Col title="Juridisch">
+          <FLink>Privacy Statement</FLink>
+          <FLink>Ziekteverzuim protocol</FLink>
+          <FLink>Algemene voorwaarden</FLink>
+        </Col>
+      </div>
+      <div style={{ borderTop: '1px solid var(--color-border-ondark)' }}>
+        <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '18px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--color-text-on-dark-muted)', fontSize: 13 }}>
+            <i data-lucide="badge-check" style={{ width: 16, height: 16, color: 'var(--light-red-300)' }} />
+            Gecertificeerd door Stichting Normering Arbeid
+          </span>
+          <span style={{ color: 'var(--grey-500)', fontSize: 12.5 }}>© 2026 Light Personeelsdiensten B.V.</span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+
+// ===== ui_kits/website/OverOns.jsx =====
+// OverOns — "Over ons" page. Mirrors lightpersoneelsdiensten.nl/services/light-personeelsdiensten-b-v/
+function OverOns({ onNav }) {
+  const values = [
+    { icon: 'shield-check', title: 'Betrouwbaar', body: 'Al jarenlang een vaste waarde voor opdrachtgevers in productie, logistiek en schoonmaak.' },
+    { icon: 'zap', title: 'Direct', body: 'Korte lijnen en snel schakelen — u heeft één vast aanspreekpunt dat de werkvloer kent.' },
+    { icon: 'lightbulb', title: 'Oplossingsgericht', body: 'Piek, ziekte of vakantie: wij vinden dé medewerker die echt past in het team.' },
+  ];
+  const biedt = [
+    'Service en kwaliteit',
+    'Efficiënt en doelgericht werken',
+    'Administratieve verlichting, ondersteuning waar nodig',
+    'Optimale kostenbesparing',
+  ];
+  return (
+    <>
+      <PageHero
+        eyebrow="Over ons"
+        title="Light Personeelsdiensten B.V."
+        intro="Specialist in het uitzenden van productie-, logistiek en schoonmaakpersoneel. Wij kennen de klappen van de zweep."
+        image={window.__resources.img0}
+      />
+
+      <ContentSection>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 52 }}>
+          {values.map((v) => (
+            <FeatureCard key={v.title} icon={v.icon} title={v.title}>{v.body}</FeatureCard>
+          ))}
+        </div>
+
+        <div style={{ maxWidth: 780 }}>
+          <Para>
+            Omdat wij al jarenlang in de productiebranche medewerkers mogen inzetten van het begin tot aan het
+            eindproduct, kennen wij de klappen van de zweep. Het vinden van deze specifieke medewerkers is een
+            vak apart — en laat dit nu net ons vak zijn.
+          </Para>
+          <Para>
+            Wij gaan graag direct aan de slag met het benaderen van kandidaten uit ons bestand van werkzoekenden
+            en via onze socials. Het invullen van langetermijnvacatures, snel schakelen bij piekperiodes, vervanging
+            van een zieke medewerker of het opvangen van een vakantieperiode: voor ons geen probleem. Wij vinden
+            altijd dé medewerker die echt past in het team.
+          </Para>
+          <Para>
+            Omdat wij ons conformeren aan de ABU-cao kunt u optimaal gebruikmaken van de flexibiliteit die deze
+            biedt. Een nieuwe medewerker start in fase A en is zo een jaar lang flexibel inzetbaar — de uitgelezen
+            kans om het functioneren te beoordelen zonder direct vast te zitten aan een contract voor bepaalde of
+            onbepaalde tijd.
+          </Para>
+          <Para style={{ marginBottom: 0 }}>
+            Geen dag is hetzelfde, dus een gedegen HRM-beleid is essentieel. Daarom bieden wij ook administratieve
+            ondersteuning waar nodig: van algemene managementondersteuning en begeleiding van het HRM-beleid tot
+            salarisadministratie en werkhervattingstrajecten.
+          </Para>
+        </div>
+      </ContentSection>
+
+      <ContentSection soft>
+        <div style={{ display: 'grid', gridTemplateColumns: '0.8fr 1.2fr', gap: 48, alignItems: 'center' }}>
+          <div>
+            <SectionEyebrow>Wij bieden</SectionEyebrow>
+            <h2 className="light-h2">Waar u op kunt rekenen</h2>
+          </div>
+          <CheckList items={biedt} columns={1} />
+        </div>
+      </ContentSection>
+    </>
+  );
+}
+
+
+// ===== ui_kits/website/ZakelijkeDiensten.jsx =====
+// ZakelijkeDiensten — "Zakelijke diensten" page.
+// Mirrors lightpersoneelsdiensten.nl/services/zakelijke-diensten/
+function ZakelijkeDiensten({ onNav }) {
+  const diensten = [
+    { icon: 'file-text', title: 'Administratieve diensten & recruitment',
+      body: 'Wij praten u graag bij over hoe Light u en uw bedrijf tijd, aansprakelijkheid en kosten kan besparen — van werving tot administratie.' },
+    { icon: 'activity', title: 'Real-time en overzichtelijk',
+      body: 'Wij analyseren uw personeelsprocessen, maken ze inzichtelijk en monitoren periodiek de geboekte werkkosten. Volledig inzicht, altijd actueel.' },
+    { icon: 'headphones', title: 'Office support',
+      body: 'Incidenteel of structureel administratieve ondersteuning — bij vakantie of ziekte van vast kantoorpersoneel, of als vaste managementondersteuning.' },
+    { icon: 'users', title: 'HRM-advies',
+      body: 'Begeleiding van uw HRM-beleid, salarisadministratie en werkhervattingstrajecten. Wij ondersteunen bij vragen en werkzaamheden waar nodig.' },
+  ];
+  const voordelen = [
+    'Optimale flexibiliteit',
+    'Alleen facturatie voor de gewerkte uren die u aanlevert',
+    'Geen uitbetaling van vakantiedaguren en vakantiegeld',
+    'Geen zorgen over CAO- of wetswijzigingen',
+    'Geen sociale premies, loonbelastingen of pensioenpremies',
+    'Geen financiële risico’s of ziekteverzuimverzekering',
+  ];
+  return (
+    <>
+      <PageHero
+        eyebrow="Zakelijke diensten"
+        title="Professionele dienstverlening voor bedrijven"
+        intro="Op zoek naar een organisatie die ontzorgt? Door onze kennis van de branche weten wij wat er speelt op de markt én op de werkvloer. Wij geven persoonlijk advies dat aansluit bij uw bedrijf."
+        image={window.__resources.img7}
+      />
+
+      <ContentSection>
+        <SectionEyebrow>Onze dienstverlening</SectionEyebrow>
+        <h2 className="light-h2" style={{ marginBottom: 28, maxWidth: 720 }}>Ontzorgen van werving tot administratie</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 20 }}>
+          {diensten.map((d) => (
+            <FeatureCard key={d.title} icon={d.icon} title={d.title}>{d.body}</FeatureCard>
+          ))}
+        </div>
+      </ContentSection>
+
+      <ContentSection soft>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 52, alignItems: 'center' }}>
+          <div>
+            <SectionEyebrow>Onze pool</SectionEyebrow>
+            <h2 className="light-h2" style={{ marginBottom: 16 }}>Gemotiveerde, flexibele uitzendkrachten</h2>
+            <Para style={{ fontSize: 16 }}>
+              Wij kennen onze uitzendkrachten persoonlijk. Daardoor geven wij een optimale invulling aan uw
+              tijdelijke of langdurige vacatures. Door onze met zorg samengestelde pool is snel schakelen bij
+              piekbelasting, ziekte of vakantie geen enkel probleem.
+            </Para>
+            <Para style={{ fontSize: 16, marginBottom: 0 }}>
+              Bij ons vindt u dé flexkracht die echt past bij uw bedrijf. Wij conformeren ons aan de ABU-cao, zodat
+              u optimaal profiteert van de flexibiliteit die deze biedt — een nieuwe medewerker start in fase A.
+            </Para>
+          </div>
+          <div style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '32px 34px', boxShadow: 'var(--shadow-xs)' }}>
+            <h3 className="light-h3" style={{ marginBottom: 20 }}>De voordelen op een rij</h3>
+            <CheckList items={voordelen} columns={1} />
+          </div>
+        </div>
+      </ContentSection>
+    </>
+  );
+}
+
+
+// ===== ui_kits/website/VacaturesPage.jsx =====
+// VacaturesPage — full "Vacatures" page: intro, filter + JobCard grid, "werken bij"
+// expectations, and an apply CTA to vacature@lightpersoneelsdiensten.nl.
+function VacaturesPage({ onNav }) {
+  const all = [
+    { title: 'Meewerkend chauffeur', category: 'Logistiek', location: 'Rotterdam', hours: 'Fulltime', readTime: '1,2 min',
+      teaser: 'Ben je graag onderweg en wil je dit combineren met je nieuwe baan? Dan is deze vacature echt iets voor jou.',
+      image: window.__resources.img4 },
+    { title: 'Medewerker snijhal (portioneren)', category: 'Productie', location: 'Rotterdam', hours: 'Fulltime', readTime: '1,1 min',
+      teaser: 'Voor een totaalleverancier van kip-, wild- en gevogelteproducten zoeken wij collega’s voor de snijhal.',
+      image: window.__resources.img5 },
+    { title: 'Medewerker etiketteermachine', category: 'Productie', location: 'Rotterdam', hours: 'Fulltime', readTime: '1,3 min',
+      teaser: 'Voor dezelfde opdrachtgever zoeken wij een nauwkeurige etiketteerder voor de verpakkingslijn.',
+      image: window.__resources.img6 },
+  ];
+  const [filter, setFilter] = React.useState('Alle');
+  const cats = ['Alle', 'Productie', 'Logistiek', 'Schoonmaak'];
+  const shown = filter === 'Alle' ? all : all.filter((v) => v.category === filter);
+
+  const verwachting = [
+    { icon: 'flame', title: 'Echte doorzetters', body: 'Wij zoeken gemotiveerde mensen die dit productiewerk fulltime willen uitvoeren.' },
+    { icon: 'shield-check', title: 'Veilig & hygiënisch', body: 'Werken volgens de strenge veiligheids- en hygiënereglementen die op de locatie gelden.' },
+    { icon: 'calendar-check', title: 'Direct aan de slag', body: 'Snel schakelen via fase A van de ABU-cao — een jaar lang flexibel inzetbaar.' },
+  ];
+
+  return (
+    <>
+      <PageHero
+        eyebrow="Vacatures"
+        title="Werken bij Light"
+        intro="Wij zoeken echte doorzetters die gemotiveerd zijn dit productiewerk fulltime uit te voeren. Bekijk de openstaande vacatures hieronder."
+      />
+
+      <ContentSection>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 16, marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+            <img src="data:image/png;base64,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" alt="Light Personeelsdiensten" style={{ height: 52, width: 'auto', flex: 'none' }} />
+            <div>
+              <SectionEyebrow>Openstaande vacatures</SectionEyebrow>
+              <h2 className="light-h2">Enkele van onze vacatures</h2>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {cats.map((c) => (
+              <Tag key={c} selected={filter === c} onClick={() => setFilter(c)}>{c}</Tag>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, minHeight: 380 }}>
+          {shown.map((v) => <JobCard key={v.title} {...v} onClick={() => onNav('Contact')} />)}
+          {shown.length === 0 && (
+            <p className="light-body" style={{ color: 'var(--color-text-muted)' }}>Geen openstaande vacatures in deze categorie.</p>
+          )}
+        </div>
+      </ContentSection>
+
+      <ContentSection soft>
+        <SectionEyebrow>Wat we vragen</SectionEyebrow>
+        <h2 className="light-h2" style={{ marginBottom: 28, maxWidth: 640 }}>Wat werken bij Light betekent</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 44 }}>
+          {verwachting.map((v) => (
+            <FeatureCard key={v.title} icon={v.icon} title={v.title}>{v.body}</FeatureCard>
+          ))}
+        </div>
+
+        <div style={{ background: 'var(--light-red)', color: '#fff', borderRadius: 'var(--radius-lg)', padding: '34px 36px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 28, flexWrap: 'wrap', boxShadow: 'var(--shadow-red)' }}>
+          <div>
+            <h3 className="cta-title" style={{ fontFamily: 'var(--font-display)', fontSize: 24, margin: 0 }}>Geen passende vacature gevonden?</h3>
+            <p style={{ fontFamily: 'var(--font-body)', fontSize: 16, opacity: 0.94, margin: '10px 0 0', maxWidth: 520 }}>
+              Stuur een open sollicitatie — wij nemen je op in ons bestand en benaderen je zodra er een passende plek is.
+            </p>
+          </div>
+          <a href="mailto:vacature@lightpersoneelsdiensten.nl" style={{ textDecoration: 'none' }}>
+            <Button variant="secondary" size="lg" notch iconRight="send">Stuur je sollicitatie</Button>
+          </a>
+        </div>
+      </ContentSection>
+    </>
+  );
+}
+
+
+// ===== ui_kits/website/ContactPage.jsx =====
+// ContactPage — "Contact" page: audience split, details, contact form, location.
+function ContactPage({ onNav }) {
+  const [sent, setSent] = React.useState(false);
+  const submit = (e) => { e.preventDefault(); setSent(true); };
+
+  const audiences = [
+    { icon: 'building-2', tag: 'Opdrachtgevers', title: 'Personeel nodig?',
+      body: 'Productie-, logistiek- of schoonmaakpersoneel nodig, of advies over uw personeelsprocessen? Onze administratie helpt u verder.',
+      email: 'administratie@lightpersoneelsdiensten.nl' },
+    { icon: 'briefcase', tag: 'Werkzoekenden', title: 'Op zoek naar werk?',
+      body: 'Wil je aan de slag of een open sollicitatie sturen? Mail ons team en we nemen contact met je op.',
+      email: 'vacature@lightpersoneelsdiensten.nl' },
+  ];
+
+  const labelStyle = { fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, color: 'var(--color-text)', marginBottom: 6, display: 'block' };
+
+  return (
+    <>
+      <PageHero
+        eyebrow="Contact"
+        title="Neem contact op"
+        intro="Betrouwbaar, direct en met korte lijnen. Bel ons, mail het juiste team of stuur het formulier — wij reageren snel."
+      />
+
+      <ContentSection>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 56 }}>
+          {audiences.map((a) => (
+            <Card key={a.tag} padding={28} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <span style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 7,
+                fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 11, letterSpacing: '0.08em',
+                textTransform: 'uppercase', color: 'var(--color-primary)', background: 'var(--color-primary-soft)',
+                padding: '5px 10px', borderRadius: 'var(--radius-pill)' }}>
+                <i data-lucide={a.icon} style={{ width: 13, height: 13 }} />{a.tag}
+              </span>
+              <h3 className="light-h3" style={{ fontSize: 21 }}>{a.title}</h3>
+              <p className="light-body" style={{ fontSize: 14.5, color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.6 }}>{a.body}</p>
+              <a href={`mailto:${a.email}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 2,
+                fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14.5, color: 'var(--light-red)', textDecoration: 'none' }}>
+                <i data-lucide="mail" style={{ width: 16, height: 16 }} />{a.email}
+              </a>
+            </Card>
+          ))}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.1fr', gap: 52, alignItems: 'start' }}>
+          {/* Details + location */}
+          <div>
+            <SectionEyebrow>Gegevens</SectionEyebrow>
+            <h2 className="light-h2" style={{ marginBottom: 22 }}>Light Personeelsdiensten B.V.</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginBottom: 28 }}>
+              <ContactRow icon="map-pin" label="Adres">Selma Lagerlöfweg 63<br />3069 BT Rotterdam</ContactRow>
+              <ContactRow icon="phone" label="Telefoon"><a href="tel:+31107600857" style={{ color: 'inherit', fontFamily: 'var(--font-mono)', textDecoration: 'none' }}>+31 10 760 0857</a></ContactRow>
+              <ContactRow icon="badge-check" label="Certificering">Gecertificeerd door Stichting Normering Arbeid (SNA)</ContactRow>
+            </div>
+            {/* Location placeholder */}
+            <div style={{ position: 'relative', height: 220, borderRadius: 'var(--radius-md)', overflow: 'hidden',
+              border: '1px solid var(--color-border)',
+              background: 'repeating-linear-gradient(135deg, var(--grey-50), var(--grey-50) 14px, var(--grey-100) 14px, var(--grey-100) 28px)' }}>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <i data-lucide="map-pin" style={{ width: 26, height: 26, color: 'var(--light-red)' }} />
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-muted)' }}>kaart — Selma Lagerlöfweg 63, Rotterdam</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Form */}
+          <div style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '32px 34px', boxShadow: 'var(--shadow-xs)' }}>
+            <h3 className="light-h3" style={{ marginBottom: 20 }}>Stuur ons een bericht</h3>
+            {sent ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12, padding: '20px 0' }}>
+                <span style={{ width: 48, height: 48, borderRadius: '999px', background: 'var(--color-primary-soft)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <i data-lucide="check" style={{ width: 24, height: 24, color: 'var(--light-red)' }} />
+                </span>
+                <h4 className="light-h4">Bedankt voor uw bericht!</h4>
+                <p className="light-body" style={{ fontSize: 15, color: 'var(--color-text-muted)', margin: 0 }}>Wij nemen zo snel mogelijk contact met u op.</p>
+              </div>
+            ) : (
+              <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <Input label="Naam" placeholder="Uw naam" required />
+                  <Input label="Telefoon" type="tel" placeholder="06 …" icon="phone" />
+                </div>
+                <Input label="E-mail" type="email" placeholder="naam@bedrijf.nl" icon="mail" required />
+                <div>
+                  <label style={labelStyle}>Bericht <span style={{ color: 'var(--light-red)' }}>*</span></label>
+                  <textarea required rows={5} placeholder="Waarmee kunnen wij u helpen?"
+                    style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'var(--font-body)', fontSize: 15,
+                      color: 'var(--color-text)', padding: '11px 14px', background: 'var(--color-bg)',
+                      border: '1.5px solid var(--color-border-strong)', borderRadius: 'var(--radius-sm)', outline: 'none', resize: 'vertical' }} />
+                </div>
+                <Button type="submit" variant="primary" size="lg" iconRight="arrow-right" style={{ alignSelf: 'flex-start' }}>Versturen</Button>
+              </form>
+            )}
+          </div>
+        </div>
+      </ContentSection>
+    </>
+  );
+}
+
+function ContactRow({ icon, label, children }) {
+  return (
+    <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+      <span style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--color-primary-soft)',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+        <i data-lucide={icon} style={{ width: 19, height: 19, color: 'var(--light-red)' }} />
+      </span>
+      <div>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--color-text-subtle)', marginBottom: 3 }}>{label}</div>
+        <div className="light-body" style={{ fontSize: 15.5, color: 'var(--color-text)', lineHeight: 1.5 }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+
+// ===== ui_kits/website/App.jsx =====
+// App — Light marketing site. Multi-page: Home + Over ons, Zakelijke diensten,
+// Vacatures en Contact. Header/Footer blijven staan; de body wisselt op de
+// actieve nav-keuze.
+function App() {
+  const [active, setActive] = React.useState('Home');
+  const [t, setTweak] = useTweaks(window.TWEAK_DEFAULTS || { logoBg: 'soft', headingWeight: 700, statement: 'De juiste mensen, op de juiste plek.' });
+
+  React.useEffect(() => { if (window.lucide) lucide.createIcons(); }, [active, t]);
+  React.useEffect(() => { window.scrollTo({ top: 0, behavior: 'auto' }); }, [active]);
+
+  const headerBg = t.logoBg === 'soft' ? 'var(--grey-50)' : '#fff';
+  const STATEMENTS = [
+    'Wij houden de productie draaiend.',
+    'De productie moet draaien.',
+    'Wij kennen de klappen van de zweep.',
+    'Van begin tot eindproduct — wij regelen het.',
+    'De juiste mensen, op de juiste plek.',
+    'De productie moet draaien. Punt.',
+  ];
+
+  const onNav = (label) => setActive(label);
+
+  let body;
+  switch (active) {
+    case 'Over ons': body = <OverOns onNav={onNav} />; break;
+    case 'Zakelijke diensten': body = <ZakelijkeDiensten onNav={onNav} />; break;
+    case 'Vacatures': body = <VacaturesPage onNav={onNav} />; break;
+    case 'Contact': body = <ContactPage onNav={onNav} />; break;
+    default:
+      body = (
+        <>
+          <Hero onNav={onNav} />
+          <ServiceTiles onNav={onNav} />
+          <VacancyFeed onNav={onNav} />
+        </>
+      );
+  }
+
+  return (
+    <div className="light-body" style={{ background: '#fff' }}>
+      <style>{`
+        .light-h1, .light-h2 { font-weight: ${t.headingWeight} !important; }
+        .cta-title { font-weight: ${t.headingWeight} !important; }
+      `}</style>
+      <Header onNav={onNav} active={active} headerBg={headerBg} />
+      {body}
+      {active !== 'Contact' && <CtaBand onNav={onNav} statement={t.statement} />}
+      <Footer onNav={onNav} />
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection label="Logo" />
+        <TweakRadio label="Logo-achtergrond" value={t.logoBg}
+          options={[{ value: 'white', label: 'Wit' }, { value: 'soft', label: 'Lichtgrijs' }]}
+          onChange={(v) => setTweak('logoBg', v)} />
+        <TweakSection label="Typografie" />
+        <TweakRadio label="Kopgewicht" value={t.headingWeight}
+          options={[{ value: 800, label: '800' }, { value: 700, label: '700' }, { value: 600, label: '600' }]}
+          onChange={(v) => setTweak('headingWeight', v)} />
+        <TweakSection label="Statement" />
+        <TweakSelect label="CTA-tekst" value={t.statement}
+          options={STATEMENTS} onChange={(v) => setTweak('statement', v)} />
+      </TweaksPanel>
+    </div>
+  );
+}
+
+
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+setTimeout(function(){ if (window.lucide) lucide.createIcons(); }, 200);
+  </script>
+
+  <template id="__bundler_thumbnail" data-bg-color="#ffffff">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+      <rect x="470" y="250" width="260" height="210" rx="6" fill="#787c7e"/>
+      <rect x="470" y="470" width="260" height="84" fill="#be1e2d"/>
+      <text x="600" y="534" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="58" fill="#ffffff" text-anchor="middle">Light</text>
+    </svg>
+  </template>
+</body>
+</html>

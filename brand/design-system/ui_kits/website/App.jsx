@@ -1,40 +1,65 @@
-// App — composes the Light marketing homepage. Single-page interactive demo.
+// App — Light marketing site. Multi-page: Home + Over ons, Zakelijke diensten,
+// Vacatures en Contact. Header/Footer blijven staan; de body wisselt op de
+// actieve nav-keuze.
 function App() {
   const [active, setActive] = React.useState('Home');
-  const [toast, setToast] = React.useState(null);
+  const [t, setTweak] = useTweaks(window.TWEAK_DEFAULTS || { logoBg: 'soft', headingWeight: 700, statement: 'De juiste mensen, op de juiste plek.' });
 
-  React.useEffect(() => { if (window.lucide) lucide.createIcons(); }, [active, toast]);
+  React.useEffect(() => { if (window.lucide) lucide.createIcons(); }, [active, t]);
+  React.useEffect(() => { window.scrollTo({ top: 0, behavior: 'auto' }); }, [active]);
 
-  const onNav = (label) => {
-    setActive(label);
-    if (label === 'Vacatures') {
-      const el = document.getElementById('vacatures');
-      if (el) window.scrollTo({ top: el.offsetTop - 80, behavior: 'smooth' });
-      return;
-    }
-    if (label === 'Home') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-    setToast(label);
-    clearTimeout(window.__lt);
-    window.__lt = setTimeout(() => setToast(null), 2200);
-  };
+  const headerBg = t.logoBg === 'soft' ? 'var(--grey-50)' : '#fff';
+  const STATEMENTS = [
+    'Wij houden de productie draaiend.',
+    'De productie moet draaien.',
+    'Wij kennen de klappen van de zweep.',
+    'Van begin tot eindproduct — wij regelen het.',
+    'De juiste mensen, op de juiste plek.',
+    'De productie moet draaien. Punt.',
+  ];
+
+  const onNav = (label) => setActive(label);
+
+  let body;
+  switch (active) {
+    case 'Over ons': body = <OverOns onNav={onNav} />; break;
+    case 'Zakelijke diensten': body = <ZakelijkeDiensten onNav={onNav} />; break;
+    case 'Vacatures': body = <VacaturesPage onNav={onNav} />; break;
+    case 'Contact': body = <ContactPage onNav={onNav} />; break;
+    default:
+      body = (
+        <>
+          <Hero onNav={onNav} />
+          <ServiceTiles onNav={onNav} />
+          <VacancyFeed onNav={onNav} />
+        </>
+      );
+  }
 
   return (
     <div className="light-body" style={{ background: '#fff' }}>
-      <Header onNav={onNav} active={active} />
-      <Hero onNav={onNav} />
-      <ServiceTiles onNav={onNav} />
-      <div id="vacatures"><VacancyFeed onNav={onNav} /></div>
-      <CtaBand onNav={onNav} />
+      <style>{`
+        .light-h1, .light-h2 { font-weight: ${t.headingWeight} !important; }
+        .cta-title { font-weight: ${t.headingWeight} !important; }
+      `}</style>
+      <Header onNav={onNav} active={active} headerBg={headerBg} />
+      {body}
+      {active !== 'Contact' && <CtaBand onNav={onNav} statement={t.statement} />}
       <Footer onNav={onNav} />
 
-      {toast && (
-        <div style={{ position: 'fixed', left: '50%', bottom: 28, transform: 'translateX(-50%)', zIndex: 100,
-          background: 'var(--grey-900)', color: '#fff', padding: '12px 20px', borderRadius: 'var(--radius-pill)',
-          boxShadow: 'var(--shadow-md)', fontFamily: 'var(--font-body)', fontSize: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <i data-lucide="info" style={{ width: 16, height: 16, color: 'var(--light-red-300)' }} />
-          “{toast}” is in deze demo niet uitgewerkt.
-        </div>
-      )}
+      <TweaksPanel title="Tweaks">
+        <TweakSection label="Logo" />
+        <TweakRadio label="Logo-achtergrond" value={t.logoBg}
+          options={[{ value: 'white', label: 'Wit' }, { value: 'soft', label: 'Lichtgrijs' }]}
+          onChange={(v) => setTweak('logoBg', v)} />
+        <TweakSection label="Typografie" />
+        <TweakRadio label="Kopgewicht" value={t.headingWeight}
+          options={[{ value: 800, label: '800' }, { value: 700, label: '700' }, { value: 600, label: '600' }]}
+          onChange={(v) => setTweak('headingWeight', v)} />
+        <TweakSection label="Statement" />
+        <TweakSelect label="CTA-tekst" value={t.statement}
+          options={STATEMENTS} onChange={(v) => setTweak('statement', v)} />
+      </TweaksPanel>
     </div>
   );
 }

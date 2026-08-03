@@ -412,9 +412,11 @@ async function criticus(input) {
   const systemBlocks = buildSystemBlocks(brandKnowledge, brandContext, criticusPrompt);
   const result = await callAnthropicExpectingJson(systemBlocks, input);
 
+  const notes = String(result?.notes || '').trim();
+
   return {
     passed: Boolean(result?.passed),
-    notes: String(result?.notes || '').trim(),
+    notes: notes.length > 300 ? notes.substring(0, 297) + '...' : notes,
   };
 }
 

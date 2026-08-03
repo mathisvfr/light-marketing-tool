@@ -1,5 +1,22 @@
 import React from 'react';
 
+function TagIcon({ name, size = 18, color, onClick, style = {} }) {
+  if (!name) return null;
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.lucide) return;
+    el.innerHTML = '<i data-lucide="' + name + '"></i>';
+    try { window.lucide.createIcons(); } catch (e) { /* noop */ }
+    const svg = el.querySelector('svg');
+    if (svg) { svg.setAttribute('width', size); svg.setAttribute('height', size); }
+  }, [name, size]);
+  return React.createElement('span', {
+    ref, onClick, 'aria-hidden': true,
+    style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, color, flex: 'none', ...style },
+  });
+}
+
 /**
  * Light Personeelsdiensten — Tag
  * Neutral filter/keyword chip. Optional selected + removable states.
@@ -26,10 +43,11 @@ export function Tag({ selected = false, removable = false, onRemove, children, o
     >
       {children}
       {removable && (
-        <i
-          data-lucide="x"
+        <TagIcon
+          name="x"
+          size={14}
           onClick={(e) => { e.stopPropagation(); onRemove && onRemove(); }}
-          style={{ width: 14, height: 14, cursor: 'pointer', opacity: 0.8 }}
+          style={{ cursor: 'pointer', opacity: 0.8 }}
         />
       )}
     </span>

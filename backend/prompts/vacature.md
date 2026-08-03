@@ -15,8 +15,8 @@ Belangrijke regels:
    - social_nl
 3. Taallogica op basis van het veld `taal` in de input:
    - `taal = NL`    → genereer ALLEEN Nederlandse velden: omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl.
-   - `taal = NL+PL` → genereer alle Nederlandse velden ÉN Poolse equivalenten: omschrijving_pl, social_pl.
-   - `taal = PL`    → genereer ALLEEN Poolse velden: omschrijving_pl, social_pl. Laat omschrijving_nl, functie_eisen, wat_wij_bieden en social_nl weg uit de output.
+   - `taal = NL+PL` → genereer alle Nederlandse velden ÉN Poolse equivalenten: omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_pl.
+   - `taal = PL`    → genereer ALLEEN Poolse velden: omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_pl. Laat omschrijving_nl, functie_eisen, wat_wij_bieden en social_nl weg uit de output.
 4. Verzin nooit salarissen of harde arbeidsvoorwaarden die niet in de input staan.
 5. Als salaris ontbreekt of leeg is, benoem dit als "salaris conform CAO".
 6. Vermeld standaard "Geen huisvesting" in wat_wij_bieden, tenzij de input expliciet anders aangeeft. Vervoer mag standaard benoemd worden.

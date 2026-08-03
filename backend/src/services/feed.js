@@ -38,16 +38,18 @@ function mapDraftToFeedItem(draft) {
   const formData = draft.form_data || {};
   const plaatsCandidate = pickFirst(draft.plaats, formData.locatie);
   const plaats = isSinglePlaceName(plaatsCandidate) ? plaatsCandidate : 'Rotterdam';
+  const taal = String(formData.taal || 'NL').toUpperCase();
+  const usePl = taal === 'PL';
 
   return {
     nummer: draft.id,
     datum: draft.created_at,
     titel: pickFirst(draft.titel, formData.functietitel, formData.titel, formData.title, 'Vacature'),
     plaats,
-    omschrijving: pickFirst(draft.omschrijving_nl, ''),
+    omschrijving: pickFirst(usePl ? draft.omschrijving_pl : draft.omschrijving_nl, draft.omschrijving_nl, draft.omschrijving_pl, ''),
     functie: pickFirst(formData.functie, ''),
-    functieEisen: pickFirst(draft.functie_eisen, ''),
-    watWijBieden: pickFirst(draft.wat_wij_bieden, ''),
+    functieEisen: pickFirst(usePl ? draft.functie_eisen_pl : draft.functie_eisen, draft.functie_eisen, draft.functie_eisen_pl, ''),
+    watWijBieden: pickFirst(usePl ? draft.wat_wij_bieden_pl : draft.wat_wij_bieden, draft.wat_wij_bieden, draft.wat_wij_bieden_pl, ''),
     opleiding: pickFirst(formData.opleiding, ''),
     carriereNiveau: pickFirst(formData.carriereNiveau, ''),
     dienstverband: pickFirst(formData.dienstverband, draft.contract, ''),
@@ -143,7 +145,7 @@ async function generateJobsFeedXml() {
 async function fetchActiveVacatureDrafts() {
   const { data, error } = await supabase
     .from('drafts')
-    .select('id, created_at, form_data, titel, plaats, omschrijving_nl, functie_eisen, wat_wij_bieden, salaris, uren, contract, sollicitatie_url')
+    .select('id, created_at, form_data, titel, plaats, omschrijving_nl, omschrijving_pl, functie_eisen, functie_eisen_pl, wat_wij_bieden, wat_wij_bieden_pl, salaris, uren, contract, sollicitatie_url')
     .eq('type', 'vacature')
     .eq('status', 'actief')
     .order('updated_at', { ascending: false })

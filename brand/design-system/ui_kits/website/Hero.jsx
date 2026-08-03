@@ -14,7 +14,7 @@ function Hero({ onNav }) {
             Specialist in het uitzenden van productie&#8209;, logistiek en schoonmaakpersoneel
           </h1>
           <p className="light-lead" style={{ maxWidth: 520, marginBottom: 28 }}>
-            Omdat wij al jarenlang medewerkers inzetten van het begin tot aan het eindproduct, kennen wij de klappen van de zweep. De productie moet draaien, punt.
+            Omdat wij al jarenlang medewerkers inzetten van het begin tot aan het eindproduct, kennen wij de klappen van de zweep.
           </p>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 30 }}>
             <Button variant="primary" size="lg" iconRight="arrow-right" onClick={() => onNav('Vacatures')}>Bekijk vacatures</Button>
@@ -33,7 +33,7 @@ function Hero({ onNav }) {
             <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=900&q=70" alt="Logistiek magazijn" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </div>
           <div style={{ position: 'absolute', left: -14, bottom: 28, background: 'var(--light-red)', color: '#fff', padding: '16px 22px', clipPath: 'var(--clip-notch)', boxShadow: 'var(--shadow-red)' }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 18, lineHeight: 1.1 }}>SNA-gecertificeerd</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, lineHeight: 1.1 }}>SNA-gecertificeerd</div>
             <div style={{ fontSize: 12.5, opacity: 0.92, marginTop: 3 }}>Stichting Normering Arbeid</div>
           </div>
         </div>

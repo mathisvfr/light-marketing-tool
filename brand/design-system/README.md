@@ -139,9 +139,10 @@ Two brand colors, sampled from the logo, with a cool-grey neutral ramp.
   used for status (e.g. "vacature open").
 
 ### Typography
-- **Display / headings — Montserrat (800/900).** Stands in for the heavy,
-  slightly-rounded geometric "Light" wordmark. Tight tracking on large sizes.
-  H1 44 / H2 32 / H3 24 / H4 19; hero display 64.
+- **Display / headings — Montserrat (700, display peak 800).** Stands in for the
+  slightly-rounded geometric "Light" wordmark. Headings sit at 700 (bold) for a
+  lighter, less chunky feel; reserve 800 for the largest display moment only.
+  Tight tracking on large sizes. H1 44 / H2 32 / H3 24 / H4 19; hero display 64.
 - **Body — Open Sans 16 / 1.6.** Highly readable, neutral, WordPress-native feel.
 - **Mono — JetBrains Mono.** Phone numbers, reference codes, tabular figures.
 - **Eyebrows** are uppercase Montserrat-bold with `0.14em` tracking, in red.

@@ -1,5 +1,22 @@
 import React from 'react';
 
+function SelIcon({ name, size = 18, color, style = {} }) {
+  if (!name) return null;
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.lucide) return;
+    el.innerHTML = '<i data-lucide="' + name + '"></i>';
+    try { window.lucide.createIcons(); } catch (e) { /* noop */ }
+    const svg = el.querySelector('svg');
+    if (svg) { svg.setAttribute('width', size); svg.setAttribute('height', size); }
+  }, [name, size]);
+  return React.createElement('span', {
+    ref, 'aria-hidden': true,
+    style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, color, flex: 'none', ...style },
+  });
+}
+
 /**
  * Light Personeelsdiensten — Select (dropdown)
  * Native select styled to match Input, with a Lucide chevron.
@@ -44,7 +61,7 @@ export function Select({ label, options = [], value, defaultValue, onChange, req
         >
           {norm.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
-        <i data-lucide="chevron-down" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 18, height: 18, color: 'var(--color-text-subtle)', pointerEvents: 'none' }} />
+        <SelIcon name="chevron-down" size={18} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-subtle)', pointerEvents: 'none' }} />
       </div>
     </div>
   );

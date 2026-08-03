@@ -28,11 +28,13 @@ Geef ALLEEN geldige JSON terug met exact dit schema:
 
 {
   "passed": true,
-  "notes": "Korte concrete feedback in het Nederlands"
+  "notes": "..."
 }
 
-Als er problemen zijn:
+Regels voor notes:
 
-- Zet passed op false.
-- Geef in notes concrete verbeterpunten voor precies een revisieronde.
+- Maximaal 2 zinnen, maximaal 40 woorden totaal.
+- Bij passed=true: schrijf "Akkoord" of maximaal 1 korte zin waarom het goed is.
+- Bij passed=false: noem maximaal 3 verbeterpunten als korte opsomming gescheiden door puntkomma's.
+- Geen uitleg, geen herhaling van de content, geen inleiding.
 - Geen extra keys toevoegen.

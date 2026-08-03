@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="nl"><head>
+<meta charset="utf-8">
+<title>Export — Profielbanners</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#eceeef;font-family:var(--font-body);padding:40px;display:flex;flex-direction:column;gap:40px;align-items:flex-start}
+.cap{font-family:var(--font-mono);font-size:13px;color:#666;margin-bottom:8px}
+.post{overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.p-eyebrow{font-family:var(--font-display);font-weight:700;text-transform:uppercase;letter-spacing:0.16em}
+.p-title{font-family:var(--font-display);font-weight:800;letter-spacing:-0.015em;line-height:1.04}
+.pill{display:inline-flex;align-items:center;gap:12px;border-radius:999px;font-family:var(--font-display);font-weight:700}
+</style>
+</head>
+<body>
+<div><div class="cap">LinkedIn cover — 1128×191</div><div class="post" id="c-li" style="width:1128px;height:191px"></div></div>
+<div><div class="cap">Facebook cover — 820×312</div><div class="post" id="c-fb" style="width:820px;height:312px"></div></div>
+<div><div class="cap">Instagram banner — 1080×608</div><div class="post" id="c-ig" style="width:1080px;height:608px"></div></div>
+<script src="templates.js"></script>
+<script>
+const T = window.LIGHT_TEMPLATES.cover;
+document.getElementById('c-li').innerHTML = T[0].html;
+document.getElementById('c-fb').innerHTML = T[1].html;
+document.getElementById('c-ig').innerHTML = T[2].html;
+function icons(){ if (window.lucide) lucide.createIcons(); }
+if (document.readyState === 'complete') icons(); else window.addEventListener('load', icons);
+setTimeout(icons, 200);
+</script>
+</body></html>

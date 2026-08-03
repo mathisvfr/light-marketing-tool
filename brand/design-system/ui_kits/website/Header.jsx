@@ -1,5 +1,5 @@
 // Header — utility strip + sticky nav. Mirrors the live site's "mail direct" row.
-function Header({ onNav, active }) {
+function Header({ onNav, active, headerBg = 'var(--grey-50)' }) {
   const links = ['Home', 'Over ons', 'Zakelijke diensten', 'Vacatures', 'Contact'];
   const Social = ({ icon }) => (
     <a href="#" onClick={(e) => e.preventDefault()} style={{ display: 'inline-flex', color: '#c4c7c9' }}>
@@ -23,7 +23,7 @@ function Header({ onNav, active }) {
         </div>
       </div>
       {/* main nav */}
-      <div style={{ background: '#fff', borderBottom: '1px solid var(--color-border)' }}>
+      <div style={{ background: headerBg, borderBottom: '1px solid var(--color-border)' }}>
         <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24 }}>
           <a href="#" onClick={(e) => { e.preventDefault(); onNav('Home'); }} style={{ display: 'flex', alignItems: 'center' }}>
             <img src="../../assets/light-logo-beeldmerk.png" alt="Light Personeelsdiensten" style={{ height: 52 }} />

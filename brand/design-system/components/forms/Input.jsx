@@ -1,5 +1,22 @@
 import React from 'react';
 
+function InputIcon({ name, size = 18, color, style = {} }) {
+  if (!name) return null;
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.lucide) return;
+    el.innerHTML = '<i data-lucide="' + name + '"></i>';
+    try { window.lucide.createIcons(); } catch (e) { /* noop */ }
+    const svg = el.querySelector('svg');
+    if (svg) { svg.setAttribute('width', size); svg.setAttribute('height', size); }
+  }, [name, size]);
+  return React.createElement('span', {
+    ref, 'aria-hidden': true,
+    style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, color, flex: 'none', ...style },
+  });
+}
+
 /**
  * Light Personeelsdiensten — Input (text field)
  * Label + field with red focus ring. Optional leading Lucide icon.
@@ -31,7 +48,7 @@ export function Input({
       )}
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
         {icon && (
-          <i data-lucide={icon} style={{ position: 'absolute', left: 12, width: 17, height: 17, color: 'var(--color-text-subtle)' }} />
+          <InputIcon name={icon} size={17} style={{ position: 'absolute', left: 12, color: 'var(--color-text-subtle)', pointerEvents: 'none' }} />
         )}
         <input
           id={inputId}

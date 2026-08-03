@@ -28,7 +28,7 @@ function ServiceTiles({ onNav }) {
             <Card key={t.title} image={t.image} imageAlt={t.title} interactive padding={26} onClick={() => onNav(t.to)} style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 className="light-h3" style={{ marginBottom: 12 }}>{t.title}</h3>
               <p className="light-body" style={{ fontSize: 14.5, color: 'var(--color-text-muted)', margin: '0 0 18px', flex: 1 }}>{t.body}</p>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 14.5, color: 'var(--light-red)' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14.5, color: 'var(--light-red)' }}>
                 Lees meer <i data-lucide="arrow-right" style={{ width: 16, height: 16 }} />
               </span>
             </Card>

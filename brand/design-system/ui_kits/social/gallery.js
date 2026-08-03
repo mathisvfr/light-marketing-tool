@@ -38,6 +38,7 @@
   mount('g-square', T.square);
   mount('g-story', T.story);
   mount('g-li', T.li);
+  mount('g-cover', T.cover);
 
   // Render Lucide icons after markup is in the DOM.
   function icons() { if (window.lucide) lucide.createIcons(); }

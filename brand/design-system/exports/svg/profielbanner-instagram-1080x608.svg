@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="608" viewBox="0 0 1080 608">
+  <defs>
+    <linearGradient id="g" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0%" stop-color="#1f2123" stop-opacity="0.90"></stop>
+      <stop offset="50%" stop-color="#1f2123" stop-opacity="0.60"></stop>
+      <stop offset="100%" stop-color="#1f2123" stop-opacity="0.08"></stop>
+    </linearGradient>
+    <clipPath id="frame"><rect width="1080" height="608"></rect></clipPath>
+  </defs>
+  <g clip-path="url(#frame)">
+    <image href="https://images.unsplash.com/photo-1652211955967-99c892925469?w=3600&amp;q=90" x="0" y="0" width="361" height="608" preserveAspectRatio="xMidYMid slice"></image>
+    <image href="https://images.unsplash.com/photo-1616432043562-3671ea2e5242?w=3600&amp;q=90" x="360" y="0" width="361" height="608" preserveAspectRatio="xMidYMid slice"></image>
+    <image href="https://images.unsplash.com/photo-1749214317455-efbdd57df844?w=3600&amp;q=90" x="720" y="0" width="361" height="608" preserveAspectRatio="xMidYMid slice"></image>
+    <rect width="1080" height="608" fill="url(#g)"></rect>
+    <text x="281" y="197.0" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="70" fill="#ffffff" letter-spacing="-0.5">De juiste mensen,</text>
+    <text x="281" y="277.6" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="70" fill="#be1e2d" letter-spacing="-0.5">op de juiste plek.</text>
+    <text x="281" y="345.5" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="27" letter-spacing="2" fill="rgba(255,255,255,0.78)">PRODUCTIE · LOGISTIEK · SCHOONMAAK</text>
+    <rect x="281" y="395.6" width="393" height="70" rx="35" fill="#ffffff"></rect>
+    <circle cx="328.5" cy="430.6" r="17.5" fill="none" stroke="#be1e2d" stroke-width="2.8"></circle>
+    <polyline points="320.6,430.6 326.8,436.7 337.3,424.4" fill="none" stroke="#be1e2d" stroke-width="3.1" stroke-linecap="round" stroke-linejoin="round"></polyline>
+    <text x="362.0" y="440.0" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="27" fill="#be1e2d">SNA-gecertificeerd</text>
+  </g>
+</svg>

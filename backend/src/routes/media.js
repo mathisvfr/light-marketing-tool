@@ -85,9 +85,8 @@ router.post('/generate', requireWriteRole, async (req, res, next) => {
     const altText = String(req.body?.altText || onderwerp || '').trim().slice(0, 255);
 
     const { filePath, filename, mimeType, fileSize } = await renderSvgToLibrary({
-      onderwerp,
-      subtitle: 'Light Personeelsdiensten',
-      caption,
+      headline: onderwerp || undefined,
+      accent: caption || undefined,
     });
 
     const { data: item, error } = await supabase

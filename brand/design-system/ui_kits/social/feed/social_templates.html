@@ -1,0 +1,123 @@
+<!-- @dsCard group="Social" viewport="1180x1000" name="Social feed templates (Satori)" subtitle="Statement, vacancy & photo feature — Instagram, Facebook, LinkedIn feed sizes" -->
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Light — Social feed templates (Satori)</title>
+<link rel="stylesheet" href="../../../styles.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--grey-100);font-family:var(--font-body);color:var(--color-text);}
+  .wrap{max-width:1180px;margin:0 auto;padding:40px 28px 80px;}
+  .kit-head h1{font-family:var(--font-display);font-weight:800;font-size:34px;letter-spacing:-0.01em;margin:0;}
+  .kit-head p{font-size:15px;color:var(--color-text-muted);margin:8px 0 0;max-width:680px;line-height:1.6;}
+  .kit-head code{background:var(--grey-100);border:1px solid var(--grey-200);border-radius:4px;padding:1px 6px;font-family:var(--font-mono);font-size:13px;}
+  .sec{margin-top:44px;}
+  .sec-title{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:var(--grey-600);margin-bottom:6px;}
+  .sec-title::before{content:"";width:22px;height:3px;background:var(--light-red);border-radius:2px;}
+  .sec-sub{font-size:13.5px;color:var(--color-text-muted);margin:0 0 18px;max-width:640px;line-height:1.6;}
+  .gallery{display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start;}
+  .item{display:flex;flex-direction:column;gap:10px;}
+  .cap{font-size:12.5px;color:var(--color-text-muted);font-family:var(--font-mono);}
+  .stage{position:relative;border-radius:8px;overflow:hidden;box-shadow:var(--shadow-md);background:#fff;}
+  .post{position:absolute;top:0;left:0;transform-origin:top left;}
+</style>
+</head>
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+<rect x="470" y="250" width="260" height="210" rx="6" fill="#787c7e"></rect>
+<rect x="470" y="470" width="260" height="84" fill="#be1e2d"></rect>
+<text x="600" y="534" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="58" fill="#ffffff" text-anchor="middle">Light</text>
+</svg>
+</template>
+<body>
+<div class="wrap">
+  <div class="kit-head">
+    <h1>Social feed templates</h1>
+    <p>Satori-ready JSX — source lives in <code>components/social/</code>, imported straight into the render pipeline. Same three components, each rendered at every platform's own feed canvas: Instagram 1080×1080, Facebook 1200×630, LinkedIn 1200×627.</p>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">Statement</div>
+    <p class="sec-sub">Bold text on branded background — announcements, thought leadership.</p>
+    <div class="gallery" id="g-statement"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">Vacancy</div>
+    <p class="sec-sub">Job title + location + sector tag — one per item from the XML vacatures feed.</p>
+    <div class="gallery" id="g-vacancy"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">Photo feature</div>
+    <p class="sec-sub">Branded overlay on a warehouse/logistics/food photo.</p>
+    <div class="gallery" id="g-photo"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">Story</div>
+    <p class="sec-sub">Instagram Story · 1080 × 1920 — full-bleed photo + brand-red panel.</p>
+    <div class="gallery" id="g-story"></div>
+  </div>
+</div>
+
+<script>
+(async function () {
+  try {
+    const files = ['../../../components/social/tokens.js', '../../../components/social/logos.js', '../../../components/social/icons.jsx', '../../../components/social/StatementPost.jsx', '../../../components/social/VacancyPost.jsx', '../../../components/social/PhotoFeaturePost.jsx', '../../../components/social/StoryPost.jsx'];
+    let src = '';
+    for (const f of files) {
+      let t = await (await fetch(f)).text();
+      t = t.replace(/^\s*import[^\n]*\n/gm, '').replace(/^\s*export\s+(default\s+)?function/gm, 'function').replace(/^\s*export\s+const/gm, 'const');
+      src += '\n' + t;
+    }
+    src += '\nwindow.__socialLib = { TOKENS, PLATFORM_SIZES, PLACEHOLDER_PHOTOS, Icon, StatementPost, VacancyPost, PhotoFeaturePost, StoryPost };';
+    const code = Babel.transform(src, { presets: ['react'] }).code;
+    new Function('React', code)(window.React);
+
+    const lib = window.__socialLib;
+    const platforms = [
+      { key: 'instagram', label: 'Instagram', ...lib.PLATFORM_SIZES.instagram },
+      { key: 'facebook', label: 'Facebook', ...lib.PLATFORM_SIZES.facebook },
+      { key: 'linkedin', label: 'LinkedIn', ...lib.PLATFORM_SIZES.linkedin },
+    ];
+    const scaleFor = (w) => 300 / w;
+    const vacancies = [
+      { category: 'Logistiek', categoryIcon: 'truck', title: 'Meewerkend chauffeur', photoSrc: lib.PLACEHOLDER_PHOTOS.truck },
+      { category: 'Productie', categoryIcon: 'factory', title: 'Medewerker snijhal', photoSrc: lib.PLACEHOLDER_PHOTOS.food },
+      { category: 'Schoonmaak', categoryIcon: 'sparkles', title: 'Objectleider schoonmaak', photoSrc: lib.PLACEHOLDER_PHOTOS.clean },
+    ];
+    const photos = [lib.PLACEHOLDER_PHOTOS.warehouse, lib.PLACEHOLDER_PHOTOS.truck, lib.PLACEHOLDER_PHOTOS.clean];
+
+    function StageEl({ w, h, scale, children }) {
+      const dw = Math.round(w * scale), dh = Math.round(h * scale);
+      return React.createElement('div', { className: 'stage', style: { width: dw, height: dh } },
+        React.createElement('div', { className: 'post', style: { width: w, height: h, transform: `scale(${scale})` } }, children));
+    }
+    function section(id, render) {
+      const items = platforms.map((p, i) => React.createElement('div', { className: 'item', key: p.key },
+        StageEl({ w: p.width, h: p.height, scale: scaleFor(p.width), children: render(p, i) }),
+        React.createElement('div', { className: 'cap' }, `${p.label} · ${p.width}×${p.height}`)));
+      ReactDOM.createRoot(document.getElementById(id)).render(React.createElement(React.Fragment, null, ...items));
+    }
+    section('g-statement', (p) => React.createElement(lib.StatementPost, { width: p.width, height: p.height }));
+    section('g-vacancy', (p, i) => React.createElement(lib.VacancyPost, { width: p.width, height: p.height, ...vacancies[i] }));
+    section('g-photo', (p, i) => React.createElement(lib.PhotoFeaturePost, { width: p.width, height: p.height, photoSrc: photos[i] }));
+
+    const storyItems = [{ label: 'Instagram Story', width: 1080, height: 1920 }].map((p) => React.createElement('div', { className: 'item', key: 'story' },
+      StageEl({ w: p.width, h: p.height, scale: 300 / p.width, children: React.createElement(lib.StoryPost, { width: p.width, height: p.height, photoSrc: lib.PLACEHOLDER_PHOTOS.truck }) }),
+      React.createElement('div', { className: 'cap' }, `${p.label} · ${p.width}×${p.height}`)));
+    ReactDOM.createRoot(document.getElementById('g-story')).render(React.createElement(React.Fragment, null, ...storyItems));
+  } catch (err) {
+    console.error('[light] social feed preview bootstrap error:', err);
+    document.body.insertAdjacentHTML('beforeend', `<div style="position:fixed;bottom:12px;left:12px;right:12px;font:12px/1.4 ui-monospace,monospace;background:#2a1215;color:#ff8a80;padding:10px 14px;border-radius:8px;z-index:99999;">${(err && err.message) || err}</div>`);
+  }
+})();
+</script>
+</body>
+</html>

@@ -10,6 +10,7 @@ Open Sans). Drop in a photo and swap the copy.
 | **Square** | 1080 × 1080 | Instagram / Facebook / LinkedIn feed |
 | **Story** | 1080 × 1920 | Instagram / Facebook story (full-bleed photo + angled red panel) |
 | **Banner** | 1200 × 627 | LinkedIn post / link preview |
+| **Profile cover** | LinkedIn 1128×191 · Facebook 820×312 · Instagram 1080×608 | Page/profile cover banners, one layout resized per platform |
 
 ## Templates included
 - **Vacature (square)** — photo, category pill, "Wij zoeken" notch banner, title, meta, Solliciteer CTA, logo. Two examples (Logistiek, Productie).
@@ -17,6 +18,7 @@ Open Sans). Drop in a photo and swap the copy.
 - **Aankondiging (square)** — list of open roles with category badges + CTA.
 - **Story** — full-bleed photo with the angled red banner and "link in bio" CTA. Two examples.
 - **LinkedIn banner** — brand statement, sector chips, SNA badge.
+- **Profile cover (3 platforms)** — photo banner, "De juiste mensen, op de juiste plek." + SNA badge, no separate logo (LinkedIn/Facebook already overlay their own page logo bottom-left). Same layout, resized per platform.
 
 ## Files
 | File | Purpose |
