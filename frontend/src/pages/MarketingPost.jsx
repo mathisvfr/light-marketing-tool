@@ -254,7 +254,9 @@ export default function MarketingPost() {
             : null,
         notes: generated?.draft?.criticus_notes || '',
       });
-      setActiveTab('linkedin_post');
+      const channelToTab = { linkedin: 'linkedin_post', facebook: 'social_nl', instagram: 'instagram_caption' };
+      const firstTab = form.kanalen.map((k) => channelToTab[k]).find(Boolean) || 'linkedin_post';
+      setActiveTab(firstTab);
       setSuccess('Marketingconcept succesvol gegenereerd.');
     } catch (err) {
       setError(err.message || 'Genereren is mislukt.');

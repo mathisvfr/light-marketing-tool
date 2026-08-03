@@ -22,7 +22,8 @@ Controleer minimaal:
 Voor marketing-content controleer aanvullend:
 
 1. Kanaalfit (LinkedIn zakelijk, Facebook/Instagram toegankelijker).
-2. Geen verwarring tussen vacaturetekst en merkpost.
+2. Controleer ALLEEN kanalen die in formData.kanalen staan. Ontbrekende content voor niet-gekozen kanalen is GEEN fout.
+3. Geen verwarring tussen vacaturetekst en merkpost.
 
 Geef ALLEEN geldige JSON terug met exact dit schema:
 

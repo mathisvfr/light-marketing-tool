@@ -23,6 +23,7 @@ const { requireAuth } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
+app.set('trust proxy', 1);
 
 function secureEquals(left, right) {
   const leftBuffer = Buffer.from(String(left || ''), 'utf8');
