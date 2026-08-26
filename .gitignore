@@ -10,6 +10,10 @@ node_modules/
 dist/
 build/
 
+# Runtime-generated uploads (rendered + user-uploaded images)
+uploads/
+backend/uploads/
+
 # Logs
 *.log
 npm-debug.log*

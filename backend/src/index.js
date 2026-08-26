@@ -21,6 +21,7 @@ const feedsRoutes = require('./routes/feeds');
 const mediaRoutes = require('./routes/media');
 const { requireAuth } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/errorHandler');
+const { startCleanupSchedule } = require('./services/cleanup');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -126,6 +127,9 @@ if (require.main === module) {
       console.log(`Backend draait op poort ${port}`);
     }
   });
+
+  // Weekly disk cleanup for accumulated rendered/uploaded images.
+  startCleanupSchedule();
 }
 
 module.exports = app;

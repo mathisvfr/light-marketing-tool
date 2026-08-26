@@ -116,10 +116,13 @@ export default function VacaturePlaatsen() {
 
   const effectiveDraftId = draftId || draftIdParam;
 
-  // Poll for criticus result when it's pending (null)
+  // Poll for the background criticus result AND the rendered image until both
+  // have arrived (bounded), so a slower image render still appears without reload.
   const pollCountRef = useRef(0);
   useEffect(() => {
-    if (criticusPassed !== null || !effectiveDraftId || isGenerating) {
+    const needsCriticus = criticusPassed === null;
+    const needsImage = !imagePath;
+    if ((!needsCriticus && !needsImage) || !effectiveDraftId || isGenerating) {
       pollCountRef.current = 0;
       return;
     }
@@ -133,15 +136,15 @@ export default function VacaturePlaatsen() {
 
       try {
         const result = await api(`/drafts/${effectiveDraftId}`);
-        if (typeof result?.draft?.criticus_passed === 'boolean') {
+        const draft = result?.draft;
+        if (draft?.image_path) {
+          setImagePath(draft.image_path);
+        }
+        if (typeof draft?.criticus_passed === 'boolean') {
           setCriticusOverride({
-            passed: result.draft.criticus_passed,
-            notes: result.draft.criticus_notes || '',
+            passed: draft.criticus_passed,
+            notes: draft.criticus_notes || '',
           });
-          if (result.draft.image_path) {
-            setImagePath(result.draft.image_path);
-          }
-          clearInterval(interval);
         }
       } catch {
         // Ignore poll errors
@@ -149,7 +152,7 @@ export default function VacaturePlaatsen() {
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [criticusPassed, effectiveDraftId, isGenerating]);
+  }, [criticusPassed, imagePath, effectiveDraftId, isGenerating]);
 
   const tabs = useMemo(() => createTabs(content), [content]);
 
@@ -182,6 +185,38 @@ export default function VacaturePlaatsen() {
     setFormEdits((prev) => ({ ...prev, [key]: value }));
   }
 
+  async function handlePreUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setError('');
+    setSuccess('');
+
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Afbeelding kon niet worden gelezen.'));
+        reader.readAsDataURL(file);
+      });
+
+      const uploaded = await api('/media/upload', {
+        method: 'POST',
+        body: JSON.stringify({ dataUrl, altText: file.name }),
+      });
+
+      setImagePath(uploaded?.item?.path || '');
+      setImageInitialized(true);
+      setSuccess('Afbeelding geüpload. Deze wordt gebruikt in plaats van een gegenereerde afbeelding.');
+    } catch (err) {
+      setError(err.message || 'Uploaden van afbeelding is mislukt.');
+    } finally {
+      event.target.value = '';
+    }
+  }
+
   async function handleGenerate(event) {
     event.preventDefault();
     setError('');
@@ -210,6 +245,15 @@ export default function VacaturePlaatsen() {
 
         targetDraftId = created?.draft?.id;
         setDraftId(targetDraftId);
+      }
+
+      // Persist a pre-uploaded image before generating so the backend uses it
+      // instead of rendering a Satori afbeelding.
+      if (imagePath) {
+        await api(`/drafts/${targetDraftId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ image_path: imagePath, status: 'draft' }),
+        });
       }
 
       const generated = await api(`/drafts/${targetDraftId}/generate`, {
@@ -409,6 +453,31 @@ export default function VacaturePlaatsen() {
             placeholder="recruiter@lightpersoneelsdiensten.nl"
           />
         </label>
+
+        <label className="vacature-field">
+          Eigen afbeelding (optioneel)
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={handlePreUpload}
+            disabled={isBusy}
+          />
+          <small>Upload je eigen foto; laat leeg om automatisch een afbeelding te genereren.</small>
+        </label>
+
+        {imagePath ? (
+          <div className="vacature-image-block">
+            <img src={imagePath} alt="Geüploade afbeelding" className="vacature-preview-image" />
+            <button
+              type="button"
+              className="vacature-remove-image"
+              onClick={() => setImagePath('')}
+              disabled={isBusy}
+            >
+              Afbeelding verwijderen
+            </button>
+          </div>
+        ) : null}
 
         <div className="form-actions">
           <button type="submit" disabled={isBusy}>

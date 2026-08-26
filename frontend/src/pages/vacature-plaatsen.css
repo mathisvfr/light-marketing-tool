@@ -201,6 +201,8 @@
   display: block;
   width: 100%;
   max-width: 360px;
+  max-height: 360px;
+  object-fit: contain;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   margin-bottom: var(--space-4);

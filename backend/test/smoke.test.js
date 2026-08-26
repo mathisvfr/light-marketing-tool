@@ -176,7 +176,19 @@ test('vacature draft: create, generate, submit, approve to actief', async () => 
   assert.equal(generateResponse.status, 200);
   const generated = await generateResponse.json();
   assert.equal(generated.draft.omschrijving_nl, 'Gegenereerde vacaturetekst NL');
-  assert.equal(generated.draft.criticus_passed, true);
+
+  // Criticus runs in the background, so poll the draft until it resolves.
+  let criticusPassed = null;
+  for (let attempt = 0; attempt < 20 && criticusPassed === null; attempt += 1) {
+    const detail = await apiRequest(`/api/drafts/${draft.id}`);
+    const body = await detail.json();
+    if (typeof body.draft.criticus_passed === 'boolean') {
+      criticusPassed = body.draft.criticus_passed;
+      break;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  assert.equal(criticusPassed, true);
 
   // Submit for approval
   const submitResponse = await apiRequest(`/api/drafts/${draft.id}/submit`, {

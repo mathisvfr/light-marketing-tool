@@ -29,6 +29,12 @@ function matchesFilters(row, filters) {
     if (filter.kind === 'notIsNull') {
       return value !== null && value !== undefined;
     }
+    if (filter.kind === 'ilike') {
+      const pattern = String(filter.val || '')
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        .replace(/%/g, '.*');
+      return new RegExp(`^${pattern}$`, 'i').test(String(value ?? ''));
+    }
     return true;
   });
 }
@@ -72,6 +78,10 @@ function createFakeSupabase(store) {
       },
       in(col, val) {
         state.filters.push({ kind: 'in', col, val });
+        return builder;
+      },
+      ilike(col, val) {
+        state.filters.push({ kind: 'ilike', col, val });
         return builder;
       },
       is(col, val) {

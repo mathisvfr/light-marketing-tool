@@ -254,10 +254,15 @@ router.post('/:id/generate', async (req, res, next) => {
       criticus({ type: draft.type, formData: draft.form_data, content: generated }),
     ];
 
-    if (draft.type === 'marketing-post') {
-      // Select statement template based on primary channel
-      const channelTemplateMap = { linkedin: 'statement-li', facebook: 'statement-fb', instagram: 'statement' };
-      const primaryChannel = (draft.form_data?.kanalen || ['instagram'])[0];
+    // Skip Satori render entirely when the user attached their own image up front.
+    if (!draft.image_path && draft.type === 'marketing-post') {
+      // Prefer the square Instagram render when Instagram is among the selected
+      // channels, so the Instagram preview always has a matching visual. Falls
+      // back to the platform-specific statement template otherwise.
+      const kanalen = Array.isArray(draft.form_data?.kanalen) ? draft.form_data.kanalen : [];
+      const channelTemplateMap = { instagram: 'statement', linkedin: 'statement-li', facebook: 'statement-fb' };
+      const primaryChannel =
+        ['instagram', 'linkedin', 'facebook'].find((channel) => kanalen.includes(channel)) || 'instagram';
       const templateName = channelTemplateMap[primaryChannel] || 'statement';
       backgroundTasks.push(
         renderSocialImage(templateName, {
@@ -265,7 +270,7 @@ router.post('/:id/generate', async (req, res, next) => {
           accent: draft.form_data?.type || undefined,
         })
       );
-    } else if (draft.type === 'vacature') {
+    } else if (!draft.image_path && draft.type === 'vacature') {
       backgroundTasks.push(
         renderSocialImage('vacancy', {
           title: draft.form_data?.functietitel || generated.titel || undefined,

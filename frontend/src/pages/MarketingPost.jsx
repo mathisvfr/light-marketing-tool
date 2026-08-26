@@ -97,10 +97,15 @@ export default function MarketingPost() {
 
   const effectiveDraftId = draftId || draftIdParam;
 
-  // Poll for criticus result when it's pending (null)
+  // Poll for the background criticus result AND the rendered image. These finish
+  // independently, so we keep polling until both have arrived (bounded), rather
+  // than stopping as soon as criticus resolves — otherwise a slower image render
+  // would never appear without a manual reload.
   const pollCountRef = useRef(0);
   useEffect(() => {
-    if (criticusPassed !== null || !effectiveDraftId || isGenerating) {
+    const needsCriticus = criticusPassed === null;
+    const needsImage = !imagePath;
+    if ((!needsCriticus && !needsImage) || !effectiveDraftId || isGenerating) {
       pollCountRef.current = 0;
       return;
     }
@@ -114,15 +119,15 @@ export default function MarketingPost() {
 
       try {
         const result = await api(`/drafts/${effectiveDraftId}`);
-        if (typeof result?.draft?.criticus_passed === 'boolean') {
+        const draft = result?.draft;
+        if (draft?.image_path) {
+          setImagePathOverride(draft.image_path);
+        }
+        if (typeof draft?.criticus_passed === 'boolean') {
           setCriticusOverride({
-            passed: result.draft.criticus_passed,
-            notes: result.draft.criticus_notes || '',
+            passed: draft.criticus_passed,
+            notes: draft.criticus_notes || '',
           });
-          if (result.draft.image_path) {
-            setImagePathOverride(result.draft.image_path);
-          }
-          clearInterval(interval);
         }
       } catch {
         // Ignore poll errors
@@ -130,7 +135,7 @@ export default function MarketingPost() {
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [criticusPassed, effectiveDraftId, isGenerating]);
+  }, [criticusPassed, imagePath, effectiveDraftId, isGenerating]);
 
   const apiStatus = brandQuery.data?.apiStatus || {};
 
@@ -180,6 +185,37 @@ export default function MarketingPost() {
 
       return { ...prev, kanalen: [...current, channelKey] };
     });
+  }
+
+  async function handlePreUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setError('');
+    setSuccess('');
+
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Afbeelding kon niet worden gelezen.'));
+        reader.readAsDataURL(file);
+      });
+
+      const uploaded = await api('/media/upload', {
+        method: 'POST',
+        body: JSON.stringify({ dataUrl, altText: file.name }),
+      });
+
+      setImagePathOverride(uploaded?.item?.path || '');
+      setSuccess('Afbeelding geüpload. Deze wordt gebruikt in plaats van een gegenereerde afbeelding.');
+    } catch (err) {
+      setError(err.message || 'Uploaden van afbeelding is mislukt.');
+    } finally {
+      event.target.value = '';
+    }
   }
 
   async function handleUploadOverride(event) {
@@ -237,6 +273,15 @@ export default function MarketingPost() {
 
         targetDraftId = created?.draft?.id;
         setDraftId(targetDraftId);
+      }
+
+      // Persist a pre-uploaded image before generating so the backend uses it
+      // instead of rendering a Satori afbeelding.
+      if (imagePath) {
+        await api(`/drafts/${targetDraftId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ image_path: imagePath, status: 'draft' }),
+        });
       }
 
       const generated = await api(`/drafts/${targetDraftId}/generate`, { method: 'POST' });
@@ -406,6 +451,31 @@ export default function MarketingPost() {
             })}
           </div>
         </div>
+
+        <label className="marketing-field">
+          Eigen afbeelding (optioneel)
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={handlePreUpload}
+            disabled={isBusy}
+          />
+          <small>Upload je eigen foto; laat leeg om automatisch een afbeelding te genereren.</small>
+        </label>
+
+        {imagePath ? (
+          <div className="marketing-image-block">
+            <img src={imagePath} alt="Geüploade afbeelding" className="marketing-preview-image" />
+            <button
+              type="button"
+              className="marketing-pick-image"
+              onClick={() => setImagePathOverride('')}
+              disabled={isBusy}
+            >
+              Afbeelding verwijderen
+            </button>
+          </div>
+        ) : null}
 
         <div className="marketing-actions">
           <button type="submit" disabled={isBusy || brandQuery.isLoading}>

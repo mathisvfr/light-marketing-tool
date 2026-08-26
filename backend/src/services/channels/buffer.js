@@ -181,12 +181,10 @@ async function publishSingle(channel, draft) {
     };
   }
 
-  // VERIFY: LinkedIn is intentionally sent WITHOUT an image here. It is currently
-  // unclear whether this is a hard Buffer constraint (LinkedIn createPost rejecting
-  // image assets) or a bug to revisit. Do not silently attach an image until this is
-  // confirmed against the live Buffer docs (createPost asset support per channel):
-  // https://buffer.com (API). Other channels (facebook/instagram) do receive the image.
-  const imageUrl = channel === 'linkedin' ? null : getPublicImageUrl(draft.image_path, credential.metadata);
+  // All channels (including LinkedIn) receive the image. If Buffer's createPost
+  // rejects image assets for a specific channel, that channel's post will fail
+  // with the Buffer error surfaced to the user — check https://buffer.com (API).
+  const imageUrl = getPublicImageUrl(draft.image_path, credential.metadata);
 
   try {
     return await createPost({

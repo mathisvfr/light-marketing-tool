@@ -203,6 +203,8 @@
   display: block;
   width: 100%;
   max-width: 420px;
+  max-height: 420px;
+  object-fit: contain;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   margin-top: var(--space-3);
