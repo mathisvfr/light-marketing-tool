@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import './dashboard.css';
@@ -106,8 +107,43 @@ export default function Dashboard() {
   const feedHealth = summaryQuery.data?.feedHealth || null;
   const feedIssueCount = feedHealth?.itemsWithIssues || 0;
 
+  // Empty-state proxy: no draft is anywhere in the pipeline yet AND no recent
+  // status changes. This mirrors what a first-time Sandra/Liza sees on login.
+  const isEmptyDashboard =
+    role !== 'viewer' &&
+    counts.pendingApproval === 0 &&
+    counts.publishedThisWeek === 0 &&
+    counts.activeVacatures === 0 &&
+    approvalQueue.length === 0 &&
+    recentActivity.length === 0;
+
   return (
     <div className="dashboard-grid">
+      {isEmptyDashboard ? (
+        <section className="dashboard-onboarding">
+          <h3>Welkom bij Light Marketing — aan de slag</h3>
+          <p className="dashboard-meta">
+            Nog geen content in de tool. Deze drie stappen brengen je naar je eerste post.
+          </p>
+          <ol className="dashboard-onboarding-list">
+            <li>
+              <Link to="/vacature-plaatsen">Maak je eerste vacature</Link>
+              <p className="dashboard-meta">Sandra publiceert vacatures via de XML feed naar Multiposter.</p>
+            </li>
+            <li>
+              <Link to="/marketing-post">Maak je eerste marketingpost</Link>
+              <p className="dashboard-meta">Liza publiceert brand content via Buffer naar LinkedIn/Facebook/Instagram.</p>
+            </li>
+            {role === 'owner' ? (
+              <li>
+                <Link to="/merk-instellingen">Controleer je merkinstellingen</Link>
+                <p className="dashboard-meta">Bepaalt hoe de AI schrijft. Doe dit één keer voordat je publiceert.</p>
+              </li>
+            ) : null}
+          </ol>
+        </section>
+      ) : null}
+
       <section className="dashboard-cards">
         <article className="dashboard-card">
           <h3>Wacht op goedkeuring</h3>

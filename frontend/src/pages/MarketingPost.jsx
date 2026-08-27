@@ -48,6 +48,7 @@ export default function MarketingPost() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [steeringNotes, setSteeringNotes] = useState('');
 
   const brandQuery = useQuery({
     queryKey: ['brand-settings'],
@@ -253,8 +254,12 @@ export default function MarketingPost() {
     } finally {
       event.target.value = '';
     }
-  }  async function handleGenerate(event) {
-    event.preventDefault();
+  }
+
+  async function handleGenerate(event) {
+    if (event && typeof event.preventDefault === 'function') {
+      event.preventDefault();
+    }
     setError('');
     setSuccess('');
 
@@ -265,6 +270,17 @@ export default function MarketingPost() {
 
     setIsGenerating(true);
 
+    // Fold optional steering into beschrijving so the existing prompt reads it.
+    const steeringText = steeringNotes.trim();
+    const generationForm = steeringText
+      ? {
+          ...form,
+          beschrijving: [form.beschrijving, `Extra sturing van gebruiker: ${steeringText}`]
+            .filter((chunk) => chunk && String(chunk).trim())
+            .join('\n\n'),
+        }
+      : form;
+
     try {
       let targetDraftId = draftId;
 
@@ -273,7 +289,7 @@ export default function MarketingPost() {
           method: 'POST',
           body: JSON.stringify({
             type: 'marketing-post',
-            formData: form,
+            formData: generationForm,
           }),
         });
 
@@ -292,7 +308,7 @@ export default function MarketingPost() {
 
       const generated = await api(`/drafts/${targetDraftId}/generate`, {
         method: 'POST',
-        body: JSON.stringify({ formData: form }),
+        body: JSON.stringify({ formData: generationForm }),
       });
 
       setContentEdits({
@@ -312,6 +328,7 @@ export default function MarketingPost() {
       const firstTab = form.kanalen.map((k) => channelToTab[k]).find(Boolean) || 'linkedin_post';
       setActiveTab(firstTab);
       setSuccess('Marketingconcept succesvol gegenereerd.');
+      setSteeringNotes('');
     } catch (err) {
       setError(err.message || 'Genereren is mislukt.');
     } finally {
@@ -524,6 +541,26 @@ export default function MarketingPost() {
               <p>{criticusNotes || 'Geen opmerkingen.'}</p>
             </div>
           ) : null}
+
+          <div className="marketing-regenerate">
+            <label className="marketing-field">
+              Niet helemaal wat je zoekt? Vertel de AI wat je anders wilt.
+              <textarea
+                value={steeringNotes}
+                onChange={(event) => setSteeringNotes(event.target.value)}
+                rows={2}
+                placeholder="Bijv. Meer nadruk op flexibiliteit, korter, minder formeel..."
+                disabled={isBusy}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => handleGenerate()}
+              disabled={isBusy}
+            >
+              Opnieuw genereren
+            </button>
+          </div>
 
           <div className="marketing-tabs">
             {PREVIEW_TABS.filter((tab) => {

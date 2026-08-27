@@ -68,6 +68,7 @@ export default function VacaturePlaatsen() {
   const [imagePath, setImagePath] = useState('');
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [steeringNotes, setSteeringNotes] = useState('');
 
   const existingDraftQuery = useQuery({
     queryKey: ['draft-detail-vacature', draftIdParam],
@@ -224,7 +225,9 @@ export default function VacaturePlaatsen() {
   }
 
   async function handleGenerate(event) {
-    event.preventDefault();
+    if (event && typeof event.preventDefault === 'function') {
+      event.preventDefault();
+    }
     setError('');
     setSuccess('');
 
@@ -240,13 +243,23 @@ export default function VacaturePlaatsen() {
 
     setIsGenerating(true);
 
+    const steeringText = steeringNotes.trim();
+    const generationForm = steeringText
+      ? {
+          ...form,
+          korteOmschrijving: [form.korteOmschrijving, `Extra sturing: ${steeringText}`]
+            .filter((chunk) => chunk && String(chunk).trim())
+            .join('\n\n'),
+        }
+      : form;
+
     try {
       let targetDraftId = draftId;
 
       if (!targetDraftId) {
         const created = await api('/drafts', {
           method: 'POST',
-          body: JSON.stringify({ formData: form }),
+          body: JSON.stringify({ formData: generationForm }),
         });
 
         targetDraftId = created?.draft?.id;
@@ -264,7 +277,7 @@ export default function VacaturePlaatsen() {
 
       const generated = await api(`/drafts/${targetDraftId}/generate`, {
         method: 'POST',
-        body: JSON.stringify({ formData: form }),
+        body: JSON.stringify({ formData: generationForm }),
       });
 
       const nextContent = {
@@ -288,6 +301,7 @@ export default function VacaturePlaatsen() {
       });
       setActiveTab('omschrijving_nl');
       setSuccess('Concept succesvol gegenereerd.');
+      setSteeringNotes('');
     } catch (err) {
       setError(err.message || 'Genereren is mislukt.');
     } finally {
@@ -523,6 +537,26 @@ export default function VacaturePlaatsen() {
               <p>{criticusNotes || 'Geen opmerkingen.'}</p>
             </div>
           ) : null}
+
+          <div className="vacature-regenerate">
+            <label className="vacature-field">
+              Niet helemaal wat je zoekt? Vertel de AI wat je anders wilt.
+              <textarea
+                value={steeringNotes}
+                onChange={(event) => setSteeringNotes(event.target.value)}
+                rows={2}
+                placeholder="Bijv. Meer nadruk op vervoer, korter, minder formeel..."
+                disabled={isBusy}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => handleGenerate()}
+              disabled={isBusy}
+            >
+              Opnieuw genereren
+            </button>
+          </div>
 
           <div className="preview-tabs">
             {tabs.map((tab) => (

@@ -59,6 +59,8 @@ export default function ContentWachtrij() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [authorFilter, setAuthorFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [error, setError] = useState('');
 
   const draftsQuery = useQuery({
@@ -99,17 +101,109 @@ export default function ContentWachtrij() {
     },
   });
 
-  const drafts = useMemo(() => draftsQuery.data?.drafts || [], [draftsQuery.data]);
+  const duplicateMutation = useMutation({
+    mutationFn: (id) => api(`/drafts/${id}/duplicate`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['drafts-queue'] });
+    },
+  });
+
+  const allDrafts = useMemo(() => draftsQuery.data?.drafts || [], [draftsQuery.data]);
+
+  // Client-side freetext search over title + author. Server already filters
+  // status/type/auteur; search is UI polish — no need for a server round-trip.
+  const drafts = useMemo(() => {
+    const term = searchQuery.trim().toLowerCase();
+    if (!term) {
+      return allDrafts;
+    }
+    return allDrafts.filter((draft) => {
+      const title = (draft.title || '').toLowerCase();
+      const author = (draft.authorName || '').toLowerCase();
+      return title.includes(term) || author.includes(term);
+    });
+  }, [allDrafts, searchQuery]);
+
   const authorOptions = useMemo(() => {
     const map = new Map();
-    for (const draft of drafts) {
+    for (const draft of allDrafts) {
       if (!map.has(draft.createdBy)) {
         map.set(draft.createdBy, draft.authorName);
       }
     }
 
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [drafts]);
+  }, [allDrafts]);
+
+  const pendingSelectableIds = useMemo(
+    () => drafts.filter((d) => d.status === 'pending_approval').map((d) => d.id),
+    [drafts]
+  );
+
+  const selectedPendingCount = useMemo(
+    () => pendingSelectableIds.filter((id) => selectedIds.has(id)).length,
+    [pendingSelectableIds, selectedIds]
+  );
+
+  function toggleSelect(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) => {
+      const allSelected = pendingSelectableIds.length > 0 &&
+        pendingSelectableIds.every((id) => prev.has(id));
+      if (allSelected) {
+        const next = new Set(prev);
+        for (const id of pendingSelectableIds) next.delete(id);
+        return next;
+      }
+      const next = new Set(prev);
+      for (const id of pendingSelectableIds) next.add(id);
+      return next;
+    });
+  }
+
+  async function handleBulkApprove() {
+    setError('');
+    const ids = pendingSelectableIds.filter((id) => selectedIds.has(id));
+    if (ids.length === 0) return;
+
+    try {
+      // Sequential to avoid a burst of Supabase writes hitting rate limits and
+      // to keep partial-failure semantics simple (first failure stops the loop).
+      for (const id of ids) {
+        await approveMutation.mutateAsync(id);
+      }
+      setSelectedIds(new Set());
+    } catch (err) {
+      setError(err.message || 'Bulk goedkeuren mislukt (deels).');
+    }
+  }
+
+  async function handleDuplicate(id) {
+    setError('');
+    try {
+      const result = await duplicateMutation.mutateAsync(id);
+      const newId = result?.draft?.id;
+      const newType = result?.draft?.type;
+      if (newId) {
+        navigate(newType === 'marketing-post'
+          ? `/marketing-post?draftId=${newId}`
+          : `/vacature-plaatsen?draftId=${newId}`);
+      }
+    } catch (err) {
+      setError(err.message || 'Dupliceren mislukt.');
+    }
+  }
 
   async function handleApprove(id) {
     setError('');
@@ -163,7 +257,14 @@ export default function ContentWachtrij() {
   }
 
   const isMutating =
-    approveMutation.isPending || rejectMutation.isPending || deleteMutation.isPending;
+    approveMutation.isPending ||
+    rejectMutation.isPending ||
+    deleteMutation.isPending ||
+    duplicateMutation.isPending;
+
+  const allPendingSelected =
+    pendingSelectableIds.length > 0 &&
+    pendingSelectableIds.every((id) => selectedIds.has(id));
 
   return (
     <div className="queue-layout">
@@ -202,12 +303,53 @@ export default function ContentWachtrij() {
             ))}
           </select>
         </label>
+
+        <label className="queue-search">
+          Zoeken
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Titel of auteur..."
+          />
+        </label>
       </div>
+
+      {role === 'owner' && selectedPendingCount > 0 ? (
+        <div className="queue-bulk-bar">
+          <span>{selectedPendingCount} geselecteerd</span>
+          <button
+            type="button"
+            onClick={handleBulkApprove}
+            disabled={isMutating}
+          >
+            Keur {selectedPendingCount} goed
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedIds(new Set())}
+            disabled={isMutating}
+          >
+            Selectie wissen
+          </button>
+        </div>
+      ) : null}
 
       <div className="queue-table-wrap">
         <table className="queue-table">
           <thead>
             <tr>
+              {role === 'owner' ? (
+                <th>
+                  <input
+                    type="checkbox"
+                    checked={allPendingSelected}
+                    disabled={pendingSelectableIds.length === 0}
+                    onChange={toggleSelectAll}
+                    aria-label="Selecteer alle wachtende concepten"
+                  />
+                </th>
+              ) : null}
               <th>Type</th>
               <th>Titel</th>
               <th>Auteur</th>
@@ -220,15 +362,28 @@ export default function ContentWachtrij() {
           <tbody>
             {drafts.length === 0 ? (
               <tr>
-                <td colSpan={7}>Geen concepten gevonden.</td>
+                <td colSpan={role === 'owner' ? 8 : 7}>Geen concepten gevonden.</td>
               </tr>
             ) : (
               drafts.map((draft) => {
                 const isOwner = role === 'owner';
                 const isRecruiterOwnDraft = role === 'recruiter' && draft.createdBy === user?.id;
 
+                const canDuplicate = isOwner || isRecruiterOwnDraft;
+
                 return (
                   <tr key={draft.id}>
+                    {role === 'owner' ? (
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(draft.id)}
+                          disabled={draft.status !== 'pending_approval'}
+                          onChange={() => toggleSelect(draft.id)}
+                          aria-label={`Selecteer ${draft.title || 'concept'}`}
+                        />
+                      </td>
+                    ) : null}
                     <td>
                       <span className={getTypeBadgeClass(draft.type)}>{getTypeLabel(draft.type)}</span>
                     </td>
@@ -286,6 +441,16 @@ export default function ContentWachtrij() {
                               Verwijderen
                             </button>
                           </>
+                        ) : null}
+
+                        {canDuplicate ? (
+                          <button
+                            type="button"
+                            disabled={isMutating}
+                            onClick={() => handleDuplicate(draft.id)}
+                          >
+                            Dupliceer
+                          </button>
                         ) : null}
                       </div>
                     </td>

@@ -294,3 +294,22 @@
     grid-template-columns: 1fr;
   }
 }
+
+.vacature-regenerate {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--grey-100);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin: 1rem 0;
+}
+
+.vacature-regenerate textarea {
+  min-height: 3rem;
+}
+
+.vacature-regenerate button {
+  align-self: flex-start;
+}

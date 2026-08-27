@@ -232,6 +232,54 @@ router.post('/', async (req, res, next) => {
   }
 });
 
+// Duplicate an existing draft into a fresh 'draft' owned by the current user.
+// Copies only the form_data so the new draft starts clean (no criticus, no
+// generated content, no image, no publications). Vacatures Sandra creates
+// tend to share ~80% of the form, so this is the daily-workflow shortcut.
+router.post('/:id/duplicate', async (req, res, next) => {
+  try {
+    if (!['owner', 'recruiter'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
+    }
+
+    const sourceId = req.params.id;
+
+    const { data: source, error: sourceError } = await supabase
+      .from('drafts')
+      .select('id, type, form_data')
+      .eq('id', sourceId)
+      .maybeSingle();
+
+    if (sourceError) {
+      throw sourceError;
+    }
+
+    if (!source) {
+      return res.status(404).json({ error: 'Concept niet gevonden.' });
+    }
+
+    const { data: created, error: insertError } = await supabase
+      .from('drafts')
+      .insert({
+        type: source.type,
+        form_data: source.form_data || {},
+        status: 'draft',
+        created_by: req.user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .select('id, form_data, status, type')
+      .single();
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    return res.status(201).json({ draft: formatDraftForResponse(created) });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 router.post('/:id/generate', async (req, res, next) => {
   try {
     if (!['owner', 'recruiter'].includes(req.user.role)) {

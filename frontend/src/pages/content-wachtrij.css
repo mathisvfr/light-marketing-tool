@@ -146,3 +146,22 @@
     grid-template-columns: 1fr;
   }
 }
+
+.queue-search input {
+  min-width: 15rem;
+}
+
+.queue-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: var(--grey-100);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 0.75rem;
+}
+
+.queue-bulk-bar span {
+  font-weight: 600;
+}
