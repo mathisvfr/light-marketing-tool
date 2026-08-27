@@ -6,6 +6,7 @@ import { useAutosaveDraft, formatSavedAt } from '../hooks/useAutosaveDraft';
 import { api } from '../lib/api';
 import MediaPicker from '../components/shared/MediaPicker';
 import PlatformPreview from '../components/shared/PlatformPreview';
+import GenerationProgress from '../components/shared/GenerationProgress';
 import './marketing-post.css';
 
 const CHANNEL_OPTIONS = [
@@ -581,7 +582,8 @@ export default function MarketingPost() {
         </div>
       </form>
 
-      {isGenerating ? <div className="marketing-skeleton">Concept wordt gegenereerd...</div> : null}
+      <GenerationProgress active={isGenerating} />
+
 
       {effectiveDraftId && !isGenerating ? (
         <section className="marketing-preview">

@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useAutosaveDraft, formatSavedAt } from '../hooks/useAutosaveDraft';
+import GenerationProgress from '../components/shared/GenerationProgress';
 import { api } from '../lib/api';
 import MediaPicker from '../components/shared/MediaPicker';
 import './vacature-plaatsen.css';
@@ -535,7 +536,7 @@ export default function VacaturePlaatsen() {
         </div>
       </form>
 
-      {isGenerating ? <div className="skeleton">Concept wordt gegenereerd...</div> : null}
+      <GenerationProgress active={isGenerating} />
 
       {effectiveDraftId && !isGenerating ? (
         <section className="vacature-preview">
