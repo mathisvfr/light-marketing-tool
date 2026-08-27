@@ -1,8 +1,18 @@
 const express = require('express');
+const { fromZonedTime } = require('date-fns-tz');
 const { supabase } = require('../db/client');
 const { requireRole } = require('../middleware/auth');
 const publishGateway = require('../services/publishGateway');
 const { getCredential } = require('../services/integrations');
+
+// The frontend datetime-local input returns a wall-clock string with no
+// timezone (e.g. "2026-09-01T09:00"). new Date() interprets that in the
+// process's local zone — on the Hetzner VPS that's UTC, so Luke's 09:00
+// pick was scheduling posts for 09:00 UTC (11:00 Amsterdam in summer).
+// fromZonedTime treats the string as Europe/Amsterdam wall-clock and
+// returns the correct UTC Date. Belongs here at the boundary; anything
+// deeper (Buffer, DB) already expects a proper ISO instant.
+const APP_TIMEZONE = 'Europe/Amsterdam';
 
 const router = express.Router();
 
@@ -211,7 +221,12 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
     // owner never accidentally posts an instant-publish thinking it's queued.
     let scheduledFor = null;
     if (req.body?.dueAt) {
-      const parsed = new Date(req.body.dueAt);
+      const raw = String(req.body.dueAt);
+      // Accept both bare wall-clock strings (from datetime-local) and full ISO
+      // strings with an explicit offset. The presence of Z or +/-HH:MM means
+      // the client already normalized it; without it, treat as local Amsterdam.
+      const hasOffset = /Z$|[+-]\d{2}:?\d{2}$/.test(raw);
+      const parsed = hasOffset ? new Date(raw) : fromZonedTime(raw, APP_TIMEZONE);
       if (Number.isNaN(parsed.getTime())) {
         return res.status(400).json({ error: 'Ongeldige planningsdatum.' });
       }
