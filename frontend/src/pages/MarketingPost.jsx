@@ -7,6 +7,7 @@ import { api } from '../lib/api';
 import MediaPicker from '../components/shared/MediaPicker';
 import PlatformPreview from '../components/shared/PlatformPreview';
 import GenerationProgress from '../components/shared/GenerationProgress';
+import VersionHistoryPicker from '../components/shared/VersionHistoryPicker';
 import './marketing-post.css';
 
 const CHANNEL_OPTIONS = [
@@ -623,6 +624,21 @@ export default function MarketingPost() {
               Opnieuw genereren
             </button>
           </div>
+
+          <VersionHistoryPicker
+            draftId={effectiveDraftId}
+            history={loadedDraft?.generation_history || []}
+            draftType="marketing-post"
+            onRestored={(restored) => {
+              if (!restored) return;
+              setContentEdits({
+                linkedin_post: restored.linkedin_post || '',
+                social_nl: restored.social_nl || '',
+                instagram_caption: restored.instagram_caption || '',
+              });
+              existingDraftQuery.refetch();
+            }}
+          />
 
           <div className="marketing-tabs">
             {PREVIEW_TABS.filter((tab) => {

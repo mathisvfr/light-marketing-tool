@@ -1,0 +1,56 @@
+.version-history {
+  margin: 0.75rem 0;
+}
+
+.version-history label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.version-history select {
+  max-width: 22rem;
+  padding: 0.4rem 0.5rem;
+}
+
+.version-history-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: grid;
+  place-items: center;
+  z-index: 40;
+  padding: 1rem;
+}
+
+.version-history-modal {
+  background: #fff;
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1.5rem;
+  max-width: 26rem;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.version-history-modal h4 {
+  margin: 0 0 0.5rem;
+}
+
+.version-history-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+  justify-content: flex-end;
+}
+
+.version-history-danger {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.version-history-error {
+  color: var(--color-primary);
+}

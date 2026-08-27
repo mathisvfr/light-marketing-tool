@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useAutosaveDraft, formatSavedAt } from '../hooks/useAutosaveDraft';
 import GenerationProgress from '../components/shared/GenerationProgress';
+import VersionHistoryPicker from '../components/shared/VersionHistoryPicker';
 import { api } from '../lib/api';
 import MediaPicker from '../components/shared/MediaPicker';
 import './vacature-plaatsen.css';
@@ -574,6 +575,26 @@ export default function VacaturePlaatsen() {
               Opnieuw genereren
             </button>
           </div>
+
+          <VersionHistoryPicker
+            draftId={effectiveDraftId}
+            history={loadedDraft?.generation_history || []}
+            draftType="vacature"
+            onRestored={(restored) => {
+              if (!restored) return;
+              setContentEdits({
+                omschrijving_nl: restored.omschrijving_nl || '',
+                functie_eisen: restored.functie_eisen || '',
+                wat_wij_bieden: restored.wat_wij_bieden || '',
+                omschrijving_pl: restored.omschrijving_pl || '',
+                functie_eisen_pl: restored.functie_eisen_pl || '',
+                wat_wij_bieden_pl: restored.wat_wij_bieden_pl || '',
+                social_nl: restored.social_nl || '',
+                social_pl: restored.social_pl || '',
+              });
+              existingDraftQuery.refetch();
+            }}
+          />
 
           <div className="preview-tabs">
             {tabs.map((tab) => (

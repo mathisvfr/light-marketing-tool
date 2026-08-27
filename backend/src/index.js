@@ -24,6 +24,7 @@ const publicationsRoutes = require('./routes/publications');
 const { requireAuth } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/errorHandler');
 const { startCleanupSchedule } = require('./services/cleanup');
+const bufferSync = require('./services/bufferSync');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -134,6 +135,10 @@ if (require.main === module) {
 
   // Weekly disk cleanup for accumulated rendered/uploaded images.
   startCleanupSchedule();
+
+  // Reconcile Buffer post statuses + engagement metrics every 15 min.
+  // No-op in tests. Non-fatal if Buffer isn't reachable — errors are logged.
+  bufferSync.startCron();
 }
 
 module.exports = app;

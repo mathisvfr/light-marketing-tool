@@ -102,6 +102,7 @@ function formatDraftForResponse(draft) {
     image_path: draft.image_path,
     criticus_passed: draft.criticus_passed,
     criticus_notes: draft.criticus_notes,
+    generation_history: Array.isArray(draft.generation_history) ? draft.generation_history : [],
   };
 }
 
@@ -171,7 +172,7 @@ router.get('/:id', async (req, res, next) => {
     const { data, error } = await supabase
       .from('drafts')
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, created_by'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, created_by, generation_history'
       )
       .eq('id', draftId)
       .maybeSingle();
@@ -297,6 +298,81 @@ router.post('/:id/duplicate', async (req, res, next) => {
   }
 });
 
+// Restore a previous generated-content snapshot. Body: { index } — 0 = most
+// recent snapshot, 2 = oldest of the 3 we keep. The current content BEFORE
+// the restore is pushed to history so the operation is undoable in kind.
+router.post('/:id/restore-version', async (req, res, next) => {
+  try {
+    if (!['owner', 'recruiter'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
+    }
+
+    const draftId = req.params.id;
+    const rawIndex = Number(req.body?.index);
+    if (!Number.isInteger(rawIndex) || rawIndex < 0 || rawIndex > 2) {
+      return res.status(400).json({ error: 'Ongeldige versie-index.' });
+    }
+
+    const { data: draft, error: draftError } = await supabase
+      .from('drafts')
+      .select(
+        'id, type, form_data, created_by, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, generation_history'
+      )
+      .eq('id', draftId)
+      .maybeSingle();
+
+    if (draftError) throw draftError;
+    if (!draft) return res.status(404).json({ error: 'Concept niet gevonden.' });
+    if (!canEditDraft(req.user, draft)) {
+      return res.status(403).json({ error: 'Je mag dit concept niet aanpassen.' });
+    }
+
+    const history = Array.isArray(draft.generation_history) ? draft.generation_history : [];
+    const target = history[rawIndex];
+    if (!target?.content) {
+      return res.status(404).json({ error: 'Deze versie bestaat niet meer.' });
+    }
+
+    const currentSnapshot = {
+      at: new Date().toISOString(),
+      type: draft.type,
+      content: {
+        omschrijving_nl: draft.omschrijving_nl || null,
+        functie_eisen: draft.functie_eisen || null,
+        wat_wij_bieden: draft.wat_wij_bieden || null,
+        omschrijving_pl: draft.omschrijving_pl || null,
+        functie_eisen_pl: draft.functie_eisen_pl || null,
+        wat_wij_bieden_pl: draft.wat_wij_bieden_pl || null,
+        social_nl: draft.social_nl || null,
+        social_pl: draft.social_pl || null,
+        linkedin_post: draft.linkedin_post || null,
+        instagram_caption: draft.instagram_caption || null,
+      },
+    };
+    const newHistory = [currentSnapshot, ...history.filter((_, i) => i !== rawIndex)].slice(0, 3);
+
+    const updatePayload = {
+      ...target.content,
+      generation_history: newHistory,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data: updatedDraft, error: updateError } = await supabase
+      .from('drafts')
+      .update(updatePayload)
+      .eq('id', draft.id)
+      .select(
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, generation_history'
+      )
+      .single();
+
+    if (updateError) throw updateError;
+    return res.json({ draft: formatDraftForResponse(updatedDraft) });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 router.post('/:id/generate', async (req, res, next) => {
   try {
     if (!['owner', 'recruiter'].includes(req.user.role)) {
@@ -308,7 +384,7 @@ router.post('/:id/generate', async (req, res, next) => {
     const { data: draft, error: draftError } = await supabase
       .from('drafts')
       .select(
-        'id, type, form_data, created_by, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path'
+        'id, type, form_data, created_by, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, generation_history'
       )
       .eq('id', draftId)
       .maybeSingle();
@@ -377,12 +453,44 @@ router.post('/:id/generate', async (req, res, next) => {
             updated_at: new Date().toISOString(),
           };
 
+    // Version history: snapshot the CURRENT generated fields (before we
+    // overwrite them). Image_path is excluded — it lives on its own column
+    // and we don't want 3 copies of it (T21). Cap at 3 entries.
+    const hasCurrentGen =
+      draft.omschrijving_nl ||
+      draft.social_nl ||
+      draft.linkedin_post ||
+      draft.instagram_caption ||
+      draft.wat_wij_bieden ||
+      draft.functie_eisen;
+    if (hasCurrentGen) {
+      const snapshot = {
+        at: new Date().toISOString(),
+        type: draft.type,
+        content: {
+          omschrijving_nl: draft.omschrijving_nl || null,
+          functie_eisen: draft.functie_eisen || null,
+          wat_wij_bieden: draft.wat_wij_bieden || null,
+          omschrijving_pl: draft.omschrijving_pl || null,
+          functie_eisen_pl: draft.functie_eisen_pl || null,
+          wat_wij_bieden_pl: draft.wat_wij_bieden_pl || null,
+          social_nl: draft.social_nl || null,
+          social_pl: draft.social_pl || null,
+          linkedin_post: draft.linkedin_post || null,
+          instagram_caption: draft.instagram_caption || null,
+        },
+      };
+      const existingHistory = Array.isArray(draft.generation_history) ? draft.generation_history : [];
+      const newHistory = [snapshot, ...existingHistory].slice(0, 3);
+      updatePayload.generation_history = newHistory;
+    }
+
     const { data: updatedDraft, error: updateError } = await supabase
       .from('drafts')
       .update(updatePayload)
       .eq('id', draft.id)
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, generation_history'
       )
       .single();
 
