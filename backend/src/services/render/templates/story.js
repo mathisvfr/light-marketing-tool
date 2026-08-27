@@ -11,7 +11,7 @@ function storyPost({ width, height, photoSrc, category, categoryIcon, title, loc
   title = title || 'Meewerkend chauffeur';
   location = location || 'Rotterdam';
   hours = hours || 'Fulltime';
-  ctaLabel = ctaLabel || 'Solliciteer — link in bio';
+  ctaLabel = ctaLabel || 'Solliciteer, link in bio';
   logoSrc = logoSrc || LOGO_WHITE;
 
   const pad = Math.round(width * 0.0667);

@@ -1,9 +1,70 @@
 const express = require('express');
+const fs = require('node:fs/promises');
+const path = require('node:path');
 const { supabase } = require('../db/client');
 const { generate, criticus } = require('../services/claude');
 const { renderSocialImage, saveUploadedImageDataUrl } = require('../services/render');
 
 const router = express.Router();
+
+// Resolve which Satori template + fields to render for a draft. Marketing posts
+// choose between 'statement' and 'photo-feature'; vacatures between 'vacancy' and
+// 'story'. The platform suffix (-li/-fb) picks the right canvas per primary channel.
+function resolveRenderTemplate(type, formData, generated) {
+  const kanalen = Array.isArray(formData?.kanalen) ? formData.kanalen : [];
+  const primary = ['instagram', 'linkedin', 'facebook'].find((channel) => kanalen.includes(channel)) || 'instagram';
+  const suffix = primary === 'linkedin' ? '-li' : primary === 'facebook' ? '-fb' : '';
+
+  if (type === 'marketing-post') {
+    const base = ['statement', 'photo-feature'].includes(formData?.template) ? formData.template : 'statement';
+    return {
+      name: base + suffix,
+      fields: {
+        headline: generated?.image_headline || formData?.onderwerp || undefined,
+        accent: generated?.image_subline || undefined,
+      },
+      altText: formData?.onderwerp || 'Marketingpost',
+    };
+  }
+
+  // Vacature: 'story' is Instagram-vertical only (no platform variant).
+  const base = formData?.template === 'story' ? 'story' : 'vacancy';
+  return {
+    name: base === 'story' ? 'story' : 'vacancy' + suffix,
+    fields: {
+      title: formData?.functietitel || generated?.titel || undefined,
+      location: formData?.locatie || undefined,
+      hours: formData?.urenPerWeek || formData?.uren || undefined,
+      category: formData?.sector || undefined,
+    },
+    altText: formData?.functietitel || 'Vacature',
+  };
+}
+
+// Best-effort: register a freshly rendered image in the media library so it shows
+// up in the content bibliotheek. Never throws (skips silently on any failure).
+async function registerGeneratedImage(imagePath, altText, createdBy) {
+  try {
+    if (!imagePath) {
+      return;
+    }
+    const filename = path.basename(imagePath);
+    const absolute = path.resolve(__dirname, '..', '..', 'uploads', 'social', filename);
+    const stats = await fs.stat(absolute);
+
+    await supabase.from('media_library').insert({
+      filename,
+      path: imagePath,
+      alt_text: altText || null,
+      source: 'generated',
+      created_by: createdBy || null,
+      file_size: stats.size,
+      mime_type: 'image/png',
+    });
+  } catch (_err) {
+    // Non-fatal: the image still works via image_path even if not catalogued.
+  }
+}
 
 function canEditDraft(user, draft) {
   if (user.role === 'owner') {
@@ -199,6 +260,24 @@ router.post('/:id/generate', async (req, res, next) => {
       return res.status(403).json({ error: 'Je mag dit concept niet aanpassen.' });
     }
 
+    // Accept a form_data override on regenerate so the user can tweak inputs
+    // (e.g. template, kanalen, tone) without needing a separate save step.
+    const overrideForm = req.body?.formData;
+    if (overrideForm && typeof overrideForm === 'object') {
+      const mergedForm = { ...(draft.form_data || {}), ...overrideForm };
+      const { data: updatedDraft, error: updateFormErr } = await supabase
+        .from('drafts')
+        .update({ form_data: mergedForm, updated_at: new Date().toISOString() })
+        .eq('id', draft.id)
+        .select('form_data')
+        .single();
+
+      if (updateFormErr) {
+        throw updateFormErr;
+      }
+      draft.form_data = updatedDraft.form_data;
+    }
+
     const generated = await generate(draft.type, draft.form_data);
 
     // Save generated content immediately (criticus_passed = null signals "pending")
@@ -255,30 +334,10 @@ router.post('/:id/generate', async (req, res, next) => {
     ];
 
     // Skip Satori render entirely when the user attached their own image up front.
-    if (!draft.image_path && draft.type === 'marketing-post') {
-      // Prefer the square Instagram render when Instagram is among the selected
-      // channels, so the Instagram preview always has a matching visual. Falls
-      // back to the platform-specific statement template otherwise.
-      const kanalen = Array.isArray(draft.form_data?.kanalen) ? draft.form_data.kanalen : [];
-      const channelTemplateMap = { instagram: 'statement', linkedin: 'statement-li', facebook: 'statement-fb' };
-      const primaryChannel =
-        ['instagram', 'linkedin', 'facebook'].find((channel) => kanalen.includes(channel)) || 'instagram';
-      const templateName = channelTemplateMap[primaryChannel] || 'statement';
-      backgroundTasks.push(
-        renderSocialImage(templateName, {
-          headline: draft.form_data?.onderwerp || undefined,
-          accent: draft.form_data?.type || undefined,
-        })
-      );
-    } else if (!draft.image_path && draft.type === 'vacature') {
-      backgroundTasks.push(
-        renderSocialImage('vacancy', {
-          title: draft.form_data?.functietitel || generated.titel || undefined,
-          location: draft.form_data?.locatie || undefined,
-          hours: draft.form_data?.uren || undefined,
-          category: draft.form_data?.sector || undefined,
-        })
-      );
+    let renderInfo = null;
+    if (!draft.image_path && (draft.type === 'marketing-post' || draft.type === 'vacature')) {
+      renderInfo = resolveRenderTemplate(draft.type, draft.form_data, generated);
+      backgroundTasks.push(renderSocialImage(renderInfo.name, renderInfo.fields));
     }
 
     Promise.all(backgroundTasks)
@@ -294,6 +353,11 @@ router.post('/:id/generate', async (req, res, next) => {
         }
 
         await supabase.from('drafts').update(bgUpdate).eq('id', draft.id);
+
+        // Catalogue the auto-generated image so it appears in the media library.
+        if (renderedImagePath && renderInfo) {
+          await registerGeneratedImage(renderedImagePath, renderInfo.altText, draft.created_by);
+        }
       })
       .catch((err) => {
         console.error('Background criticus/render failed:', err);

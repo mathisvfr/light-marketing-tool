@@ -86,6 +86,35 @@ function parseJsonOrThrow(rawText) {
   }
 }
 
+// Merkregel: em-dashes (—) en en-dashes (–) mogen niet in gegenereerde tekst.
+// Deterministische opschoning zodat het altijd klopt, ongeacht het model:
+// em-dash → komma (parenthetisch gebruik), en-dash → koppelteken (bereiken).
+function stripDashes(text) {
+  return String(text)
+    .replace(/\s*—\s*/g, ', ')
+    .replace(/\s*–\s*/g, '-')
+    .replace(/\s*―\s*/g, ', ')
+    .replace(/,\s*,/g, ',')
+    .replace(/,\s*\./g, '.');
+}
+
+function sanitizeGenerated(value) {
+  if (typeof value === 'string') {
+    return stripDashes(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map(sanitizeGenerated);
+  }
+  if (value && typeof value === 'object') {
+    const result = {};
+    for (const [key, entry] of Object.entries(value)) {
+      result[key] = sanitizeGenerated(entry);
+    }
+    return result;
+  }
+  return value;
+}
+
 async function callAnthropic(systemBlocks, formData) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const model = process.env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL;
@@ -399,7 +428,8 @@ async function generate(type, formData) {
 
   const systemBlocks = buildSystemBlocks(brandKnowledge, brandContext, templatePrompt);
 
-  return callAnthropicExpectingJson(systemBlocks, formData);
+  const generated = await callAnthropicExpectingJson(systemBlocks, formData);
+  return sanitizeGenerated(generated);
 }
 
 async function criticus(input) {

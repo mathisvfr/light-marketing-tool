@@ -23,7 +23,7 @@ function photoFeaturePost({ width, height, photoSrc, eyebrow, headline, badgeLab
     : 'linear-gradient(180deg, rgba(31,33,35,0.05) 0%, rgba(31,33,35,0.35) 55%, rgba(31,33,35,0.88) 100%)';
 
   return h('div', {
-    style: { width, height, position: 'relative', display: 'flex' },
+    style: { width, height, position: 'relative', display: 'flex', background: photoSrc ? TOKENS.grey900 : `linear-gradient(135deg, ${TOKENS.grey900} 0%, ${TOKENS.red} 100%)` },
   },
     photoSrc ? h('img', { src: photoSrc, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }) : null,
     h('div', { style: { position: 'absolute', inset: 0, background: gradient } }),

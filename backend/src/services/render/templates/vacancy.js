@@ -14,6 +14,9 @@ function vacancyPost({ width, height, photoSrc, category, categoryIcon, title, l
 
   const wide = width / height > 1.3;
   const base = Math.min(width, height);
+  // Branded fill for the photo area when no photo is supplied, so an
+  // auto-generated vacancy visual never renders with a blank/empty panel.
+  const photoFallback = `linear-gradient(135deg, ${TOKENS.grey900} 0%, ${TOKENS.red} 100%)`;
   const pad = Math.round(base * (wide ? 0.11 : 0.07));
   const pillFont = Math.max(15, Math.round(base * (wide ? 0.044 : 0.028)));
   const titleSize = Math.round(base * (wide ? 0.15 : 0.078));
@@ -65,7 +68,7 @@ function vacancyPost({ width, height, photoSrc, category, categoryIcon, title, l
           cta(), logo()
         )
       ),
-      h('div', { style: { width: photoW, height: '100%', position: 'relative' } },
+      h('div', { style: { width: photoW, height: '100%', position: 'relative', display: 'flex', background: photoSrc ? TOKENS.grey900 : photoFallback } },
         photoSrc ? h('img', { src: photoSrc, style: { width: '100%', height: '100%', objectFit: 'cover' } }) : null
       )
     );
@@ -78,7 +81,7 @@ function vacancyPost({ width, height, photoSrc, category, categoryIcon, title, l
   return h('div', {
     style: { width, height, background: TOKENS.white, display: 'flex', flexDirection: 'column', fontFamily: TOKENS.fontBody },
   },
-    h('div', { style: { height: photoH, position: 'relative', display: 'flex' } },
+    h('div', { style: { height: photoH, position: 'relative', display: 'flex', background: photoSrc ? TOKENS.grey900 : photoFallback } },
       photoSrc ? h('img', { src: photoSrc, style: { width: '100%', height: '100%', objectFit: 'cover' } }) : null,
       h('div', { style: { position: 'absolute', top: pad, left: pad, display: 'flex' } },
         pill(TOKENS.red, TOKENS.white, [createIcon(categoryIcon, Math.round(pillFont * 1.3), TOKENS.white, 2.4), category])

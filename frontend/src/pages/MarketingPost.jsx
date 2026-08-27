@@ -22,7 +22,13 @@ const DEFAULT_FORM = {
   onderwerp: '',
   type: 'Opdrachtgevers',
   kanalen: [],
+  template: 'statement',
 };
+
+const TEMPLATE_OPTIONS = [
+  { key: 'statement', label: 'Statement (tekst op merk)' },
+  { key: 'photo-feature', label: 'Foto met tekst' },
+];
 
 export default function MarketingPost() {
   const { role } = useAuth();
@@ -284,7 +290,10 @@ export default function MarketingPost() {
         });
       }
 
-      const generated = await api(`/drafts/${targetDraftId}/generate`, { method: 'POST' });
+      const generated = await api(`/drafts/${targetDraftId}/generate`, {
+        method: 'POST',
+        body: JSON.stringify({ formData: form }),
+      });
 
       setContentEdits({
         linkedin_post: generated?.draft?.linkedin_post || '',
@@ -423,6 +432,23 @@ export default function MarketingPost() {
                   onChange={() => updateField('type', value)}
                 />
                 {value}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="marketing-field">
+          <span>Visualisatie</span>
+          <div className="marketing-radio-group">
+            {TEMPLATE_OPTIONS.map((option) => (
+              <label key={option.key} className="marketing-radio-item">
+                <input
+                  type="radio"
+                  name="marketing-template"
+                  checked={(form.template || 'statement') === option.key}
+                  onChange={() => updateField('template', option.key)}
+                />
+                {option.label}
               </label>
             ))}
           </div>

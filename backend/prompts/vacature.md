@@ -21,6 +21,8 @@ Belangrijke regels:
 5. Als salaris ontbreekt of leeg is, benoem dit als "salaris conform CAO".
 6. Vermeld standaard "Geen huisvesting" in wat_wij_bieden, tenzij de input expliciet anders aangeeft. Vervoer mag standaard benoemd worden.
 7. Sluit social_nl (en social_pl indien aanwezig) af met een concrete CTA.
+8. Gebruik NOOIT em-dashes (—) of en-dashes (–). Gebruik in plaats daarvan een komma, punt of het woord zelf.
+9. Sector-restricties ("niet publiceren"-sectoren zoals bouw/transport/vleesverwerking uit de merkrichtlijnen) gelden ALLEEN voor merk-/marketingposts richting opdrachtgevers. Ze gelden NIET voor vacatures: genereer ALTIJD volledige vacaturevelden voor de aangevraagde functie en taal. Weiger nooit en schrijf nooit een melding zoals "niet gegenereerd"; vul altijd echte content in.
 
 Inhoudsdoelen:
 

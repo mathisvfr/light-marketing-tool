@@ -18,12 +18,16 @@ Controleer minimaal:
 5. Geen discriminerende tekst of vereisten (afkomst, nationaliteit, geslacht, leeftijd, etc.).
 6. Taal klopt met aanvraag (NL of NL+PL).
 7. CTA is aanwezig in social content.
+8. Geen em-dashes (—) of en-dashes (–) in de tekst.
 
 Voor marketing-content controleer aanvullend:
 
 1. Kanaalfit (LinkedIn zakelijk, Facebook/Instagram toegankelijker).
-2. Controleer ALLEEN kanalen die in formData.kanalen staan. Ontbrekende content voor niet-gekozen kanalen is GEEN fout.
-3. Geen verwarring tussen vacaturetekst en merkpost.
+2. Controleer ALLEEN kanalen die in formData.kanalen staan. Ontbrekende content voor niet-gekozen kanalen is GEEN fout. De keys `image_headline` en `image_subline` zijn afbeeldingsteksten; die horen erbij en zijn geen fout.
+3. LinkedIn-posts bevatten 3-5 relevante hashtags.
+4. Geen verwarring tussen vacaturetekst en merkpost.
+
+Voor vacature-content geldt: sector-restricties uit de merkrichtlijnen ("niet publiceren"-sectoren) blokkeren vacatures NIET. Een vacature die netjes is ingevuld voor de aangevraagde functie is akkoord; een weigering of "niet gegenereerd"-melding in de velden is juist WEL een fout.
 
 Geef ALLEEN geldige JSON terug met exact dit schema:
 

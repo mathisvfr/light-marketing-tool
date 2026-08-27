@@ -15,7 +15,13 @@ const DEFAULT_FORM = {
   taal: 'NL',
   contract: '',
   email: 'vacature@lightpersoneelsdiensten.nl',
+  template: 'vacancy',
 };
+
+const TEMPLATE_OPTIONS = [
+  { key: 'vacancy', label: 'Vacaturekaart (feed)' },
+  { key: 'story', label: 'Story (verticaal, Instagram)' },
+];
 
 function createTabs(content) {
   const tabs = [
@@ -258,6 +264,7 @@ export default function VacaturePlaatsen() {
 
       const generated = await api(`/drafts/${targetDraftId}/generate`, {
         method: 'POST',
+        body: JSON.stringify({ formData: form }),
       });
 
       const nextContent = {
@@ -398,6 +405,22 @@ export default function VacaturePlaatsen() {
           />
           <small>{form.korteOmschrijving.length}/400 tekens</small>
         </label>
+
+        <div className="vacature-field">
+          <span>Visualisatie</span>
+          <div className="vacature-language" role="group" aria-label="Visualisatiekeuze">
+            {TEMPLATE_OPTIONS.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                className={(form.template || 'vacancy') === option.key ? 'active' : ''}
+                onClick={() => updateField('template', option.key)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="vacature-field">
           <span>Taal</span>
