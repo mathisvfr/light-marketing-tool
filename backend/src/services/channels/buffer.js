@@ -242,6 +242,84 @@ async function publish(draft, requestedChannel) {
   return publishSingle(requestedChannel, draft);
 }
 
+// Reschedule an existing Buffer post to a new dueAt (ISO 8601). Uses the
+// editPost mutation which is atomic on Buffer's side — no cancel-then-recreate
+// window and no race with the fire moment. Confirmed via schema probe.
+async function editPost({ externalId, dueAt }) {
+  const credential = await getBufferCredential();
+  if (!credential.access_token) {
+    return { status: 'failed', error: 'Buffer is niet gekoppeld.' };
+  }
+
+  const iso = new Date(dueAt).toISOString();
+  const query = `
+    mutation EditBufferPost {
+      editPost(
+        input: {
+          id: ${JSON.stringify(externalId)}
+          dueAt: ${JSON.stringify(iso)}
+          mode: customScheduled
+        }
+      ) {
+        __typename
+        ... on PostActionSuccess { post { id dueAt } }
+        ... on MutationError { message }
+      }
+    }
+  `;
+
+  try {
+    const data = await callBuffer(query, credential.access_token);
+    const result = data?.editPost;
+    if (!result) return { status: 'failed', error: 'Buffer gaf geen antwoord.' };
+    if (result.__typename === 'MutationError') {
+      return { status: 'failed', error: result.message || 'Buffer kon het bericht niet aanpassen.' };
+    }
+    return { status: 'success', scheduledFor: result?.post?.dueAt || iso };
+  } catch (err) {
+    return { status: 'failed', error: err.message || 'Bericht aanpassen via Buffer mislukt.' };
+  }
+}
+
+// Cancel (delete) a scheduled or drafted Buffer post. 404-style responses are
+// treated as success ("already gone from Buffer") so the caller can idempotently
+// mark our local row as cancelled.
+async function deletePost({ externalId }) {
+  const credential = await getBufferCredential();
+  if (!credential.access_token) {
+    return { status: 'failed', error: 'Buffer is niet gekoppeld.' };
+  }
+
+  const query = `
+    mutation DeleteBufferPost {
+      deletePost(input: { id: ${JSON.stringify(externalId)} }) {
+        __typename
+        ... on PostActionSuccess { post { id } }
+        ... on MutationError { message }
+      }
+    }
+  `;
+
+  try {
+    const data = await callBuffer(query, credential.access_token);
+    const result = data?.deletePost;
+    if (!result) return { status: 'failed', error: 'Buffer gaf geen antwoord.' };
+    if (result.__typename === 'MutationError') {
+      // Not-found / already-deleted → treat as success for idempotency.
+      const msg = result.message || '';
+      if (/not.?found|already|does not exist/i.test(msg)) {
+        return { status: 'success', alreadyGone: true };
+      }
+      return { status: 'failed', error: msg || 'Buffer kon het bericht niet verwijderen.' };
+    }
+    return { status: 'success' };
+  } catch (err) {
+    return { status: 'failed', error: err.message || 'Bericht verwijderen via Buffer mislukt.' };
+  }
+}
+
 module.exports = {
   publish,
+  editPost,
+  deletePost,
 };

@@ -77,7 +77,7 @@ router.get('/', async (_req, res, next) => {
     if (draftIds.length > 0) {
       const { data, error } = await supabase
         .from('publications')
-        .select('draft_id, channel, status, published_at, expired_at, scheduled_for')
+        .select('id, draft_id, channel, status, published_at, expired_at, scheduled_for')
         .in('draft_id', draftIds)
         .order('published_at', { ascending: false });
 
@@ -93,6 +93,7 @@ router.get('/', async (_req, res, next) => {
     for (const publication of publications) {
       const existing = byDraftId.get(publication.draft_id) || [];
       existing.push({
+        id: publication.id,
         channel: publication.channel,
         status: publication.status,
         publishedAt: publication.published_at,

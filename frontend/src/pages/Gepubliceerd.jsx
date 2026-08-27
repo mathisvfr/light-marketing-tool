@@ -55,10 +55,33 @@ function getStatusDotClass(status) {
   return 'channel-dot unknown';
 }
 
+// Convert a UTC ISO instant to a datetime-local value in Europe/Amsterdam
+// (YYYY-MM-DDTHH:MM). Used as the default value in the reschedule modal so
+// Luke sees "current planned time" pre-filled.
+function isoToLocalInput(iso) {
+  if (!iso) return '';
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Amsterdam',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+      .formatToParts(new Date(iso))
+      .map((p) => [p.type, p.value])
+  );
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}
+
 export default function Gepubliceerd() {
   const { role } = useAuth();
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
+  const [reschedTarget, setReschedTarget] = useState(null); // { publicationId, title, channel, currentIso }
+  const [reschedValue, setReschedValue] = useState('');
 
   const publishedQuery = useQuery({
     queryKey: ['published-items'],
@@ -71,6 +94,50 @@ export default function Gepubliceerd() {
       queryClient.invalidateQueries({ queryKey: ['published-items'] });
     },
   });
+
+  const rescheduleMutation = useMutation({
+    mutationFn: ({ id, dueAt }) =>
+      api(`/publications/${id}/reschedule`, {
+        method: 'POST',
+        body: JSON.stringify({ dueAt }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['published-items'] });
+      setReschedTarget(null);
+    },
+    onError: (err) => setError(err?.message || 'Verplaatsen mislukt.'),
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: (id) => api(`/publications/${id}/cancel`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['published-items'] });
+    },
+    onError: (err) => setError(err?.message || 'Annuleren mislukt.'),
+  });
+
+  function openReschedule(scheduledRow, title) {
+    setError('');
+    setReschedTarget({
+      publicationId: scheduledRow.id,
+      title,
+      channel: scheduledRow.channel,
+      currentIso: scheduledRow.scheduledFor,
+    });
+    setReschedValue(isoToLocalInput(scheduledRow.scheduledFor));
+  }
+
+  function submitReschedule(event) {
+    event.preventDefault();
+    if (!reschedTarget?.publicationId || !reschedValue) return;
+    rescheduleMutation.mutate({ id: reschedTarget.publicationId, dueAt: reschedValue });
+  }
+
+  function handleCancel(scheduledRow, title) {
+    setError('');
+    if (!window.confirm(`Ingeplande post op ${scheduledRow.channel} voor "${title}" annuleren?`)) return;
+    cancelMutation.mutate(scheduledRow.id);
+  }
 
   async function handleExpire(draftId) {
     setError('');
@@ -110,6 +177,7 @@ export default function Gepubliceerd() {
                   <th>Titel</th>
                   <th>Kanaal</th>
                   <th>Ingepland voor</th>
+                  {role === 'owner' ? <th>Acties</th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -126,6 +194,24 @@ export default function Gepubliceerd() {
                           </span>
                         </td>
                         <td>{formatDateTime(channel.scheduledFor)}</td>
+                        {role === 'owner' ? (
+                          <td>
+                            <button
+                              type="button"
+                              onClick={() => openReschedule(channel, item.title)}
+                              disabled={rescheduleMutation.isPending || cancelMutation.isPending}
+                            >
+                              Plan wijzigen
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleCancel(channel, item.title)}
+                              disabled={rescheduleMutation.isPending || cancelMutation.isPending}
+                            >
+                              Annuleren
+                            </button>
+                          </td>
+                        ) : null}
                       </tr>
                     ))
                 )}
@@ -133,6 +219,44 @@ export default function Gepubliceerd() {
             </table>
           </div>
         </section>
+      ) : null}
+
+      {reschedTarget ? (
+        <div className="published-modal-backdrop" onClick={() => setReschedTarget(null)}>
+          <form
+            className="published-modal"
+            onClick={(event) => event.stopPropagation()}
+            onSubmit={submitReschedule}
+          >
+            <h3>Plan wijzigen</h3>
+            <p className="published-modal-title">{reschedTarget.title}</p>
+            <p className="published-modal-meta">
+              <strong>Huidige planning:</strong> {reschedTarget.channel} —{' '}
+              {formatDateTime(reschedTarget.currentIso)}
+            </p>
+            <label>
+              Nieuwe datum en tijd (Europe/Amsterdam)
+              <input
+                type="datetime-local"
+                value={reschedValue}
+                onChange={(event) => setReschedValue(event.target.value)}
+                required
+              />
+            </label>
+            <div className="published-modal-actions">
+              <button type="submit" disabled={rescheduleMutation.isPending}>
+                {rescheduleMutation.isPending ? 'Verplaatsen...' : `Verplaatsen naar ${reschedValue || '...'}`}
+              </button>
+              <button
+                type="button"
+                onClick={() => setReschedTarget(null)}
+                disabled={rescheduleMutation.isPending}
+              >
+                Annuleren
+              </button>
+            </div>
+          </form>
+        </div>
       ) : null}
 
       <section className="published-section">
