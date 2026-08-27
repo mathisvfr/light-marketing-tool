@@ -15,14 +15,6 @@
   font-size: 0.92rem;
 }
 
-.queue-filters select {
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 0.45rem 0.6rem;
-  font: inherit;
-  background: #ffffff;
-}
-
 .queue-table-wrap {
   overflow-x: auto;
   border: 1px solid #e2e8f0;

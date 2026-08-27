@@ -69,16 +69,6 @@
   color: #334155;
 }
 
-.users-table select,
-.users-modal input,
-.users-modal select {
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 0.42rem 0.55rem;
-  font: inherit;
-  background: #ffffff;
-}
-
 .users-modal-backdrop {
   position: fixed;
   inset: 0;
