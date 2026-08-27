@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useAutosaveDraft, formatSavedAt } from '../hooks/useAutosaveDraft';
 import { api } from '../lib/api';
 import MediaPicker from '../components/shared/MediaPicker';
 import './vacature-plaatsen.css';
@@ -122,6 +123,8 @@ export default function VacaturePlaatsen() {
       : loadedDraft?.criticus_notes || '';
 
   const effectiveDraftId = draftId || draftIdParam;
+
+  const autosave = useAutosaveDraft(effectiveDraftId, form);
 
   // Poll for the background criticus result AND the rendered image until both
   // have arrived (bounded), so a slower image render still appears without reload.
@@ -369,6 +372,15 @@ export default function VacaturePlaatsen() {
   return (
     <div className="vacature-layout">
       <form className="vacature-form" onSubmit={handleGenerate}>
+        {effectiveDraftId ? (
+          <div className={`autosave-indicator${autosave.error ? ' error' : ''}`}>
+            {autosave.isSaving
+              ? 'Opslaan...'
+              : autosave.error
+              ? autosave.error
+              : formatSavedAt(autosave.savedAt)}
+          </div>
+        ) : null}
         <div className="vacature-grid">
           <label className="vacature-field">
             Functietitel

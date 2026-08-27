@@ -313,3 +313,14 @@
 .vacature-regenerate button {
   align-self: flex-start;
 }
+
+.autosave-indicator {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  padding: 0.15rem 0;
+  min-height: 1.1rem;
+}
+
+.autosave-indicator.error {
+  color: var(--color-primary);
+}

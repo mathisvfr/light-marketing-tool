@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useAutosaveDraft, formatSavedAt } from '../hooks/useAutosaveDraft';
 import { api } from '../lib/api';
 import MediaPicker from '../components/shared/MediaPicker';
+import PlatformPreview from '../components/shared/PlatformPreview';
 import './marketing-post.css';
 
 const CHANNEL_OPTIONS = [
@@ -49,6 +51,7 @@ export default function MarketingPost() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [steeringNotes, setSteeringNotes] = useState('');
+  const [scheduleAt, setScheduleAt] = useState('');
 
   const brandQuery = useQuery({
     queryKey: ['brand-settings'],
@@ -89,6 +92,8 @@ export default function MarketingPost() {
 
   const imagePath =
     typeof imagePathOverride === 'string' ? imagePathOverride : loadedDraft?.image_path || '';
+
+  const autosave = useAutosaveDraft(draftId, form);
 
   const criticusPassed =
     typeof criticusOverride.passed === 'boolean'
@@ -175,7 +180,11 @@ export default function MarketingPost() {
   });
 
   const publishMutation = useMutation({
-    mutationFn: () => api(`/publish/${effectiveDraftId}`, { method: 'POST' }),
+    mutationFn: (dueAt) =>
+      api(`/publish/${effectiveDraftId}`, {
+        method: 'POST',
+        body: JSON.stringify(dueAt ? { dueAt } : {}),
+      }),
   });
 
   function updateField(key, value) {
@@ -361,9 +370,32 @@ export default function MarketingPost() {
     }
   }
 
+  // Converts the datetime-local input value to a UTC ISO string. The picker
+  // returns wall-clock time in the user's browser timezone (no offset), so we
+  // rely on Date() interpreting it as local time when constructing the ISO.
+  function resolveDueAt() {
+    if (!scheduleAt) return null;
+    const parsed = new Date(scheduleAt);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed.toISOString();
+  }
+
+  function formatScheduleLabel(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleString('nl-NL', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
   async function handleApproveAndPublish() {
     setError('');
     setSuccess('');
+    const dueAt = resolveDueAt();
 
     try {
       await saveMutation.mutateAsync('draft');
@@ -374,8 +406,13 @@ export default function MarketingPost() {
     }
 
     try {
-      await publishMutation.mutateAsync();
-      setSuccess('Marketingpost is goedgekeurd en gepubliceerd op gekoppelde kanalen.');
+      await publishMutation.mutateAsync(dueAt);
+      setSuccess(
+        dueAt
+          ? `Marketingpost is goedgekeurd en ingepland via Buffer voor ${formatScheduleLabel(dueAt)}.`
+          : 'Marketingpost is goedgekeurd en gepubliceerd op gekoppelde kanalen.'
+      );
+      setScheduleAt('');
     } catch (err) {
       setError(
         `Goedgekeurd, maar publiceren is mislukt: ${err.message || 'Onbekende fout.'} Controleer de kanaalinstellingen in Merk instellingen en probeer opnieuw.`
@@ -386,10 +423,16 @@ export default function MarketingPost() {
   async function handleRetryPublish() {
     setError('');
     setSuccess('');
+    const dueAt = resolveDueAt();
 
     try {
-      await publishMutation.mutateAsync();
-      setSuccess('Marketingpost is succesvol gepubliceerd.');
+      await publishMutation.mutateAsync(dueAt);
+      setSuccess(
+        dueAt
+          ? `Ingepland via Buffer voor ${formatScheduleLabel(dueAt)}.`
+          : 'Marketingpost is succesvol gepubliceerd.'
+      );
+      setScheduleAt('');
     } catch (err) {
       setError(`Publiceren mislukt: ${err.message || 'Controleer kanaalinstellingen.'}`);
     }
@@ -415,9 +458,20 @@ export default function MarketingPost() {
     );
   }
 
+  const autosaveLabel = autosave.isSaving
+    ? 'Opslaan...'
+    : autosave.error
+    ? autosave.error
+    : formatSavedAt(autosave.savedAt);
+
   return (
     <div className="marketing-layout">
       <form className="marketing-form" onSubmit={handleGenerate}>
+        {draftId && autosaveLabel ? (
+          <div className={`autosave-indicator${autosave.error ? ' error' : ''}`}>
+            {autosaveLabel}
+          </div>
+        ) : null}
         <label className="marketing-field">
           Onderwerp
           <input
@@ -589,6 +643,22 @@ export default function MarketingPost() {
               }))
             }
           />
+
+          <PlatformPreview
+            platform={
+              activeTab === 'linkedin_post'
+                ? 'linkedin'
+                : activeTab === 'social_nl'
+                ? 'facebook'
+                : activeTab === 'instagram_caption'
+                ? 'instagram'
+                : null
+            }
+            text={content[activeTab] || ''}
+            imagePath={imagePath}
+            brandName={brandQuery.data?.settings?.company_name || 'Light Personeelsdiensten'}
+          />
+
           <button
             type="button"
             className="copy-text-btn"
@@ -625,6 +695,25 @@ export default function MarketingPost() {
             onClose={() => setMediaPickerOpen(false)}
           />
 
+          {role === 'owner' ? (
+            <div className="marketing-schedule">
+              <label className="marketing-field">
+                Publicatiemoment (optioneel)
+                <input
+                  type="datetime-local"
+                  value={scheduleAt}
+                  onChange={(event) => setScheduleAt(event.target.value)}
+                  disabled={isBusy}
+                />
+              </label>
+              <p className="marketing-muted">
+                {scheduleAt
+                  ? `Wordt via Buffer ingepland voor ${formatScheduleLabel(resolveDueAt())}.`
+                  : 'Leeg = direct in Buffer-wachtrij.'}
+              </p>
+            </div>
+          ) : null}
+
           <div className="marketing-actions">
             <button type="button" onClick={handleSaveDraft} disabled={isBusy}>
               Opslaan als concept
@@ -638,13 +727,13 @@ export default function MarketingPost() {
 
             {role === 'owner' && loadedDraft?.status === 'approved' ? (
               <button type="button" onClick={handleRetryPublish} disabled={isBusy}>
-                Opnieuw publiceren
+                {scheduleAt ? 'Inplannen via Buffer' : 'Opnieuw publiceren'}
               </button>
             ) : null}
 
             {role === 'owner' && loadedDraft?.status !== 'approved' ? (
               <button type="button" onClick={handleApproveAndPublish} disabled={isBusy}>
-                Goedkeuren en publiceren
+                {scheduleAt ? 'Goedkeuren en inplannen' : 'Goedkeuren en publiceren'}
               </button>
             ) : null}
           </div>

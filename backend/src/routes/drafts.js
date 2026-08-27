@@ -417,6 +417,57 @@ router.post('/:id/generate', async (req, res, next) => {
   }
 });
 
+// Autosave endpoint: merges form_data only, never touches generated fields or
+// status. The main PUT nulls unspecified columns, so a debounced form-input
+// autosave must not go through it — it would wipe criticus_notes and content.
+router.patch('/:id/form-data', async (req, res, next) => {
+  try {
+    if (!['owner', 'recruiter'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
+    }
+
+    const draftId = req.params.id;
+    const incoming = req.body?.formData;
+
+    if (!incoming || typeof incoming !== 'object') {
+      return res.status(400).json({ error: 'Formuliergegevens ontbreken.' });
+    }
+
+    const { data: draft, error: draftError } = await supabase
+      .from('drafts')
+      .select('id, created_by, status, form_data')
+      .eq('id', draftId)
+      .maybeSingle();
+
+    if (draftError) {
+      throw draftError;
+    }
+
+    if (!draft) {
+      return res.status(404).json({ error: 'Concept niet gevonden.' });
+    }
+
+    if (!canEditDraft(req.user, draft)) {
+      return res.status(403).json({ error: 'Je mag dit concept niet aanpassen.' });
+    }
+
+    const merged = { ...(draft.form_data || {}), ...incoming };
+
+    const { error: updateErr } = await supabase
+      .from('drafts')
+      .update({ form_data: merged, updated_at: new Date().toISOString() })
+      .eq('id', draft.id);
+
+    if (updateErr) {
+      throw updateErr;
+    }
+
+    return res.json({ saved_at: new Date().toISOString() });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 router.put('/:id', async (req, res, next) => {
   try {
     if (!['owner', 'recruiter'].includes(req.user.role)) {

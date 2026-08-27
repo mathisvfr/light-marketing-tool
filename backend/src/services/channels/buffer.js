@@ -82,7 +82,7 @@ async function callBuffer(query, accessToken) {
   return payload?.data || {};
 }
 
-async function createPost({ accessToken, channelId, text, imageUrl }) {
+async function createPost({ accessToken, channelId, text, imageUrl, dueAt }) {
   // VERIFY: Buffer's GraphQL createPost input shape and whether it accepts
   // GraphQL *variables* (e.g. `mutation($input: PostCreateInput!) { createPost(input: $input) }`).
   // Buffer's public GraphQL schema and the exact input type name are not documented
@@ -102,6 +102,14 @@ async function createPost({ accessToken, channelId, text, imageUrl }) {
           ]`
     : '';
 
+  // Scheduling: when dueAt is provided, switch mode to customScheduled and add
+  // dueAt (ISO 8601 UTC). Without dueAt we keep the addToQueue behavior so
+  // owners without a schedule flow are unaffected.
+  const scheduledIso = dueAt ? new Date(dueAt).toISOString() : null;
+  const modeBlock = scheduledIso
+    ? `mode: customScheduled\n          dueAt: ${JSON.stringify(scheduledIso)}`
+    : 'mode: addToQueue';
+
   const query = `
     mutation CreateBufferPost {
       createPost(
@@ -109,7 +117,7 @@ async function createPost({ accessToken, channelId, text, imageUrl }) {
           text: ${JSON.stringify(text)}
           channelId: ${JSON.stringify(channelId)}
           schedulingType: automatic
-          mode: addToQueue${assetBlock}
+          ${modeBlock}${assetBlock}
         }
       ) {
         __typename
@@ -192,6 +200,7 @@ async function publishSingle(channel, draft) {
       channelId,
       text,
       imageUrl,
+      dueAt: draft.scheduledFor || null,
     });
   } catch (error) {
     return {

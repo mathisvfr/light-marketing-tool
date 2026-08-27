@@ -3,7 +3,7 @@
 // vacatures via Multiposter). This is NOT an n8n integration; no webhooks are called.
 const { publishDraft, expirePublishedDraft } = require('./publication');
 
-async function publish(draftId, type, channels, contentPayload) {
+async function publish(draftId, type, channels, contentPayload, options = {}) {
   const draft = {
     id: draftId,
     type,
@@ -15,6 +15,8 @@ async function publish(draftId, type, channels, contentPayload) {
     linkedin_post: contentPayload?.linkedin_post || null,
     instagram_caption: contentPayload?.instagram_caption || null,
     image_path: contentPayload?.image_path || null,
+    // ISO 8601 UTC when scheduled via Buffer; falsy for immediate queue.
+    scheduledFor: options?.scheduledFor || null,
   };
 
   return publishDraft(draft, channels);

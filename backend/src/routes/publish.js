@@ -187,7 +187,28 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
       form_data: fullDraft.form_data,
     };
 
-    const publishResult = await publishGateway.publish(draftId, fullDraft.type, publishableChannels, contentPayload);
+    // Optional scheduling: if the caller supplies dueAt (ISO 8601 in future),
+    // route it to Buffer as customScheduled. Guard against past dates so the
+    // owner never accidentally posts an instant-publish thinking it's queued.
+    let scheduledFor = null;
+    if (req.body?.dueAt) {
+      const parsed = new Date(req.body.dueAt);
+      if (Number.isNaN(parsed.getTime())) {
+        return res.status(400).json({ error: 'Ongeldige planningsdatum.' });
+      }
+      if (parsed.getTime() <= Date.now() + 60_000) {
+        return res.status(400).json({ error: 'Planningsdatum moet minstens 1 minuut in de toekomst liggen.' });
+      }
+      scheduledFor = parsed.toISOString();
+    }
+
+    const publishResult = await publishGateway.publish(
+      draftId,
+      fullDraft.type,
+      publishableChannels,
+      contentPayload,
+      { scheduledFor }
+    );
 
     if (!publishResult || publishResult.successCount === 0) {
       const failedDetails = (publishResult?.rows || [])
@@ -210,7 +231,7 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
     if (updateError) {
       throw updateError;
     }
-    return res.json({ success: true });
+    return res.json(scheduledFor ? { success: true, scheduledFor } : { success: true });
   } catch (error) {
     return next(error);
   }
