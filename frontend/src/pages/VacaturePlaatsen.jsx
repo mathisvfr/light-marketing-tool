@@ -53,7 +53,7 @@ function createTabs(content) {
 }
 
 export default function VacaturePlaatsen() {
-  const { role } = useAuth();
+  const { role, user, refreshSession } = useAuth();
   const [searchParams] = useSearchParams();
   const draftIdParam = searchParams.get('draftId');
   const [draftId, setDraftId] = useState(draftIdParam);
@@ -268,6 +268,10 @@ export default function VacaturePlaatsen() {
 
         targetDraftId = created?.draft?.id;
         setDraftId(targetDraftId);
+
+        if (!user?.onboarded_at) {
+          refreshSession();
+        }
       }
 
       // Persist a pre-uploaded image before generating so the backend uses it

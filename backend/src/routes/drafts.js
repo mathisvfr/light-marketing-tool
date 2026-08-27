@@ -226,6 +226,22 @@ router.post('/', async (req, res, next) => {
       throw error;
     }
 
+    // Auto-onboarding: marking the user as onboarded the first time they
+    // create a draft is a stronger signal than "dashboard was non-empty."
+    // The empty-state checklist stops re-appearing after this even if they
+    // later delete every draft. Best-effort — never blocks the response.
+    if (!req.user.onboarded_at) {
+      supabase
+        .from('users')
+        .update({ onboarded_at: new Date().toISOString() })
+        .eq('id', req.user.id)
+        .then(({ error: onboardErr }) => {
+          if (onboardErr) {
+            console.error('Auto-onboard update failed:', onboardErr);
+          }
+        });
+    }
+
     return res.status(201).json({ draft: formatDraftForResponse(data) });
   } catch (error) {
     return next(error);
@@ -571,6 +587,88 @@ router.post('/:id/submit', async (req, res, next) => {
     }
 
     return res.json({ draft: formatDraftForResponse(updatedDraft) });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// Bulk approve: owner-only single-round-trip approval. Mirrors the per-id
+// approve semantics (vacature → 'actief', others → 'approved') but skips the
+// N chatty requests the wachtrij was doing. Guards against runaway payloads
+// with a hard cap of 100 ids per call.
+router.post('/bulk-approve', async (req, res, next) => {
+  try {
+    if (req.user.role !== 'owner') {
+      return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
+    }
+
+    const rawIds = Array.isArray(req.body?.ids) ? req.body.ids : null;
+    if (!rawIds || rawIds.length === 0) {
+      return res.status(400).json({ error: 'Geen concepten geselecteerd.' });
+    }
+
+    if (rawIds.length > 100) {
+      return res.status(400).json({ error: 'Maximaal 100 concepten per keer.' });
+    }
+
+    const ids = Array.from(new Set(rawIds.map((id) => String(id))));
+
+    const { data: drafts, error: fetchError } = await supabase
+      .from('drafts')
+      .select('id, type, status')
+      .in('id', ids);
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    const eligible = (drafts || []).filter((d) => d.status === 'pending_approval');
+    const skipped = (drafts || [])
+      .filter((d) => d.status !== 'pending_approval')
+      .map((d) => ({ id: d.id, reason: 'wrong-status', status: d.status }));
+    const notFound = ids
+      .filter((id) => !(drafts || []).some((d) => d.id === id))
+      .map((id) => ({ id, reason: 'not-found' }));
+
+    const vacatureIds = eligible.filter((d) => d.type === 'vacature').map((d) => d.id);
+    const otherIds = eligible.filter((d) => d.type !== 'vacature').map((d) => d.id);
+    const nowIso = new Date().toISOString();
+    const succeeded = [];
+
+    if (vacatureIds.length > 0) {
+      const { error } = await supabase
+        .from('drafts')
+        .update({ status: 'actief', reviewed_by: req.user.id, updated_at: nowIso })
+        .in('id', vacatureIds);
+
+      if (error) {
+        throw error;
+      }
+      for (const id of vacatureIds) {
+        succeeded.push({ id, status: 'actief' });
+      }
+    }
+
+    if (otherIds.length > 0) {
+      const { error } = await supabase
+        .from('drafts')
+        .update({ status: 'approved', reviewed_by: req.user.id, updated_at: nowIso })
+        .in('id', otherIds);
+
+      if (error) {
+        throw error;
+      }
+      for (const id of otherIds) {
+        succeeded.push({ id, status: 'approved' });
+      }
+    }
+
+    return res.json({
+      succeededCount: succeeded.length,
+      skippedCount: skipped.length + notFound.length,
+      succeeded,
+      skipped: [...skipped, ...notFound],
+    });
   } catch (error) {
     return next(error);
   }

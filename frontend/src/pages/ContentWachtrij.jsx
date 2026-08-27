@@ -178,14 +178,21 @@ export default function ContentWachtrij() {
     if (ids.length === 0) return;
 
     try {
-      // Sequential to avoid a burst of Supabase writes hitting rate limits and
-      // to keep partial-failure semantics simple (first failure stops the loop).
-      for (const id of ids) {
-        await approveMutation.mutateAsync(id);
+      const result = await api('/drafts/bulk-approve', {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+      });
+
+      const succeeded = result?.succeededCount || 0;
+      const skipped = result?.skippedCount || 0;
+      if (skipped > 0) {
+        setError(`${succeeded} goedgekeurd, ${skipped} overgeslagen (verkeerde status of niet gevonden).`);
       }
+
       setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ['drafts-queue'] });
     } catch (err) {
-      setError(err.message || 'Bulk goedkeuren mislukt (deels).');
+      setError(err.message || 'Bulk goedkeuren mislukt.');
     }
   }
 

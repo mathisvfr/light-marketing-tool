@@ -34,7 +34,7 @@ const TEMPLATE_OPTIONS = [
 ];
 
 export default function MarketingPost() {
-  const { role } = useAuth();
+  const { role, user, refreshSession } = useAuth();
   const [searchParams] = useSearchParams();
   const draftIdParam = searchParams.get('draftId');
   const [draftId, setDraftId] = useState(draftIdParam);
@@ -305,6 +305,12 @@ export default function MarketingPost() {
 
         targetDraftId = created?.draft?.id;
         setDraftId(targetDraftId);
+
+        // If this was the caller's first draft, backend just set onboarded_at.
+        // Refresh session so the dashboard checklist hides on the next visit.
+        if (!user?.onboarded_at) {
+          refreshSession();
+        }
       }
 
       // Persist a pre-uploaded image before generating so the backend uses it

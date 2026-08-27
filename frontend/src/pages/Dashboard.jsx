@@ -66,7 +66,7 @@ function getFeedHealthLabel(itemsWithIssues) {
 }
 
 export default function Dashboard() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const queryClient = useQueryClient();
 
   const summaryQuery = useQuery({
@@ -107,15 +107,11 @@ export default function Dashboard() {
   const feedHealth = summaryQuery.data?.feedHealth || null;
   const feedIssueCount = feedHealth?.itemsWithIssues || 0;
 
-  // Empty-state proxy: no draft is anywhere in the pipeline yet AND no recent
-  // status changes. This mirrors what a first-time Sandra/Liza sees on login.
-  const isEmptyDashboard =
-    role !== 'viewer' &&
-    counts.pendingApproval === 0 &&
-    counts.publishedThisWeek === 0 &&
-    counts.activeVacatures === 0 &&
-    approvalQueue.length === 0 &&
-    recentActivity.length === 0;
+  // Per-user onboarded flag: set once when the user creates their first draft
+  // (backend auto-sets on POST /drafts). Existing users are backfilled to their
+  // created_at at migration time so they never see the checklist. The old
+  // "empty pipeline" proxy was fragile — deleting a draft resurrected it.
+  const isEmptyDashboard = role !== 'viewer' && !user?.onboarded_at;
 
   return (
     <div className="dashboard-grid">

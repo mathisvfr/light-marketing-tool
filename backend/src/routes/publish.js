@@ -34,11 +34,14 @@ async function hasProviderConnection(provider) {
 
 router.get('/', async (_req, res, next) => {
   try {
+    // Include 'approved' drafts too — a draft that only has scheduled channels
+    // stays 'approved' until at least one goes live. Filter downstream by
+    // whether it has any publication rows.
     const { data: marketingDrafts, error: marketingError } = await supabase
       .from('drafts')
       .select('id, type, form_data, status, updated_at')
       .eq('type', 'marketing-post')
-      .eq('status', 'published')
+      .in('status', ['published', 'approved'])
       .order('updated_at', { ascending: false })
       .limit(500);
 
@@ -64,7 +67,7 @@ router.get('/', async (_req, res, next) => {
     if (draftIds.length > 0) {
       const { data, error } = await supabase
         .from('publications')
-        .select('draft_id, channel, status, published_at, expired_at')
+        .select('draft_id, channel, status, published_at, expired_at, scheduled_for')
         .in('draft_id', draftIds)
         .order('published_at', { ascending: false });
 
@@ -84,17 +87,32 @@ router.get('/', async (_req, res, next) => {
         status: publication.status,
         publishedAt: publication.published_at,
         expiredAt: publication.expired_at,
+        scheduledFor: publication.scheduled_for,
       });
       byDraftId.set(publication.draft_id, existing);
     }
 
-    const marketingItems = (marketingDrafts || []).map((draft) => ({
-      id: draft.id,
-      title: getDraftTitle(draft.form_data),
-      type: draft.type,
-      publishedAt: draft.updated_at,
-      channels: byDraftId.get(draft.id) || [],
-    }));
+    // Split marketing drafts into 'published now' vs 'scheduled only'. A draft
+    // with no publications rows and status='approved' is dropped from the read
+    // (still in Content wachtrij where it belongs).
+    const marketingItems = [];
+    const scheduledItems = [];
+
+    for (const draft of marketingDrafts || []) {
+      const channels = byDraftId.get(draft.id) || [];
+      if (channels.length === 0) {
+        continue;
+      }
+      const hasLive = channels.some((c) => c.status === 'success' || c.status === 'failed');
+      const target = hasLive ? marketingItems : scheduledItems;
+      target.push({
+        id: draft.id,
+        title: getDraftTitle(draft.form_data),
+        type: draft.type,
+        publishedAt: draft.updated_at,
+        channels,
+      });
+    }
 
     const vacatureItems = (activeVacatures || []).map((draft) => ({
       id: draft.id,
@@ -107,6 +125,7 @@ router.get('/', async (_req, res, next) => {
     return res.json({
       marketingItems,
       vacatureItems,
+      scheduledItems,
     });
   } catch (error) {
     return next(error);
@@ -210,7 +229,10 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
       { scheduledFor }
     );
 
-    if (!publishResult || publishResult.successCount === 0) {
+    const anyProgress =
+      (publishResult?.successCount || 0) + (publishResult?.scheduledCount || 0) > 0;
+
+    if (!publishResult || !anyProgress) {
       const failedDetails = (publishResult?.rows || [])
         .filter((r) => r.status === 'failed')
         .map((r) => `${r.channel}: ${r.error || 'onbekende fout'}`)
@@ -223,15 +245,31 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
       });
     }
 
-    const { error: updateError } = await supabase
-      .from('drafts')
-      .update({ status: 'published', reviewed_by: req.user.id, updated_at: new Date().toISOString() })
-      .eq('id', draftId);
+    // Only auto-advance the draft to 'published' when at least one channel
+    // went live now. If everything is scheduled for later, keep the draft as
+    // 'approved' so Content wachtrij still shows something actionable.
+    const anyLive = (publishResult?.successCount || 0) > 0;
+    if (anyLive) {
+      const { error: updateError } = await supabase
+        .from('drafts')
+        .update({ status: 'published', reviewed_by: req.user.id, updated_at: new Date().toISOString() })
+        .eq('id', draftId);
 
-    if (updateError) {
-      throw updateError;
+      if (updateError) {
+        throw updateError;
+      }
     }
-    return res.json(scheduledFor ? { success: true, scheduledFor } : { success: true });
+
+    return res.json(
+      scheduledFor
+        ? {
+            success: true,
+            scheduledFor,
+            scheduledCount: publishResult.scheduledCount || 0,
+            liveCount: publishResult.successCount || 0,
+          }
+        : { success: true }
+    );
   } catch (error) {
     return next(error);
   }

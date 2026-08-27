@@ -72,6 +72,7 @@ async function savePublicationRows(draftId, rows) {
     error_message: row.error || null,
     published_at: row.publishedAt,
     expired_at: row.expiredAt || null,
+    scheduled_for: row.scheduledFor || null,
   }));
 
   const { error } = await supabase.from('publications').insert(payload);
@@ -83,18 +84,26 @@ async function savePublicationRows(draftId, rows) {
 
 async function publishDraft(draft, channels) {
   const requestedChannels = Array.isArray(channels) ? channels.filter(Boolean) : [];
+  const scheduledFor = draft.scheduledFor || null;
 
   const rows = [];
 
   for (const channel of requestedChannels) {
     try {
       const result = await publishChannel(channel, draft);
+      // Distinguish "Buffer accepted for future publication" from "already live"
+      // so Gepubliceerd can show the future items separately.
+      const finalStatus =
+        result.status === 'success' && scheduledFor && channel !== 'wordpress'
+          ? 'scheduled'
+          : result.status || 'failed';
       rows.push({
         channel,
-        status: result.status || 'failed',
+        status: finalStatus,
         externalId: result.externalId || null,
         error: result.error || null,
-        publishedAt: new Date().toISOString(),
+        publishedAt: finalStatus === 'scheduled' ? null : new Date().toISOString(),
+        scheduledFor: finalStatus === 'scheduled' ? scheduledFor : null,
       });
     } catch (error) {
       rows.push({
@@ -110,11 +119,13 @@ async function publishDraft(draft, channels) {
   await savePublicationRows(draft.id, rows);
 
   const successCount = rows.filter((row) => row.status === 'success').length;
+  const scheduledCount = rows.filter((row) => row.status === 'scheduled').length;
 
   return {
     rows,
     successCount,
-    failedCount: rows.length - successCount,
+    scheduledCount,
+    failedCount: rows.length - successCount - scheduledCount,
   };
 }
 

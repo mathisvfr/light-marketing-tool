@@ -16,6 +16,17 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+function formatDateTime(value) {
+  if (!value) return 'Onbekend';
+  return new Intl.DateTimeFormat('nl-NL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
 function getTypeLabel(type) {
   return type === 'marketing-post' ? 'Marketing' : 'Vacature';
 }
@@ -34,6 +45,10 @@ function getStatusDotClass(status) {
   }
 
   if (status === 'pending') {
+    return 'channel-dot pending';
+  }
+
+  if (status === 'scheduled') {
     return 'channel-dot pending';
   }
 
@@ -81,9 +96,45 @@ export default function Gepubliceerd() {
 
   const marketingItems = publishedQuery.data?.marketingItems || [];
   const vacatureItems = publishedQuery.data?.vacatureItems || [];
+  const scheduledItems = publishedQuery.data?.scheduledItems || [];
 
   return (
     <div className="published-layout">
+      {scheduledItems.length > 0 ? (
+        <section className="published-section">
+          <h3>Ingepland via Buffer</h3>
+          <div className="published-table-wrap">
+            <table className="published-table">
+              <thead>
+                <tr>
+                  <th>Titel</th>
+                  <th>Kanaal</th>
+                  <th>Ingepland voor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {scheduledItems.flatMap((item) =>
+                  (item.channels || [])
+                    .filter((c) => c.status === 'scheduled')
+                    .map((channel) => (
+                      <tr key={`${item.id}-${channel.channel}`}>
+                        <td>{item.title}</td>
+                        <td>
+                          <span className="channel-status-item">
+                            <span className={getStatusDotClass(channel.status)} />
+                            {channel.channel}
+                          </span>
+                        </td>
+                        <td>{formatDateTime(channel.scheduledFor)}</td>
+                      </tr>
+                    ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
+
       <section className="published-section">
         <h3>Marketingpublicaties (Type B)</h3>
         <div className="published-table-wrap">
@@ -117,7 +168,11 @@ export default function Gepubliceerd() {
                           item.channels.map((channel) => (
                             <span key={`${item.id}-${channel.channel}`} className="channel-status-item">
                               <span className={getStatusDotClass(channel.status)} />
-                              {channel.channel} ({channel.status})
+                              {channel.channel} (
+                              {channel.status === 'scheduled'
+                                ? `ingepland voor ${formatDateTime(channel.scheduledFor)}`
+                                : channel.status}
+                              )
                             </span>
                           ))
                         )}
