@@ -1,0 +1,256 @@
+.kalender-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: relative;
+}
+
+.kalender-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--grey-100);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.kalender-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.kalender-range {
+  font-size: 1rem;
+  min-width: 12rem;
+  text-align: center;
+}
+
+.kalender-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.kalender-tz-note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.kalender-loading,
+.kalender-error {
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.kalender-error {
+  color: var(--color-primary);
+}
+
+.kalender-empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  background: var(--grey-100);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+}
+
+.kalender-empty a {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* Mobile-first: single-column stack of day cards. */
+.kalender-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.kalender-day {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: #fff;
+  padding: 0.6rem 0.85rem 0.75rem;
+  min-height: 4.5rem;
+}
+
+.kalender-day.is-empty {
+  background: var(--grey-100);
+  opacity: 0.85;
+}
+
+.kalender-day header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding-bottom: 0.35rem;
+}
+
+.kalender-day-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.kalender-day-date {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.kalender-day-empty {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  margin: 0.15rem 0 0;
+}
+
+.kalender-day ul {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.kalender-chip {
+  border-left: 3px solid var(--color-border);
+  background: #fff;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.kalender-chip button {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: baseline;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-left: 0;
+  border-radius: 0 6px 6px 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.kalender-chip button:hover {
+  background: var(--grey-100);
+}
+
+.kalender-chip-time {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.kalender-chip-channel {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.kalender-chip-title {
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.kalender-chip.ch-li {
+  border-left-color: #0a66c2;
+}
+.kalender-chip.ch-fb {
+  border-left-color: #1877f2;
+}
+.kalender-chip.ch-ig {
+  border-left-color: #e1306c;
+}
+
+/* Detail side panel — bottom sheet on mobile, right rail on desktop. */
+.kalender-side {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+  padding: 1rem 1.25rem 1.5rem;
+  z-index: 20;
+}
+
+.kalender-side-close {
+  position: absolute;
+  right: 0.75rem;
+  top: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.5rem;
+  line-height: 1;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.kalender-side h3 {
+  margin: 0 2.5rem 0.4rem 0;
+}
+
+.kalender-side-note {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.kalender-side-link {
+  display: inline-block;
+  margin-top: 0.4rem;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ≥768px: 7-column grid with sticky header cells. Fits desktop but keeps
+   chips readable — no 112-cell time grid (design agent's critical finding). */
+@media (min-width: 768px) {
+  .kalender-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .kalender-grid.two-weeks {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .kalender-day header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .kalender-chip button {
+    grid-template-columns: 1fr;
+    padding: 0.5rem 0.55rem;
+  }
+
+  .kalender-chip-title {
+    font-size: 0.85rem;
+  }
+
+  .kalender-side {
+    left: auto;
+    right: 1rem;
+    bottom: 1rem;
+    top: 5rem;
+    width: 22rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+  }
+}

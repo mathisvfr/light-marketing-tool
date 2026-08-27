@@ -11,6 +11,7 @@ const navItems = [
   { to: '/marketing-post', label: 'Marketing post' },
   { to: '/content-wachtrij', label: 'Content wachtrij' },
   { to: '/gepubliceerd', label: 'Gepubliceerd' },
+  { to: '/kalender', label: 'Kalender' },
   { to: '/merk-instellingen', label: 'Merk instellingen', ownerOnly: true },
   { to: '/gebruikers', label: 'Gebruikers', ownerOnly: true },
 ];
@@ -21,6 +22,7 @@ const routeTitles = {
   '/marketing-post': 'Marketing post',
   '/content-wachtrij': 'Content wachtrij',
   '/gepubliceerd': 'Gepubliceerd',
+  '/kalender': 'Kalender',
   '/merk-instellingen': 'Merk instellingen',
   '/gebruikers': 'Gebruikers',
 };

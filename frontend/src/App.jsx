@@ -7,6 +7,7 @@ import ContentWachtrij from './pages/ContentWachtrij';
 import Dashboard from './pages/Dashboard';
 import Gebruikers from './pages/Gebruikers';
 import Gepubliceerd from './pages/Gepubliceerd';
+import Kalender from './pages/Kalender';
 import Login from './pages/Login';
 import MarketingPost from './pages/MarketingPost';
 import MerkInstellingen from './pages/MerkInstellingen';
@@ -51,6 +52,7 @@ function App() {
               <Route path="/marketing-post" element={<MarketingPost />} />
               <Route path="/content-wachtrij" element={<ContentWachtrij />} />
               <Route path="/gepubliceerd" element={<Gepubliceerd />} />
+              <Route path="/kalender" element={<Kalender />} />
               <Route
                 path="/merk-instellingen"
                 element={
