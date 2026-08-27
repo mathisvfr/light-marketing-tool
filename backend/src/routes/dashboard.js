@@ -56,6 +56,13 @@ router.get('/summary', async (req, res, next) => {
   try {
     const weekAgoIso = toIsoWeekAgo();
 
+    // Recruiter (and viewer) see their OWN activity. Owner sees the whole team.
+    // Design review: each user's dashboard should reflect their own work; the
+    // 'Jouw' affordance in the frontend expects created_by-filtered counts here.
+    const isPersonal = req.user.role !== 'owner';
+    const personalFilter = (query) =>
+      isPersonal ? query.eq('created_by', req.user.id) : query;
+
     const [
       pendingApprovalResult,
       publishedThisWeekResult,
@@ -64,26 +71,34 @@ router.get('/summary', async (req, res, next) => {
       channelRowsResult,
       approvalQueueResult,
       feedStatusResult,
+      teamPendingCountResult,
+      teamPublishedCountResult,
+      teamActiveVacaturesResult,
     ] = await Promise.all([
-      supabase
-        .from('drafts')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending_approval'),
-      supabase
-        .from('drafts')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'published')
-        .gte('updated_at', weekAgoIso),
-      supabase
-        .from('drafts')
-        .select('*', { count: 'exact', head: true })
-        .eq('type', 'vacature')
-        .eq('status', 'actief'),
-      supabase
-        .from('drafts')
-        .select('id, type, status, updated_at, form_data')
-        .order('updated_at', { ascending: false })
-        .limit(10),
+      personalFilter(
+        supabase.from('drafts').select('*', { count: 'exact', head: true }).eq('status', 'pending_approval')
+      ),
+      personalFilter(
+        supabase
+          .from('drafts')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'published')
+          .gte('updated_at', weekAgoIso)
+      ),
+      personalFilter(
+        supabase
+          .from('drafts')
+          .select('*', { count: 'exact', head: true })
+          .eq('type', 'vacature')
+          .eq('status', 'actief')
+      ),
+      personalFilter(
+        supabase
+          .from('drafts')
+          .select('id, type, status, updated_at, form_data')
+          .order('updated_at', { ascending: false })
+          .limit(10)
+      ),
       getAllCredentialStatuses().then((data) => ({ data, error: null })),
       req.user.role === 'owner'
         ? supabase
@@ -96,6 +111,24 @@ router.get('/summary', async (req, res, next) => {
       req.user.role === 'owner'
         ? getJobsFeedStatus().then((data) => ({ data, error: null }))
         : Promise.resolve({ data: null, error: null }),
+      // Owner also gets team-wide totals rendered in the 'Team totaal' section.
+      req.user.role === 'owner'
+        ? supabase.from('drafts').select('*', { count: 'exact', head: true }).eq('status', 'pending_approval')
+        : Promise.resolve({ count: 0, error: null }),
+      req.user.role === 'owner'
+        ? supabase
+            .from('drafts')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'published')
+            .gte('updated_at', weekAgoIso)
+        : Promise.resolve({ count: 0, error: null }),
+      req.user.role === 'owner'
+        ? supabase
+            .from('drafts')
+            .select('*', { count: 'exact', head: true })
+            .eq('type', 'vacature')
+            .eq('status', 'actief')
+        : Promise.resolve({ count: 0, error: null }),
     ]);
 
     const errors = [
@@ -151,11 +184,21 @@ router.get('/summary', async (req, res, next) => {
     }));
 
     return res.json({
+      // Personal counts for the caller. Frontend renders these under 'Jouw'.
       counts: {
         pendingApproval: pendingApprovalResult.count || 0,
         publishedThisWeek: publishedThisWeekResult.count || 0,
         activeVacatures: activeVacaturesResult.count || 0,
       },
+      // Team totals (owner only). Frontend renders these beneath 'Team totaal'.
+      teamCounts: req.user.role === 'owner'
+        ? {
+            pendingApproval: teamPendingCountResult.count || 0,
+            publishedThisWeek: teamPublishedCountResult.count || 0,
+            activeVacatures: teamActiveVacaturesResult.count || 0,
+          }
+        : null,
+      viewScope: isPersonal ? 'personal' : 'team',
       approvalQueue,
       recentActivity,
       feedHealth: feedStatusResult.data,

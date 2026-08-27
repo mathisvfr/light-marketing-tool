@@ -4,6 +4,7 @@ const path = require('node:path');
 const { supabase } = require('../db/client');
 const { generate, criticus } = require('../services/claude');
 const { renderSocialImage, saveUploadedImageDataUrl } = require('../services/render');
+const { notifyAfterCommit } = require('../services/notifications');
 
 const router = express.Router();
 
@@ -586,6 +587,19 @@ router.post('/:id/submit', async (req, res, next) => {
       throw updateError;
     }
 
+    // Fire draft.submitted to all owners AFTER the DB commit. Never blocks
+    // the response — worst case the notify writes a failed log row.
+    const { data: owners } = await supabase.from('users').select('id').eq('role', 'owner');
+    const ownerIds = (owners || []).map((row) => row.id).filter((id) => id !== req.user.id);
+    if (ownerIds.length > 0) {
+      notifyAfterCommit('draft.submitted', {
+        draft_id: draft.id,
+        actor_name: req.user.name || req.user.email || 'Iemand',
+        title: getDraftTitle(updatedDraft?.form_data) || 'concept',
+        recipient_user_ids: ownerIds,
+      });
+    }
+
     return res.json({ draft: formatDraftForResponse(updatedDraft) });
   } catch (error) {
     return next(error);
@@ -684,7 +698,7 @@ router.post('/:id/approve', async (req, res, next) => {
 
     const { data: currentDraft, error: currentDraftError } = await supabase
       .from('drafts')
-      .select('id, type, status')
+      .select('id, type, status, created_by')
       .eq('id', draftId)
       .maybeSingle();
 
@@ -719,6 +733,17 @@ router.post('/:id/approve', async (req, res, next) => {
       return res.status(404).json({ error: 'Concept niet gevonden.' });
     }
 
+    // Notify the creator (post-commit). Suppress if the owner is the creator
+    // (self-approval doesn't need a notification).
+    if (currentDraft.created_by && currentDraft.created_by !== req.user.id) {
+      notifyAfterCommit('draft.approved', {
+        draft_id: draftId,
+        actor_name: req.user.name || req.user.email || 'De eigenaar',
+        title: getDraftTitle(data.form_data) || 'concept',
+        recipient_user_ids: [currentDraft.created_by],
+      });
+    }
+
     return res.json({ draft: formatDraftForResponse(data) });
   } catch (error) {
     return next(error);
@@ -736,7 +761,7 @@ router.post('/:id/reject', async (req, res, next) => {
 
     const { data: currentDraft, error: currentDraftError } = await supabase
       .from('drafts')
-      .select('id, form_data')
+      .select('id, form_data, created_by')
       .eq('id', draftId)
       .maybeSingle();
 
@@ -769,6 +794,16 @@ router.post('/:id/reject', async (req, res, next) => {
 
     if (error) {
       throw error;
+    }
+
+    if (currentDraft.created_by && currentDraft.created_by !== req.user.id) {
+      notifyAfterCommit('draft.rejected', {
+        draft_id: draftId,
+        actor_name: req.user.name || req.user.email || 'De eigenaar',
+        title: getDraftTitle(data?.form_data) || 'concept',
+        reason: comment,
+        recipient_user_ids: [currentDraft.created_by],
+      });
     }
 
     return res.json({ draft: formatDraftForResponse(data) });

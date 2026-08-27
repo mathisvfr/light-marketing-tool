@@ -176,3 +176,22 @@
 .dashboard-onboarding-list li p {
   margin: 0.15rem 0 0;
 }
+
+.dashboard-section h3 {
+  margin: 1rem 0 0.5rem;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dashboard-card-secondary {
+  opacity: 0.85;
+  background: var(--grey-100);
+}
+
+.dashboard-card-secondary h4 {
+  margin: 0 0 0.3rem;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}

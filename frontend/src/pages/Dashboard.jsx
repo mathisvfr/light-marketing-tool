@@ -101,11 +101,19 @@ export default function Dashboard() {
     publishedThisWeek: 0,
     activeVacatures: 0,
   };
+  const teamCounts = summaryQuery.data?.teamCounts || null;
+  const viewScope = summaryQuery.data?.viewScope || 'team';
   const approvalQueue = summaryQuery.data?.approvalQueue || [];
   const recentActivity = summaryQuery.data?.recentActivity || [];
   const channelHealth = summaryQuery.data?.channelHealth || [];
   const feedHealth = summaryQuery.data?.feedHealth || null;
   const feedIssueCount = feedHealth?.itemsWithIssues || 0;
+
+  // Dashboard "Jouw" affordance (Design review): personal cards prefix "Jouw"
+  // so recruiters know they're seeing their own metrics; owner sees personal
+  // strip PLUS a "Team totaal" section beneath — no toggle.
+  const cardsPrefix = viewScope === 'personal' ? 'Jouw' : '';
+  const label = (base) => (cardsPrefix ? `${cardsPrefix} ${base.toLowerCase()}` : base);
 
   // Per-user onboarded flag: set once when the user creates their first draft
   // (backend auto-sets on POST /drafts). Existing users are backfilled to their
@@ -117,7 +125,7 @@ export default function Dashboard() {
     <div className="dashboard-grid">
       {isEmptyDashboard ? (
         <section className="dashboard-onboarding">
-          <h3>Welkom bij Light Marketing — aan de slag</h3>
+          <h3>Welkom bij Light Marketing. Aan de slag.</h3>
           <p className="dashboard-meta">
             Nog geen content in de tool. Deze drie stappen brengen je naar je eerste post.
           </p>
@@ -142,15 +150,15 @@ export default function Dashboard() {
 
       <section className="dashboard-cards">
         <article className="dashboard-card">
-          <h3>Wacht op goedkeuring</h3>
+          <h3>{label('Wacht op goedkeuring')}</h3>
           <p className="dashboard-count">{counts.pendingApproval}</p>
         </article>
         <article className="dashboard-card">
-          <h3>Gepubliceerd deze week</h3>
+          <h3>{label('Gepubliceerd deze week')}</h3>
           <p className="dashboard-count">{counts.publishedThisWeek}</p>
         </article>
         <article className="dashboard-card">
-          <h3>Actieve vacatures</h3>
+          <h3>{label('Actieve vacatures')}</h3>
           <p className="dashboard-count">{counts.activeVacatures}</p>
         </article>
         {role === 'owner' ? (
@@ -164,6 +172,26 @@ export default function Dashboard() {
           </article>
         ) : null}
       </section>
+
+      {teamCounts ? (
+        <section className="dashboard-section">
+          <h3>Team totaal</h3>
+          <div className="dashboard-cards">
+            <article className="dashboard-card dashboard-card-secondary">
+              <h4>Wacht op goedkeuring</h4>
+              <p className="dashboard-count">{teamCounts.pendingApproval}</p>
+            </article>
+            <article className="dashboard-card dashboard-card-secondary">
+              <h4>Gepubliceerd deze week</h4>
+              <p className="dashboard-count">{teamCounts.publishedThisWeek}</p>
+            </article>
+            <article className="dashboard-card dashboard-card-secondary">
+              <h4>Actieve vacatures</h4>
+              <p className="dashboard-count">{teamCounts.activeVacatures}</p>
+            </article>
+          </div>
+        </section>
+      ) : null}
 
       <section className="dashboard-panels">
         {role === 'owner' ? (
