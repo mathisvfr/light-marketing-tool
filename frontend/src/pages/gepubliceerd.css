@@ -190,3 +190,11 @@
   gap: 0.5rem;
   margin-top: 0.35rem;
 }
+
+.channel-metrics {
+  display: inline-flex;
+  gap: 0.4rem;
+  margin-left: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}

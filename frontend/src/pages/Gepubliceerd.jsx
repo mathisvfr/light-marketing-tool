@@ -27,6 +27,26 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
+// Buffer's metrics array is normalized into a { name: value } object by the
+// sync service. Render a compact icon row: hearts/comments/reach. Any subset
+// of these may be missing depending on the channel and how new the post is.
+function renderMetrics(metrics) {
+  if (!metrics || typeof metrics !== 'object') return null;
+  const likes = metrics.likes ?? metrics.reactions ?? null;
+  const comments = metrics.comments ?? null;
+  const reach = metrics.reach ?? metrics.impressions ?? metrics.views ?? null;
+
+  if (likes == null && comments == null && reach == null) return null;
+
+  return (
+    <span className="channel-metrics">
+      {likes != null ? <span title="Likes">♥ {likes}</span> : null}
+      {comments != null ? <span title="Reacties">💬 {comments}</span> : null}
+      {reach != null ? <span title="Bereik">👁 {reach}</span> : null}
+    </span>
+  );
+}
+
 function getTypeLabel(type) {
   return type === 'marketing-post' ? 'Marketing' : 'Vacature';
 }
@@ -297,6 +317,7 @@ export default function Gepubliceerd() {
                                 ? `ingepland voor ${formatDateTime(channel.scheduledFor)}`
                                 : channel.status}
                               )
+                              {renderMetrics(channel.metrics)}
                             </span>
                           ))
                         )}

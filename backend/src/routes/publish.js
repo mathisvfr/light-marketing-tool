@@ -77,7 +77,7 @@ router.get('/', async (_req, res, next) => {
     if (draftIds.length > 0) {
       const { data, error } = await supabase
         .from('publications')
-        .select('id, draft_id, channel, status, published_at, expired_at, scheduled_for')
+        .select('id, draft_id, channel, status, published_at, expired_at, scheduled_for, metrics, metrics_updated_at')
         .in('draft_id', draftIds)
         .order('published_at', { ascending: false });
 
@@ -99,6 +99,8 @@ router.get('/', async (_req, res, next) => {
         publishedAt: publication.published_at,
         expiredAt: publication.expired_at,
         scheduledFor: publication.scheduled_for,
+        metrics: publication.metrics || null,
+        metricsUpdatedAt: publication.metrics_updated_at || null,
       });
       byDraftId.set(publication.draft_id, existing);
     }

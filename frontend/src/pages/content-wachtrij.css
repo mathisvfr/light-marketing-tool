@@ -165,3 +165,40 @@
 .queue-bulk-bar span {
   font-weight: 600;
 }
+
+@media (max-width: 768px) {
+  .queue-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .queue-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .queue-table th,
+  .queue-table td {
+    padding: 0.5rem 0.55rem;
+    font-size: 0.85rem;
+  }
+
+  .queue-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .queue-actions button {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .queue-bulk-bar {
+    flex-wrap: wrap;
+  }
+
+  .queue-bulk-bar button {
+    min-height: 44px;
+  }
+}

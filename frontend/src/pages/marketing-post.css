@@ -321,3 +321,23 @@
 .marketing-schedule input[type="datetime-local"] {
   max-width: 18rem;
 }
+
+@media (max-width: 768px) {
+  .marketing-layout {
+    display: block;
+  }
+
+  .marketing-form,
+  .marketing-preview {
+    max-width: 100%;
+  }
+
+  .marketing-actions button,
+  .marketing-regenerate button {
+    min-height: 44px;
+  }
+
+  .marketing-schedule input[type="datetime-local"] {
+    max-width: 100%;
+  }
+}

@@ -15,10 +15,13 @@ function requireWriteRole(req, res, next) {
 }
 
 // GET /api/media — lijst ophalen
-// Query params: source ('upload'|'generated'), search (zoekterm op alt_text)
+// Query params:
+//   source ('upload'|'generated')
+//   search (zoekterm; matched against filename + alt_text)
+//   tags (comma-separated; items must have ALL specified tags)
 router.get('/', async (req, res, next) => {
   try {
-    const { source, search } = req.query;
+    const { source, search, tags } = req.query;
 
     let query = supabase
       .from('media_library')
@@ -30,14 +33,41 @@ router.get('/', async (req, res, next) => {
     }
 
     if (search && String(search).trim()) {
-      query = query.ilike('alt_text', `%${String(search).trim()}%`);
+      const term = String(search).trim().replace(/[%_]/g, '\\$&');
+      // Match either filename or alt_text — Sandra remembers filenames she
+      // uploaded, and alt_text captures the description.
+      query = query.or(`filename.ilike.%${term}%,alt_text.ilike.%${term}%`);
+    }
+
+    if (tags && String(tags).trim()) {
+      const list = String(tags)
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
+      if (list.length > 0) {
+        // Postgres array contains: all requested tags must be present.
+        query = query.contains('tags', list);
+      }
     }
 
     const { data, error } = await query;
 
     if (error) throw error;
 
-    return res.json({ items: data || [] });
+    // Also return the top tags (up to 8) so the MediaPicker can render chips
+    // without a second round trip. Ordered by usage frequency descending.
+    const tagCounts = new Map();
+    for (const item of data || []) {
+      for (const tag of item.tags || []) {
+        tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+      }
+    }
+    const topTags = Array.from(tagCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([tag]) => tag);
+
+    return res.json({ items: data || [], topTags });
   } catch (err) {
     return next(err);
   }
@@ -48,6 +78,14 @@ router.post('/upload', requireWriteRole, async (req, res, next) => {
   try {
     const dataUrl = String(req.body?.dataUrl || '').trim();
     const altText = String(req.body?.altText || '').trim().slice(0, 255);
+    // Accept comma-separated string or array. Sanitize: dedupe, lowercase,
+    // strip spaces, cap length. Cap of 10 tags per asset — anything more is
+    // organisational overkill for a 3-user tool.
+    const rawTags = req.body?.tags;
+    const tags = (Array.isArray(rawTags) ? rawTags : String(rawTags || '').split(','))
+      .map((t) => String(t).trim().toLowerCase().slice(0, 40))
+      .filter(Boolean);
+    const uniqueTags = Array.from(new Set(tags)).slice(0, 10);
 
     if (!dataUrl) {
       return res.status(400).json({ error: 'Afbeeldingsdata ontbreekt.' });
@@ -61,6 +99,7 @@ router.post('/upload', requireWriteRole, async (req, res, next) => {
         filename,
         path: filePath,
         alt_text: altText || null,
+        tags: uniqueTags,
         source: 'upload',
         created_by: req.user.id,
         file_size: fileSize,

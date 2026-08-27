@@ -17,6 +17,7 @@ export default function MediaPicker({ open, onSelect, onClose }) {
 
   const [sourceTab, setSourceTab] = useState('all');
   const [search, setSearch] = useState('');
+  const [activeTags, setActiveTags] = useState([]);
   const [generateForm, setGenerateForm] = useState({ onderwerp: '', caption: '' });
   const [showGenerateForm, setShowGenerateForm] = useState(false);
   const [localError, setLocalError] = useState('');
@@ -24,12 +25,17 @@ export default function MediaPicker({ open, onSelect, onClose }) {
   const params = new URLSearchParams();
   if (sourceTab !== 'all') params.set('source', sourceTab);
   if (search.trim()) params.set('search', search.trim());
+  if (activeTags.length > 0) params.set('tags', activeTags.join(','));
 
   const mediaQuery = useQuery({
-    queryKey: ['media-library', sourceTab, search],
+    queryKey: ['media-library', sourceTab, search, activeTags.join(',')],
     queryFn: () => api(`/media?${params.toString()}`),
     enabled: open,
   });
+
+  function toggleTag(tag) {
+    setActiveTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
+  }
 
   const uploadMutation = useMutation({
     mutationFn: ({ dataUrl, altText }) =>
@@ -105,6 +111,7 @@ export default function MediaPicker({ open, onSelect, onClose }) {
 
   const isBusy = uploadMutation.isPending || generateMutation.isPending || deleteMutation.isPending;
   const items = mediaQuery.data?.items || [];
+  const topTags = mediaQuery.data?.topTags || [];
 
   if (!open) return null;
 
@@ -137,10 +144,30 @@ export default function MediaPicker({ open, onSelect, onClose }) {
           <input
             className="mp-search"
             type="search"
-            placeholder="Zoeken..."
+            placeholder="Zoeken op naam of beschrijving..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+
+          {topTags.length > 0 ? (
+            <div className="mp-tag-chips" role="group" aria-label="Filter op tag">
+              {topTags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  className={`mp-tag-chip${activeTags.includes(tag) ? ' active' : ''}`}
+                  onClick={() => toggleTag(tag)}
+                >
+                  {tag}
+                </button>
+              ))}
+              {activeTags.length > 0 ? (
+                <button type="button" className="mp-tag-clear" onClick={() => setActiveTags([])}>
+                  Wissen
+                </button>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="mp-actions">
             <button
