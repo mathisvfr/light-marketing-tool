@@ -19,6 +19,8 @@ const integrationsRoutes = require('./routes/integrations');
 const usersRoutes = require('./routes/users');
 const feedsRoutes = require('./routes/feeds');
 const mediaRoutes = require('./routes/media');
+const patternsRoutes = require('./routes/patterns');
+const publicationsRoutes = require('./routes/publications');
 const { requireAuth } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/errorHandler');
 const { startCleanupSchedule } = require('./services/cleanup');
@@ -114,6 +116,8 @@ app.use('/api/brand', requireAuth, brandRoutes);
 app.use('/api/integrations', requireAuth, integrationsRoutes);
 app.use('/api/users', requireAuth, usersRoutes);
 app.use('/api/media', requireAuth, mediaRoutes);
+app.use('/api/patterns', requireAuth, patternsRoutes);
+app.use('/api/publications', requireAuth, publicationsRoutes);
 
 app.use(errorHandler);
 

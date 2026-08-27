@@ -11,6 +11,7 @@ import Kalender from './pages/Kalender';
 import Login from './pages/Login';
 import MarketingPost from './pages/MarketingPost';
 import MerkInstellingen from './pages/MerkInstellingen';
+import Publicatiepatronen from './pages/Publicatiepatronen';
 import VacaturePlaatsen from './pages/VacaturePlaatsen';
 import { queryClient } from './lib/queryClient';
 import { useAuth } from './hooks/useAuth';
@@ -58,6 +59,14 @@ function App() {
                 element={
                   <RoleRoute allowedRoles={['owner']}>
                     <MerkInstellingen />
+                  </RoleRoute>
+                }
+              />
+              <Route
+                path="/publicatiepatronen"
+                element={
+                  <RoleRoute allowedRoles={['owner']}>
+                    <Publicatiepatronen />
                   </RoleRoute>
                 }
               />

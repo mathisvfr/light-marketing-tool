@@ -1,0 +1,134 @@
+.patronen-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.patronen-intro {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.patronen-form-card {
+  padding: 1rem 1.25rem 1.25rem;
+  background: var(--grey-100);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.patronen-form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.patronen-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.patronen-label {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 0.35rem;
+}
+
+.patronen-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.patronen-chip {
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--color-border);
+  background: #fff;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  min-height: 44px;
+}
+
+.patronen-chip.active {
+  background: var(--color-primary, #be1e2d);
+  color: #fff;
+  border-color: var(--color-primary, #be1e2d);
+  font-weight: 600;
+}
+
+.patronen-time {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.patronen-time-presets {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.patronen-preset {
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--color-border);
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.patronen-preset.active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.patronen-active {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem !important;
+}
+
+.patronen-form-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.patronen-error {
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.patronen-success {
+  color: #16a34a;
+  margin: 0;
+}
+
+.patronen-empty {
+  padding: 1.25rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.patronen-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.patronen-table th,
+.patronen-table td {
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.patronen-table button {
+  margin-right: 0.35rem;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.85rem;
+}

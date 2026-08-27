@@ -704,22 +704,14 @@ export default function MarketingPost() {
           />
 
           {role === 'owner' ? (
-            <div className="marketing-schedule">
-              <label className="marketing-field">
-                Publicatiemoment (optioneel)
-                <input
-                  type="datetime-local"
-                  value={scheduleAt}
-                  onChange={(event) => setScheduleAt(event.target.value)}
-                  disabled={isBusy}
-                />
-              </label>
-              <p className="marketing-muted">
-                {scheduleAt
-                  ? `Wordt via Buffer ingepland voor ${formatScheduleLabel(resolveDueAt())}.`
-                  : 'Leeg = direct in Buffer-wachtrij.'}
-              </p>
-            </div>
+            <PatternPickerBlock
+              form={form}
+              scheduleAt={scheduleAt}
+              setScheduleAt={setScheduleAt}
+              resolveDueAt={resolveDueAt}
+              formatScheduleLabel={formatScheduleLabel}
+              isBusy={isBusy}
+            />
           ) : null}
 
           <div className="marketing-actions">
@@ -750,6 +742,109 @@ export default function MarketingPost() {
 
       {error ? <p className="marketing-error">{error}</p> : null}
       {success ? <p>{success}</p> : null}
+    </div>
+  );
+}
+
+// Owner-only block: shows a datetime-local picker + a dropdown of active
+// publication patterns whose channel matches at least one selected kanaal.
+// Picking a pattern resolves its next-slot on demand (batched on dropdown
+// open) and prefills the datetime input so the user can confirm before
+// committing. This is the "Inplannen via patroon" flow from Slice 2.
+function PatternPickerBlock({ form, scheduleAt, setScheduleAt, resolveDueAt, formatScheduleLabel, isBusy }) {
+  const [selectedPattern, setSelectedPattern] = useState('');
+  const [resolvingPattern, setResolvingPattern] = useState(false);
+  const [patternError, setPatternError] = useState('');
+
+  const patternsQuery = useQuery({
+    queryKey: ['publication-patterns'],
+    queryFn: () => api('/patterns'),
+  });
+
+  const kanalen = Array.isArray(form.kanalen) ? form.kanalen : [];
+  const matchingPatterns = useMemo(() => {
+    const all = patternsQuery.data?.patterns || [];
+    return all.filter((p) => p.isActive && kanalen.includes(p.channel));
+  }, [patternsQuery.data, kanalen]);
+
+  async function applyPattern(patternId) {
+    setSelectedPattern(patternId);
+    if (!patternId) return;
+    setPatternError('');
+    setResolvingPattern(true);
+    try {
+      const result = await api(`/patterns/${patternId}/next-slot`);
+      const next = result?.nextSlot;
+      if (!next) throw new Error('Geen datum ontvangen.');
+      // Convert UTC ISO to a datetime-local wall-clock in Europe/Amsterdam.
+      // Intl formatting gets us the parts; the input eats YYYY-MM-DDTHH:MM.
+      const parts = Object.fromEntries(
+        new Intl.DateTimeFormat('en-GB', {
+          timeZone: 'Europe/Amsterdam',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        })
+          .formatToParts(new Date(next))
+          .map((p) => [p.type, p.value])
+      );
+      setScheduleAt(`${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`);
+    } catch (err) {
+      setPatternError(err?.message || 'Kon volgend moment niet ophalen.');
+    } finally {
+      setResolvingPattern(false);
+    }
+  }
+
+  return (
+    <div className="marketing-schedule">
+      <label className="marketing-field">
+        Publicatiemoment (optioneel)
+        <input
+          type="datetime-local"
+          value={scheduleAt}
+          onChange={(event) => {
+            setScheduleAt(event.target.value);
+            setSelectedPattern('');
+          }}
+          disabled={isBusy}
+        />
+      </label>
+
+      {matchingPatterns.length > 0 ? (
+        <label className="marketing-field">
+          Inplannen via patroon
+          <select
+            value={selectedPattern}
+            onChange={(event) => applyPattern(event.target.value)}
+            disabled={isBusy || resolvingPattern}
+          >
+            <option value="">— Geen patroon —</option>
+            {matchingPatterns.map((pattern) => (
+              <option key={pattern.id} value={pattern.id}>
+                {pattern.name} ({pattern.channel} · {String(pattern.timeOfDay).slice(0, 5)})
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : (
+        <p className="marketing-muted">
+          Geen actieve patronen voor de gekozen kanalen. Maak er één aan in{' '}
+          <a href="/publicatiepatronen">Publicatiepatronen</a>.
+        </p>
+      )}
+
+      <p className="marketing-muted">
+        {scheduleAt
+          ? `Wordt via Buffer ingepland voor ${formatScheduleLabel(resolveDueAt())}.`
+          : 'Leeg = direct in Buffer-wachtrij.'}
+      </p>
+
+      {resolvingPattern ? <p className="marketing-muted">Volgend moment ophalen...</p> : null}
+      {patternError ? <p className="marketing-error">{patternError}</p> : null}
     </div>
   );
 }
