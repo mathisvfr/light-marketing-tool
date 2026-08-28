@@ -6,7 +6,6 @@ import './merk-instellingen.css';
 
 const PROVIDER_OPTIONS = [
   { key: 'buffer', label: 'Buffer (LinkedIn/Facebook/Instagram)' },
-  { key: 'wordpress', label: 'WordPress' },
 ];
 
 const DEFAULT_SETTINGS = {
@@ -99,6 +98,30 @@ export default function MerkInstellingen() {
         }),
       }),
   });
+
+  const refreshBufferMutation = useMutation({
+    mutationFn: () => api('/integrations/buffer/refresh-channels', { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['integrations-status-owner'] });
+    },
+  });
+
+  async function handleRefreshBufferChannels() {
+    setError('');
+    setSuccess('');
+
+    try {
+      const result = await refreshBufferMutation.mutateAsync();
+      const found = Object.keys(result?.summary?.channelIds || {});
+      setSuccess(
+        found.length > 0
+          ? `Buffer-kanalen bijgewerkt: ${found.join(', ')}.`
+          : 'Geen Buffer-kanalen gevonden. Koppel LinkedIn/Facebook/Instagram eerst binnen Buffer.'
+      );
+    } catch (err) {
+      setError(err.message || 'Buffer-kanalen verversen mislukt.');
+    }
+  }
 
   function updateField(key, value) {
     setSettingsEdits((prev) => ({ ...prev, [key]: value }));
@@ -193,10 +216,18 @@ export default function MerkInstellingen() {
 
       <section className="brand-integrations">
         <h3>Kanaalkoppelingen</h3>
-        {bufferMetadata.organizationName && bufferMetadata.channelNames?.linkedin ? (
+        {bufferMetadata.organizationName ? (
           <p className="brand-meta">
-            Buffer organisatie: {bufferMetadata.organizationName} · LinkedIn-kanaal:{' '}
-            {bufferMetadata.channelNames.linkedin}
+            Buffer organisatie: {bufferMetadata.organizationName}
+            {bufferMetadata.channelNames?.linkedin
+              ? ` · LinkedIn: ${bufferMetadata.channelNames.linkedin}`
+              : ''}
+            {bufferMetadata.channelNames?.facebook
+              ? ` · Facebook: ${bufferMetadata.channelNames.facebook}`
+              : ''}
+            {bufferMetadata.channelNames?.instagram
+              ? ` · Instagram: ${bufferMetadata.channelNames.instagram}`
+              : ''}
           </p>
         ) : null}
         <div className="integration-grid">
@@ -217,6 +248,17 @@ export default function MerkInstellingen() {
                 <p className="integration-hint">
                   Wordt beheerd via serverconfiguratie (.env).
                 </p>
+                {provider.key === 'buffer' ? (
+                  <button
+                    type="button"
+                    onClick={handleRefreshBufferChannels}
+                    disabled={refreshBufferMutation.isPending || state === 'disconnected'}
+                  >
+                    {refreshBufferMutation.isPending
+                      ? 'Bezig met verversen...'
+                      : 'Kanalen verversen'}
+                  </button>
+                ) : null}
               </article>
             );
           })}

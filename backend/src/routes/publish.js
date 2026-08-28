@@ -30,14 +30,6 @@ async function hasProviderConnection(provider) {
     return Boolean(credential?.access_token || process.env.BUFFER_API_KEY);
   }
 
-  if (provider === 'wordpress') {
-    const credential = await getCredential('wordpress');
-    return Boolean(
-      credential?.access_token ||
-      (process.env.WORDPRESS_API_URL && process.env.WORDPRESS_USERNAME && process.env.WORDPRESS_APP_PASSWORD)
-    );
-  }
-
   const credential = await getCredential(provider);
   return Boolean(credential?.access_token);
 }
@@ -170,7 +162,6 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
       facebook_instagram: 'buffer',
       instagram: 'buffer',
       facebook: 'buffer',
-      wordpress: 'wordpress',
     };
 
     const requiredCredentialChannels = channels.filter((channel) => Boolean(credentialMapping[channel]));

@@ -6,7 +6,6 @@ import './dashboard.css';
 
 const CHANNEL_LABELS = {
   buffer: 'Buffer (LinkedIn/Facebook/Instagram)',
-  wordpress: 'WordPress',
 };
 
 function formatDate(dateValue) {

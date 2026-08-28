@@ -161,7 +161,12 @@ test('vacature draft: create, generate, submit, approve to actief', async () => 
     method: 'POST',
     body: {
       type: 'vacature',
-      formData: { functietitel: 'Orderpicker', plaats: 'Rotterdam', taal: 'NL' },
+      formData: {
+        functietitel: 'Orderpicker',
+        plaats: 'Rotterdam',
+        taal: 'NL',
+        sollicitatie_url: 'https://light-personeelsdiensten.nl/solliciteren/orderpicker',
+      },
     },
   });
   assert.equal(createResponse.status, 201);

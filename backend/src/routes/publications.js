@@ -55,8 +55,8 @@ router.post('/:id/reschedule', requireOwner, async (req, res, next) => {
     if (!publication.external_id) {
       return res.status(409).json({ error: 'Publicatie heeft geen Buffer-ID.' });
     }
-    if (publication.channel === 'wordpress') {
-      return res.status(400).json({ error: 'WordPress-posts kunnen niet ingepland worden.' });
+    if (publication.channel === 'website') {
+      return res.status(400).json({ error: 'Website-posts kunnen niet via Buffer ingepland worden.' });
     }
 
     const result = await bufferChannel.editPost({
@@ -100,8 +100,8 @@ router.post('/:id/cancel', requireOwner, async (req, res, next) => {
       if (error) throw error;
       return res.json({ success: true, alreadyGone: true });
     }
-    if (publication.channel === 'wordpress') {
-      return res.status(400).json({ error: 'WordPress-posts kunnen niet via deze route geannuleerd worden.' });
+    if (publication.channel === 'website') {
+      return res.status(400).json({ error: 'Website-posts kunnen niet via deze route geannuleerd worden.' });
     }
 
     const result = await bufferChannel.deletePost({ externalId: publication.external_id });

@@ -240,7 +240,7 @@ export default function SeoPaginas() {
     try {
       await saveMutation.mutateAsync('approved');
       await publishMutation.mutateAsync();
-      setSuccess('Pagina goedgekeurd en gepubliceerd naar WordPress.');
+      setSuccess('Pagina goedgekeurd. Publicatie naar de nieuwe website volgt zodra de koppeling actief is.');
     } catch (err) {
       setError(err.message || 'Publiceren is mislukt.');
     }

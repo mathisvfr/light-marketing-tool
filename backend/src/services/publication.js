@@ -1,44 +1,6 @@
 const { supabase } = require('../db/client');
 const bufferChannel = require('./channels/buffer');
-const wordpressChannel = require('./channels/wordpress');
-
-const REQUEST_TIMEOUT_MS = 15000;
-
-async function postJson(url, body, headers = {}) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
-
-    const payload = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      const message = payload?.error || payload?.message || `HTTP ${response.status}`;
-      throw new Error(message);
-    }
-
-    return payload;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-async function publishToWordPress(draft) {
-  return wordpressChannel.publish({
-    ...draft,
-    content_nl: draft.content_nl,
-    omschrijving_nl: draft.content_nl,
-  });
-}
+const websiteChannel = require('./channels/website');
 
 function placeholderChannel(channel) {
   return {
@@ -52,8 +14,8 @@ async function publishChannel(channel, draft) {
     return bufferChannel.publish(draft, channel);
   }
 
-  if (channel === 'wordpress') {
-    return publishToWordPress(draft);
+  if (channel === 'website') {
+    return websiteChannel.publish(draft);
   }
 
   return placeholderChannel(channel);
@@ -92,9 +54,11 @@ async function publishDraft(draft, channels) {
     try {
       const result = await publishChannel(channel, draft);
       // Distinguish "Buffer accepted for future publication" from "already live"
-      // so Gepubliceerd can show the future items separately.
+      // so Gepubliceerd can show the future items separately. Only social channels
+      // support Buffer scheduling; website (stub) does not.
+      const isBufferScheduling = scheduledFor && channel !== 'website';
       const finalStatus =
-        result.status === 'success' && scheduledFor && channel !== 'wordpress'
+        result.status === 'success' && isBufferScheduling
           ? 'scheduled'
           : result.status || 'failed';
       rows.push({
@@ -130,54 +94,19 @@ async function publishDraft(draft, channels) {
 }
 
 async function expirePublishedDraft(_draft, publicationRows) {
-  // Placeholder for direct per-channel expire actions (WordPress).
+  // Placeholder for direct per-channel expire actions (e.g. new site).
   // We still mark drafts/publications as expired in the DB route layer.
   return {
     attempted: Array.isArray(publicationRows) ? publicationRows.length : 0,
   };
 }
 
-async function publishSeoPage(page) {
-  const baseUrl = process.env.WORDPRESS_API_URL;
-  const username = process.env.WORDPRESS_USERNAME;
-  const appPassword = process.env.WORDPRESS_APP_PASSWORD;
-
-  if (!baseUrl || !username || !appPassword) {
-    return {
-      status: 'failed',
-      externalId: null,
-      error: 'WordPress API is niet geconfigureerd.',
-    };
-  }
-
-  const endpoint = `${baseUrl.replace(/\/$/, '')}/wp-json/wp/v2/pages`;
-  const basicToken = Buffer.from(`${username}:${appPassword}`).toString('base64');
-
-  try {
-    const result = await postJson(
-      endpoint,
-      {
-        title: page.meta_title || page.h1 || `${page.sector} ${page.locatie}`,
-        slug: page.slug,
-        status: 'publish',
-        content: page.body_html,
-        excerpt: page.meta_description || '',
-      },
-      { Authorization: `Basic ${basicToken}` }
-    );
-
-    return {
-      status: 'success',
-      externalId: result?.id ? String(result.id) : result?.link || null,
-      error: null,
-    };
-  } catch (error) {
-    return {
-      status: 'failed',
-      externalId: null,
-      error: error.message || 'Publiceren naar WordPress mislukt.',
-    };
-  }
+async function publishSeoPage(_page) {
+  return {
+    status: 'failed',
+    externalId: null,
+    error: websiteChannel.NOT_CONFIGURED_ERROR,
+  };
 }
 
 module.exports = {

@@ -1,8 +1,8 @@
 const { supabase } = require('../db/client');
 const { encryptValue, decryptValue } = require('./crypto');
 
-const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://api.buffer.com';
-const SUPPORTED_PROVIDERS = ['buffer', 'wordpress'];
+const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://graph.buffer.com';
+const SUPPORTED_PROVIDERS = ['buffer'];
 const INTEGRATION_KEY_PREFIX = 'integration_';
 
 function integrationKey(provider) {
@@ -11,14 +11,6 @@ function integrationKey(provider) {
 
 function isSupportedProvider(provider) {
   return SUPPORTED_PROVIDERS.includes(provider);
-}
-
-function wordpressEnvConfigured() {
-  return Boolean(
-    (process.env.WORDPRESS_API_URL || process.env.WORDPRESS_URL) &&
-      process.env.WORDPRESS_USERNAME &&
-      process.env.WORDPRESS_APP_PASSWORD
-  );
 }
 
 function sanitizeCredential(row) {
@@ -42,11 +34,10 @@ function sanitizeCredential(row) {
 
   const provider = row.key.replace(INTEGRATION_KEY_PREFIX, '');
   const bufferConnected = provider === 'buffer' && Boolean(process.env.BUFFER_API_KEY);
-  const wordpressConnected = provider === 'wordpress' && wordpressEnvConfigured();
 
   return {
     provider,
-    hasAccessToken: Boolean(payload.access_token) || bufferConnected || wordpressConnected,
+    hasAccessToken: Boolean(payload.access_token) || bufferConnected,
     hasRefreshToken: Boolean(payload.refresh_token),
     expiresAt: payload.expires_at || null,
     metadata: payload.metadata || {},
@@ -96,17 +87,6 @@ async function getAllCredentialStatuses() {
       key: integrationKey('buffer'),
       value: JSON.stringify({
         access_token: process.env.BUFFER_API_KEY,
-        metadata: {},
-      }),
-      updated_at: null,
-    });
-  }
-
-  if (wordpressEnvConfigured()) {
-    fallbackRows.push({
-      key: integrationKey('wordpress'),
-      value: JSON.stringify({
-        access_token: 'env',
         metadata: {},
       }),
       updated_at: null,
@@ -187,6 +167,114 @@ async function callBufferGraphQL(accessToken, query, variables = {}) {
   return payload?.data || {};
 }
 
+const BUFFER_SERVICE_MAP = {
+  linkedin: 'linkedin',
+  linkedin_page: 'linkedin',
+  linkedinpage: 'linkedin',
+  facebook: 'facebook',
+  facebook_page: 'facebook',
+  facebookpage: 'facebook',
+  instagram: 'instagram',
+  instagram_business: 'instagram',
+  instagrambusiness: 'instagram',
+};
+
+function summarizeDiscovery(discovery) {
+  const channelIds = {};
+  const channelNames = {};
+  let primaryOrganization = null;
+
+  for (const organization of discovery?.organizations || []) {
+    if (!primaryOrganization && organization?.channels?.length) {
+      primaryOrganization = organization;
+    }
+
+    for (const channel of organization?.channels || []) {
+      const service = String(channel?.service || '').toLowerCase();
+      const canonical = BUFFER_SERVICE_MAP[service];
+
+      // First hit wins per service — Light has one page per platform. If they
+      // ever add a second, this needs to become a picker rather than "first."
+      if (canonical && !channelIds[canonical]) {
+        channelIds[canonical] = channel.id;
+        channelNames[canonical] = channel.name || null;
+      }
+    }
+  }
+
+  return {
+    channelIds,
+    channelNames,
+    organizationId: primaryOrganization?.id || null,
+    organizationName: primaryOrganization?.name || null,
+  };
+}
+
+async function getBufferAccessToken() {
+  const row = await getCredential('buffer');
+
+  if (!row) {
+    return { accessToken: null, storedMetadata: {} };
+  }
+
+  let payload = {};
+
+  try {
+    if (typeof row.value === 'string' && row.value.trim()) {
+      payload = JSON.parse(decryptValue(row.value));
+    } else if (row.value && typeof row.value === 'object') {
+      payload = row.value;
+    }
+  } catch (_error) {
+    payload = {};
+  }
+
+  return {
+    accessToken: payload.access_token || process.env.BUFFER_API_KEY || null,
+    storedMetadata: payload.metadata || {},
+    storedRefreshToken: payload.refresh_token || null,
+    storedExpiresAt: payload.expires_at || null,
+  };
+}
+
+async function refreshBufferChannels() {
+  const { accessToken, storedMetadata, storedRefreshToken, storedExpiresAt } =
+    await getBufferAccessToken();
+
+  if (!accessToken) {
+    throw new Error(
+      'Buffer is niet gekoppeld. Vul eerst een Buffer API-key in bij Merk instellingen.'
+    );
+  }
+
+  const discovery = await discoverBufferChannels(accessToken);
+  const summary = summarizeDiscovery(discovery);
+
+  const nextMetadata = {
+    ...storedMetadata,
+    channelIds: {
+      ...(storedMetadata.channelIds || {}),
+      ...summary.channelIds,
+    },
+    channelNames: {
+      ...(storedMetadata.channelNames || {}),
+      ...summary.channelNames,
+    },
+    organizationId: summary.organizationId || storedMetadata.organizationId || null,
+    organizationName: summary.organizationName || storedMetadata.organizationName || null,
+    channelsRefreshedAt: new Date().toISOString(),
+  };
+
+  const status = await upsertCredential('buffer', {
+    accessToken,
+    refreshToken: storedRefreshToken,
+    expiresAt: storedExpiresAt,
+    metadata: nextMetadata,
+  });
+
+  return { status, discovery, summary };
+}
+
 async function discoverBufferChannels(accessToken) {
   const accountResult = await callBufferGraphQL(
     accessToken,
@@ -231,4 +319,6 @@ module.exports = {
   getAllCredentialStatuses,
   upsertCredential,
   discoverBufferChannels,
+  refreshBufferChannels,
+  getBufferAccessToken,
 };

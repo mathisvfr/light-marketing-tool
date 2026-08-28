@@ -39,7 +39,6 @@ const COLOR = {
 const CHANNEL_LABELS = {
   linkedin: 'LinkedIn',
   facebook_instagram: 'Facebook/Instagram',
-  wordpress: 'WordPress',
   onbekend: 'Onbekend',
 };
 

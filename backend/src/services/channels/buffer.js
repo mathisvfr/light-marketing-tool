@@ -1,6 +1,9 @@
 const { getCredential } = require('../integrations');
 
-const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://api.buffer.com';
+// Buffer's Publish API is GraphQL and lives on graph.buffer.com (api.buffer.com
+// is the legacy REST host and does not accept GraphQL). Override via env if
+// Buffer moves the endpoint.
+const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://graph.buffer.com';
 
 function getEnvMetadata() {
   return {

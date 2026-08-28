@@ -43,6 +43,8 @@ function seedDraft(store, overrides) {
     status: overrides.status || 'draft',
     form_data: overrides.form_data || {},
     image_path: overrides.image_path || null,
+    omschrijving_nl: overrides.omschrijving_nl || null,
+    sollicitatie_url: overrides.sollicitatie_url || null,
     criticus_passed: null,
     criticus_notes: null,
     created_by: overrides.created_by,
@@ -62,7 +64,14 @@ before(async () => {
 
   seedDraft(store, { id: OWNER_DRAFT_ID, type: 'marketing-post', status: 'pending_approval', created_by: USERS.owner.id, form_data: { onderwerp: 'Test', kanalen: ['linkedin'] } });
   seedDraft(store, { id: RECRUITER_DRAFT_ID, type: 'vacature', status: 'draft', created_by: USERS.recruiter.id });
-  seedDraft(store, { id: VACATURE_DRAFT_ID, type: 'vacature', status: 'pending_approval', created_by: USERS.owner.id });
+  seedDraft(store, {
+    id: VACATURE_DRAFT_ID,
+    type: 'vacature',
+    status: 'pending_approval',
+    created_by: USERS.owner.id,
+    omschrijving_nl: 'NL tekst',
+    sollicitatie_url: 'https://light-personeelsdiensten.nl/solliciteren/test',
+  });
   seedDraft(store, { id: MARKETING_WITH_IMAGE_ID, type: 'marketing-post', status: 'draft', created_by: USERS.owner.id, image_path: '/uploads/social/mine.png', form_data: { onderwerp: 'Eigen foto', kanalen: ['instagram'] } });
 
   const started = await startServer(configured.app);

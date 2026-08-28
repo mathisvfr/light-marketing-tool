@@ -737,7 +737,7 @@ router.post('/bulk-approve', async (req, res, next) => {
 
     const { data: drafts, error: fetchError } = await supabase
       .from('drafts')
-      .select('id, type, status')
+      .select('id, type, status, sollicitatie_url, form_data, omschrijving_nl')
       .in('id', ids);
 
     if (fetchError) {
@@ -752,7 +752,32 @@ router.post('/bulk-approve', async (req, res, next) => {
       .filter((id) => !(drafts || []).some((d) => d.id === id))
       .map((id) => ({ id, reason: 'not-found' }));
 
-    const vacatureIds = eligible.filter((d) => d.type === 'vacature').map((d) => d.id);
+    // Vacatures moeten dezelfde validatie doorstaan als de single-approve
+    // route: geldige sollicitatie_url + NL-omschrijving. Skip degenen die
+    // falen zodat de rest in de bulk toch door kan.
+    const vacatureCandidates = eligible.filter((d) => d.type === 'vacature');
+    const vacatureIds = [];
+
+    for (const draft of vacatureCandidates) {
+      const sollicitatieUrl = String(
+        draft.sollicitatie_url || draft.form_data?.sollicitatie_url || ''
+      ).trim();
+      const hasValidUrl = sollicitatieUrl && /^https?:\/\//i.test(sollicitatieUrl);
+      const hasNlDescription = draft.omschrijving_nl && String(draft.omschrijving_nl).trim();
+
+      if (!hasValidUrl) {
+        skipped.push({ id: draft.id, reason: 'missing-sollicitatie-url' });
+        continue;
+      }
+
+      if (!hasNlDescription) {
+        skipped.push({ id: draft.id, reason: 'missing-nl-description' });
+        continue;
+      }
+
+      vacatureIds.push(draft.id);
+    }
+
     const otherIds = eligible.filter((d) => d.type !== 'vacature').map((d) => d.id);
     const nowIso = new Date().toISOString();
     const succeeded = [];
@@ -806,7 +831,7 @@ router.post('/:id/approve', async (req, res, next) => {
 
     const { data: currentDraft, error: currentDraftError } = await supabase
       .from('drafts')
-      .select('id, type, status, created_by')
+      .select('id, type, status, created_by, sollicitatie_url, form_data, omschrijving_nl')
       .eq('id', draftId)
       .maybeSingle();
 
@@ -816,6 +841,27 @@ router.post('/:id/approve', async (req, res, next) => {
 
     if (!currentDraft) {
       return res.status(404).json({ error: 'Concept niet gevonden.' });
+    }
+
+    if (currentDraft.type === 'vacature') {
+      // Sollicitatie-URL is de enige weg voor kandidaten om te reageren via de
+      // feed. Zonder geldige URL komt niemand ergens; blokkeer daarom activering.
+      const sollicitatieUrl = String(
+        currentDraft.sollicitatie_url || currentDraft.form_data?.sollicitatie_url || ''
+      ).trim();
+
+      if (!sollicitatieUrl || !/^https?:\/\//i.test(sollicitatieUrl)) {
+        return res.status(400).json({
+          error:
+            'Sollicitatie-URL ontbreekt of is ongeldig. Zonder geldige URL komen kandidaten via de feed nergens terecht.',
+        });
+      }
+
+      if (!currentDraft.omschrijving_nl || !String(currentDraft.omschrijving_nl).trim()) {
+        return res.status(400).json({
+          error: 'Nederlandse omschrijving ontbreekt; Jobit vereist een NL-omschrijving.',
+        });
+      }
     }
 
     const nextStatus = currentDraft.type === 'vacature' ? 'actief' : 'approved';

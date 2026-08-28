@@ -27,8 +27,12 @@ merk-/awareness-content gericht op bedrijven die personeel zoeken. Geen vacature
 Taal: NL.
 
 **Website / SEO — blogs en vacaturepagina's**
-Gaan rechtstreeks via de **WordPress REST API**. Buffer kan NIET naar WordPress
-publiceren; dat bouwen we zelf.
+Wordt gebouwd als aparte website op **dezelfde server**. Zodra die live staat
+koppelt de tool er direct aan (waarschijnlijk een interne REST- of DB-koppeling;
+nog te bepalen). Tot die tijd blijft de SEO-flow (concepten, generatie, review)
+werken maar publiceert nog niet — er is een stub-adapter
+(`services/channels/website.js`) die netjes een "nog niet gekoppeld"-fout
+teruggeeft. WordPress is niet meer in beeld.
 
 Deze drie sporen mogen in code, database en UI nooit door elkaar lopen.
 
@@ -43,7 +47,7 @@ Deze drie sporen mogen in code, database en UI nooit door elkaar lopen.
 - Beeld-rendering: Satori (HTML/JSX → PNG) voor branded social images
 - Social publicatie (Type B): **Buffer API (GraphQL)** — LinkedIn, Facebook, Instagram
 - Vacaturedistributie (Type A): Jobit/Multiposter via XML feed (wij hosten de feed)
-- Website (blogs/pagina's): WordPress REST API
+- Website (blogs/pagina's): eigen nieuwe site op dezelfde server (koppeling volgt; stub-adapter aanwezig)
 - Deployment: Docker Compose + Caddy reverse proxy (auto-HTTPS)
 - Alle UI-tekst: Nederlands. Gegenereerde content: NL, PL, of beide.
 
@@ -66,7 +70,9 @@ MARKETINGPOSTS (Type B)
   → Buffer regelt platform-publicatie + houdt platform-OAuth zelf bij
 
 WEBSITE / SEO
-  → WordPress REST API (zelf bouwen)
+  → Nieuwe eigen site op dezelfde server (koppeling volgt: interne REST of
+    shared Postgres — nog te bepalen). Stub-adapter
+    (`services/channels/website.js`) tot dan.
   (kan ook Satori pipeline gebruiken voor og:images)
 
 KWALITEITSCONTROLE
@@ -74,10 +80,11 @@ KWALITEITSCONTROLE
     het de goedkeuringswachtrij in gaat
 ```
 
-Zelfgebouwde integraties: **Buffer-service (GraphQL), WordPress, Satori-render,
-XML feed.** Geen directe LinkedIn/Meta-integratie meer — Buffer vervangt die en
-houdt de platform-goedkeuringen zelf. Al het kandidaat-gerichte boardwerk loopt
-via Jobit/Multiposter.
+Zelfgebouwde integraties: **Buffer-service (GraphQL), Satori-render, XML feed,
+website-adapter (stub).** Geen directe LinkedIn/Meta-integratie meer — Buffer
+vervangt die en houdt de platform-goedkeuringen zelf. Al het kandidaat-gerichte
+boardwerk loopt via Jobit/Multiposter. WordPress is uit scope: de nieuwe eigen
+site komt op dezelfde server en krijgt later een directe koppeling.
 
 ---
 
@@ -146,16 +153,17 @@ light-marketing-tool/
 │   │   │   ├── auth.js         # POST /login, /logout, GET /me
 │   │   │   ├── drafts.js       # CRUD content drafts
 │   │   │   ├── vacatures.js    # vacature-lifecycle + status
-│   │   │   ├── publish.js      # Type B publicatie (Buffer) + WordPress
+│   │   │   ├── publish.js      # Type B publicatie (Buffer)
 │   │   │   ├── brand.js        # GET/PUT merkinstellingen
-│   │   │   ├── channels.js     # Buffer kanaal-status + WordPress-koppeling
+│   │   │   ├── channels.js     # Buffer kanaal-status
 │   │   │   └── users.js        # owner-only gebruikersbeheer
 │   │   ├── services/
 │   │   │   ├── claude.js       # generatie + Criticus-check
 │   │   │   ├── render.js       # Satori HTML→PNG
 │   │   │   ├── feed.js         # XML feed generator
-│   │   │   ├── buffer.js       # Buffer GraphQL client (createPost etc.)
-│   │   │   └── wordpress.js    # WordPress REST
+│   │   │   └── channels/
+│   │   │       ├── buffer.js   # Buffer GraphQL client (createPost etc.)
+│   │   │       └── website.js  # stub-adapter voor de nieuwe eigen site
 │   │   └── db/
 │   │       ├── client.js       # Supabase client
 │   │       └── migrations/
@@ -237,27 +245,28 @@ CREATE TABLE drafts (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 003_publications (per-kanaal status voor Type B + WordPress; Type A = feed)
+-- 003_publications (per-kanaal status voor Type B + website; Type A = feed)
 CREATE TABLE publications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   draft_id UUID REFERENCES drafts(id),
-  channel TEXT NOT NULL,       -- 'linkedin','facebook','instagram','wordpress'
-  via TEXT,                    -- 'buffer' of 'wordpress' of 'feed'
+  channel TEXT NOT NULL,       -- 'linkedin','facebook','instagram','website'
+  via TEXT,                    -- 'buffer' of 'website' of 'feed'
   status TEXT NOT NULL CHECK (status IN ('pending','scheduled','success','failed')),
-  external_id TEXT,            -- Buffer post-id of WordPress post-id
+  external_id TEXT,            -- Buffer post-id of website post-id
   scheduled_for TIMESTAMPTZ,   -- als ingepland via Buffer dueAt
   error_message TEXT,
   published_at TIMESTAMPTZ
 );
+-- Note: historische rijen kunnen channel/via = 'wordpress' bevatten (v1).
+-- Nieuwe rijen gebruiken 'website'; we hernoemen bestaande rijen niet.
 
 -- 004_channel_credentials
 -- Voor Buffer: één key + de channelId's per platform.
--- Voor WordPress: app-password (versleuteld).
 CREATE TABLE channel_credentials (
   channel TEXT PRIMARY KEY,    -- 'buffer:linkedin','buffer:facebook',
-                               -- 'buffer:instagram','wordpress'
+                               -- 'buffer:instagram'
   buffer_channel_id TEXT,      -- Buffer channelId (voor de buffer:* rijen)
-  secret TEXT,                 -- WordPress app-password (versleuteld)
+  secret TEXT,                 -- optioneel versleuteld geheim (bijv. nieuwe site key)
   status TEXT DEFAULT 'disconnected'
     CHECK (status IN ('connected','disconnected')),
   updated_at TIMESTAMPTZ DEFAULT now()
@@ -369,7 +378,7 @@ doorgaat. Bouw NIET alles in één keer.
 - Telkaarten: drafts in wachtrij, deze week gepubliceerd, actieve vacatures.
 - Goedkeuringswachtrij-widget (owner): pending_approval met goedkeuren/afwijzen.
 - Recente activiteit: laatste 10 statuswijzigingen.
-- Kanaalstatus: Buffer-kanalen + WordPress (groen/rood).
+- Kanaalstatus: Buffer-kanalen (groen/rood). Nieuwe website-koppeling volgt.
 
 ### Stap 5 — Vacature plaatsen (Type A) [HOOGSTE WAARDE — eerst af]
 Formulier: Functietitel, Locatie (default Rotterdam), Uren/week, Startdatum,
@@ -398,7 +407,8 @@ recruiter (eigen drafts bewerken/verwijderen).
 ### Stap 8 — Gepubliceerd
 - Type A: lijst actieve vacatures met "Vacature sluiten" (status → expired,
   valt uit feed). Stats-kolom als stub tot Jobit-methode bekend is.
-- Type B + blog: tabel met per-kanaal publicatiestatus (groen/rood/ingepland).
+- Type B + website: tabel met per-kanaal publicatiestatus (groen/rood/ingepland).
+  Website-rijen blijven op 'failed' (nog niet gekoppeld) tot de eigen site live is.
 
 ### Stap 9 — Satori render pipeline (render.js)
 - renderSocialImage(template, fields): HTML/JSX met design-system-tokens → PNG.
@@ -420,11 +430,15 @@ Facebook, Instagram).
 - Schrijf per kanaal een publications-rij (via='buffer', external_id=Buffer post-id,
   status 'scheduled' of 'success').
 
-### Stap 11 — WordPress (blogs/pagina's) (wordpress.js)
-- Aparte content-flow type 'blog'. Claude genereert blog_titel + blog_html.
-- Criticus-check. Owner keurt goed → POST naar WordPress REST /wp-json/wp/v2/posts.
-- Optioneel: og:image via Satori.
-- Schrijf publications-rij (via='wordpress').
+### Stap 11 — Website (SEO / blogs) via eigen site (website.js) [DEFERRED]
+- De aparte content-flows type 'blog' en de SEO-pagina's (seo_pages) blijven
+  qua concept, generatie, criticus-check en approval-flow werken. De
+  publicatiestap is tijdelijk gestubbed: `services/channels/website.js` geeft
+  altijd `status='failed'` met de melding "nog niet gekoppeld" terug.
+- Zodra de nieuwe eigen site op dezelfde server staat: kies koppel-mechanisme
+  (interne REST endpoint of shared Postgres). Vervang de stub-adapter door de
+  echte client en zet `via='website'` in `publications`.
+- WordPress is uit scope.
 
 ### Stap 12 — Merk instellingen (owner only)
 Form-UI over brand_settings: Bedrijfsnaam, Tone of voice, Wat bieden wij
@@ -433,7 +447,7 @@ opdrachtgevers.
 Kanaal-sectie:
 - Buffer: toon gekoppelde kanalen + channelId's (opgehaald via channels-query),
   status groen/rood. Knop "kanalen verversen" (her-fetch channelId's).
-- WordPress: URL + app-password invoeren, testverbinding.
+- Website (nieuwe eigen site): koppeling volgt zodra de site live is.
 
 ### Stap 13 — Gebruikers (owner only)
 Tabel + "Gebruiker toevoegen" (modal: naam, email, tijdelijk wachtwoord, rol).
@@ -461,9 +475,12 @@ Inline rol wijzigen. Laatste owner kan niet verwijderd/gedegradeerd worden.
 
 **feed.js** — zie XML feed-specificatie hierboven.
 
-**wordpress.js**
-- publishPost({ title, html, imageUrl? }): POST /wp-json/wp/v2/posts met
-  app-password basic auth. Map response naar publications.
+**website.js** [DEFERRED]
+- Stub-adapter tot de nieuwe eigen site (op dezelfde server) live is. `publish()`
+  retourneert `{ status: 'failed', error: 'Nieuwe website-koppeling nog niet
+  geconfigureerd.' }`; `expire()` is een no-op. Blog- en SEO-flow blijven werken
+  behalve de publicatiestap. Vervangen door echte client zodra koppelvorm
+  (interne REST of shared Postgres) beslist is.
 
 ### Stap 15 — Prompts
 
@@ -504,10 +521,7 @@ SUPABASE_SERVICE_KEY=
 ANTHROPIC_API_KEY=
 # Buffer (Type B social)
 BUFFER_API_KEY=
-# WordPress
-WORDPRESS_URL=
-WORDPRESS_USERNAME=
-WORDPRESS_APP_PASSWORD=
+# Website (eigen nieuwe site) — nog niet in gebruik, wordt later toegevoegd
 # Domein (Caddy)
 DOMAIN=
 FEED_DOMAIN=feed.lightpersoneelsdiensten.nl
@@ -541,5 +555,25 @@ De eigenaar kan in de browser inloggen, een vacature-formulier in het Nederlands
 invullen, binnen ~10s een gestructureerd concept zien (NL en optioneel PL), dit
 bewerken, goedkeuren waarna het in de XML feed verschijnt; én een marketingpost
 met branded afbeelding genereren, goedkeuren en via Buffer publiceren/inplannen
-naar LinkedIn/Facebook/Instagram; én een blog publiceren naar WordPress, met
+naar LinkedIn/Facebook/Instagram; blog- en SEO-publicatie naar de nieuwe eigen
+website volgt zodra die site + koppeling gereed is (stub-adapter aanwezig), met
 per-kanaal statusindicatie.
+
+## Skill routing
+
+When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
+
+Key routing rules:
+- Product ideas/brainstorming → invoke /office-hours
+- Strategy/scope → invoke /plan-ceo-review
+- Architecture → invoke /plan-eng-review
+- Design system/plan review → invoke /design-consultation or /plan-design-review
+- Full review pipeline → invoke /autoplan
+- Bugs/errors → invoke /investigate
+- QA/testing site behavior → invoke /qa or /qa-only
+- Code review/diff check → invoke /review
+- Visual polish → invoke /design-review
+- Ship/deploy/PR → invoke /ship or /land-and-deploy
+- Save progress → invoke /context-save
+- Resume context → invoke /context-restore
+- Author a backlog-ready spec/issue → invoke /spec

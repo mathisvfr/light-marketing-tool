@@ -468,7 +468,7 @@ router.post('/:id/publish', async (req, res, next) => {
 
     if (result.status === 'failed') {
       return res.status(502).json({
-        error: result.error || 'Publiceren naar WordPress is mislukt.',
+        error: result.error || 'Publiceren naar de website is mislukt.',
         page: formatPage(updated),
       });
     }

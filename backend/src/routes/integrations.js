@@ -4,6 +4,7 @@ const {
   isSupportedProvider,
   getAllCredentialStatuses,
   discoverBufferChannels,
+  refreshBufferChannels,
   upsertCredential,
 } = require('../services/integrations');
 const { requireRole } = require('../middleware/auth');
@@ -52,6 +53,15 @@ router.post('/buffer/discover', requireRole('owner'), async (req, res, next) => 
 
     const discovery = await discoverBufferChannels(accessToken);
     return res.json({ discovery });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post('/buffer/refresh-channels', requireRole('owner'), async (_req, res, next) => {
+  try {
+    const { status, summary } = await refreshBufferChannels();
+    return res.json({ provider: status, summary });
   } catch (error) {
     return next(error);
   }

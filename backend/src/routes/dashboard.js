@@ -27,7 +27,7 @@ function toIsoWeekAgo() {
 }
 
 function getKnownChannels() {
-  return ['buffer', 'wordpress'];
+  return ['buffer'];
 }
 
 function getCredentialState(provider) {

@@ -54,7 +54,15 @@ test('vacature flow: create -> generate -> submit -> approve -> feed -> close ->
   // Create
   const createResponse = await client.request('/api/drafts', {
     method: 'POST',
-    body: { type: 'vacature', formData: { functietitel: 'Heftruckchauffeur', locatie: 'Rotterdam', taal: 'NL' } },
+    body: {
+      type: 'vacature',
+      formData: {
+        functietitel: 'Heftruckchauffeur',
+        locatie: 'Rotterdam',
+        taal: 'NL',
+        sollicitatie_url: 'https://light-personeelsdiensten.nl/solliciteren/heftruck',
+      },
+    },
   });
   assert.equal(createResponse.status, 201);
   const draftId = (await createResponse.json()).draft.id;

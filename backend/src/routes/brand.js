@@ -22,14 +22,6 @@ async function hasProviderConnection(provider) {
     return Boolean(credential?.access_token || process.env.BUFFER_API_KEY);
   }
 
-  if (provider === 'wordpress') {
-    const credential = await getCredential('wordpress');
-    return Boolean(
-      credential?.access_token ||
-        (process.env.WORDPRESS_API_URL && process.env.WORDPRESS_USERNAME && process.env.WORDPRESS_APP_PASSWORD)
-    );
-  }
-
   const credential = await getCredential(provider);
   return Boolean(credential?.access_token);
 }
@@ -44,10 +36,7 @@ async function buildApiStatus() {
       ? 'gemini'
       : 'anthropic');
 
-  const [bufferConnected, wordpressConnected] = await Promise.all([
-    hasProviderConnection('buffer'),
-    hasProviderConnection('wordpress'),
-  ]);
+  const bufferConnected = await hasProviderConnection('buffer');
 
   return {
     // Type A vacatures distribueren via de publieke XML feed -> Multiposter.
@@ -56,8 +45,8 @@ async function buildApiStatus() {
     // Type B social loopt via Buffer (LinkedIn/Facebook/Instagram).
     linkedin: bufferConnected,
     facebook_instagram: bufferConnected,
-    // Website/blogs via WordPress REST API.
-    wordpress: wordpressConnected,
+    // De nieuwe eigen site wordt later gekoppeld; tot dan uit.
+    website: false,
     ai_provider: effectiveProvider,
     anthropic: Boolean(process.env.ANTHROPIC_API_KEY),
     gemini: Boolean(process.env.GOOGLE_AI_STUDIO_API_KEY),

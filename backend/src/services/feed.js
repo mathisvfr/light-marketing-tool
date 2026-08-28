@@ -1,6 +1,7 @@
 const { supabase } = require('../db/client');
 
 const REQUIRED_FIELDS = ['nummer', 'datum', 'titel', 'plaats', 'omschrijving'];
+const FEED_PULL_STATE_KEY = 'feed_last_pulled_at';
 
 function toCdata(value) {
   const text = String(value ?? '');
@@ -38,18 +39,20 @@ function mapDraftToFeedItem(draft) {
   const formData = draft.form_data || {};
   const plaatsCandidate = pickFirst(draft.plaats, formData.locatie);
   const plaats = isSinglePlaceName(plaatsCandidate) ? plaatsCandidate : 'Rotterdam';
-  const taal = String(formData.taal || 'NL').toUpperCase();
-  const usePl = taal === 'PL';
 
+  // Jobit distribueert naar Nederlandse boards. Altijd de NL-tekst gebruiken.
+  // Als alleen PL bestaat, laten we het veld leeg en emit een diagnostic in
+  // evaluateItemQuality — Polish text on Dutch boards zou afgekeurd worden of
+  // matching schaden.
   return {
     nummer: draft.id,
     datum: draft.created_at,
     titel: pickFirst(draft.titel, formData.functietitel, formData.titel, formData.title, 'Vacature'),
     plaats,
-    omschrijving: pickFirst(usePl ? draft.omschrijving_pl : draft.omschrijving_nl, draft.omschrijving_nl, draft.omschrijving_pl, ''),
+    omschrijving: pickFirst(draft.omschrijving_nl, ''),
     functie: pickFirst(formData.functie, ''),
-    functieEisen: pickFirst(usePl ? draft.functie_eisen_pl : draft.functie_eisen, draft.functie_eisen, draft.functie_eisen_pl, ''),
-    watWijBieden: pickFirst(usePl ? draft.wat_wij_bieden_pl : draft.wat_wij_bieden, draft.wat_wij_bieden, draft.wat_wij_bieden_pl, ''),
+    functieEisen: pickFirst(draft.functie_eisen, ''),
+    watWijBieden: pickFirst(draft.wat_wij_bieden, ''),
     opleiding: pickFirst(formData.opleiding, ''),
     carriereNiveau: pickFirst(formData.carriereNiveau, ''),
     dienstverband: pickFirst(formData.dienstverband, draft.contract, ''),
@@ -92,6 +95,16 @@ function evaluateItemQuality(draft, item) {
         'omschrijving'
       )
     );
+
+    if (draft.omschrijving_pl && String(draft.omschrijving_pl).trim() !== '') {
+      issues.push(
+        createIssue(
+          'only_polish_description',
+          'Alleen Poolse omschrijving aanwezig. Jobit distribueert naar NL-boards — voeg een Nederlandse omschrijving toe.',
+          'omschrijving'
+        )
+      );
+    }
   }
 
   const missingRequired = REQUIRED_FIELDS.filter(
@@ -128,6 +141,39 @@ function toJobXml(item) {
     `    <Email>${toCdata(item.email)}</Email>`,
     '  </job>',
   ].join('\n');
+}
+
+async function recordFeedPull(context = {}) {
+  const nowIso = new Date().toISOString();
+
+  const value = JSON.stringify({
+    at: nowIso,
+    userAgent: context.userAgent || null,
+    ip: context.ip || null,
+  });
+
+  await supabase
+    .from('brand_settings')
+    .upsert({ key: FEED_PULL_STATE_KEY, value, updated_at: nowIso }, { onConflict: 'key' });
+}
+
+async function readLastFeedPull() {
+  const { data, error } = await supabase
+    .from('brand_settings')
+    .select('value, updated_at')
+    .eq('key', FEED_PULL_STATE_KEY)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(data.value);
+    return { at: parsed.at || data.updated_at, userAgent: parsed.userAgent || null };
+  } catch (_error) {
+    return { at: data.updated_at, userAgent: null };
+  }
 }
 
 async function generateJobsFeedXml() {
@@ -184,7 +230,11 @@ async function buildJobsFeedData() {
 }
 
 async function getJobsFeedStatus() {
-  const { items, diagnostics } = await buildJobsFeedData();
+  const [{ items, diagnostics }, lastPull] = await Promise.all([
+    buildJobsFeedData(),
+    readLastFeedPull(),
+  ]);
+
   const issueCounts = diagnostics.reduce((accumulator, entry) => {
     for (const issue of entry.issues) {
       const currentCount = accumulator[issue.code] || 0;
@@ -199,10 +249,13 @@ async function getJobsFeedStatus() {
     itemsWithIssues: diagnostics.length,
     issueCounts,
     diagnostics,
+    lastPulledAt: lastPull?.at || null,
+    lastPulledUserAgent: lastPull?.userAgent || null,
   };
 }
 
 module.exports = {
   generateJobsFeedXml,
   getJobsFeedStatus,
+  recordFeedPull,
 };

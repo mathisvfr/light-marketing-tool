@@ -18,7 +18,8 @@ mockModule('../src/services/channels/buffer', {
     return { status: 'failed', externalId: null, error: 'Buffer weigerde facebook' };
   },
 });
-mockModule('../src/services/channels/wordpress', {
+mockModule('../src/services/channels/website', {
+  NOT_CONFIGURED_ERROR: 'Nieuwe website-koppeling is nog niet geconfigureerd.',
   async publish() {
     return { status: 'failed', externalId: null, error: 'niet gebruikt' };
   },

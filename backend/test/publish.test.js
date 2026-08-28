@@ -34,9 +34,6 @@ const cookies = {};
 before(async () => {
   // Ensure env-based credentials from a root .env do not mask the disconnected case.
   delete process.env.BUFFER_API_KEY;
-  delete process.env.WORDPRESS_API_URL;
-  delete process.env.WORDPRESS_USERNAME;
-  delete process.env.WORDPRESS_APP_PASSWORD;
 
   const configured = setup({ integrations: integrationsMock, publishGateway: publishGatewayMock });
   store = configured.store;
