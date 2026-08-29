@@ -284,6 +284,148 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
   }
 });
 
+// Bulk publish for approved marketing-posts. Instant-publish only — bulk
+// scheduling would need one dueAt per row, which is a footgun. Any row that
+// isn't 'approved' marketing, or has no connected channel, or where every
+// channel failed at Buffer, lands in skipped[] with a reason. Rows that
+// publish live are flipped to 'published' individually so a partial batch
+// still records the successful ones.
+router.post('/bulk', requireRole('owner'), async (req, res, next) => {
+  try {
+    const rawIds = Array.isArray(req.body?.ids) ? req.body.ids : null;
+    if (!rawIds || rawIds.length === 0) {
+      return res.status(400).json({ error: 'Geen concepten geselecteerd.' });
+    }
+    if (rawIds.length > 100) {
+      return res.status(400).json({ error: 'Maximaal 100 concepten per keer.' });
+    }
+
+    const ids = Array.from(new Set(rawIds.map((id) => String(id))));
+
+    const { data: drafts, error: fetchError } = await supabase
+      .from('drafts')
+      .select('id, type, status, omschrijving_nl, social_nl, omschrijving_pl, social_pl, linkedin_post, instagram_caption, image_path, form_data')
+      .in('id', ids);
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    // Cache the buffer credential check across the batch — every marketing
+    // post uses the same provider, and this endpoint routinely handles a
+    // dozen rows at once. One check per unique provider per bulk call.
+    const providerConnectionCache = new Map();
+    async function isProviderConnected(provider) {
+      if (providerConnectionCache.has(provider)) {
+        return providerConnectionCache.get(provider);
+      }
+      const connected = await hasProviderConnection(provider);
+      providerConnectionCache.set(provider, connected);
+      return connected;
+    }
+
+    const credentialMapping = {
+      linkedin: 'buffer',
+      facebook_instagram: 'buffer',
+      instagram: 'buffer',
+      facebook: 'buffer',
+    };
+
+    const succeeded = [];
+    const skipped = [];
+    const nowIso = new Date().toISOString();
+
+    for (const draft of drafts || []) {
+      if (draft.type !== 'marketing-post') {
+        skipped.push({ id: draft.id, reason: 'not-marketing' });
+        continue;
+      }
+      if (draft.status !== 'approved') {
+        skipped.push({ id: draft.id, reason: 'wrong-status', status: draft.status });
+        continue;
+      }
+
+      const channels = Array.isArray(draft.form_data?.kanalen) ? draft.form_data.kanalen : [];
+      const publishable = [];
+      for (const channel of channels) {
+        const provider = credentialMapping[channel];
+        if (!provider) {
+          publishable.push(channel);
+          continue;
+        }
+        // eslint-disable-next-line no-await-in-loop
+        if (await isProviderConnected(provider)) {
+          publishable.push(channel);
+        }
+      }
+
+      if (publishable.length === 0) {
+        skipped.push({ id: draft.id, reason: 'no-connected-channels' });
+        continue;
+      }
+
+      const contentPayload = {
+        omschrijving_nl: draft.omschrijving_nl,
+        social_nl: draft.social_nl,
+        omschrijving_pl: draft.omschrijving_pl,
+        social_pl: draft.social_pl,
+        linkedin_post: draft.linkedin_post,
+        instagram_caption: draft.instagram_caption,
+        image_path: draft.image_path,
+        form_data: draft.form_data,
+      };
+
+      let result;
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        result = await publishGateway.publish(draft.id, draft.type, publishable, contentPayload, { scheduledFor: null });
+      } catch (error) {
+        skipped.push({ id: draft.id, reason: 'publish-threw', error: error.message || 'onbekende fout' });
+        continue;
+      }
+
+      const anyLive = (result?.successCount || 0) > 0;
+      if (!anyLive) {
+        const failedDetails = (result?.rows || [])
+          .filter((r) => r.status === 'failed')
+          .map((r) => `${r.channel}: ${r.error || 'onbekende fout'}`)
+          .join('; ');
+        skipped.push({ id: draft.id, reason: 'all-channels-failed', error: failedDetails });
+        continue;
+      }
+
+      // eslint-disable-next-line no-await-in-loop
+      const { error: updateError } = await supabase
+        .from('drafts')
+        .update({ status: 'published', reviewed_by: req.user.id, updated_at: nowIso })
+        .eq('id', draft.id);
+
+      if (updateError) {
+        // The publish already happened at Buffer — surface the DB error but
+        // don't roll back. Row will look 'approved' with success publications
+        // until the owner retries or an admin fixes the row directly.
+        skipped.push({ id: draft.id, reason: 'db-update-failed', error: updateError.message });
+        continue;
+      }
+
+      succeeded.push({ id: draft.id, status: 'published', liveCount: result.successCount });
+    }
+
+    const notFound = ids
+      .filter((id) => !(drafts || []).some((d) => d.id === id))
+      .map((id) => ({ id, reason: 'not-found' }));
+
+    return res.json({
+      succeededCount: succeeded.length,
+      skippedCount: skipped.length + notFound.length,
+      succeeded,
+      skipped: [...skipped, ...notFound],
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 router.post('/:id/expire', requireRole('owner'), async (req, res, next) => {
   try {
     const draftId = req.params.id;

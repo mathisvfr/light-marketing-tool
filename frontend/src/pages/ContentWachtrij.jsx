@@ -108,6 +108,33 @@ export default function ContentWachtrij() {
     },
   });
 
+  // Bulk mutations. All follow the same succeeded/skipped shape so the
+  // handler code below can share result-reporting logic.
+  const bulkApproveMutation = useMutation({
+    mutationFn: (ids) => api('/drafts/bulk-approve', { method: 'POST', body: JSON.stringify({ ids }) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['drafts-queue'] }),
+  });
+  const bulkRejectMutation = useMutation({
+    mutationFn: (ids) => api('/drafts/bulk-reject', { method: 'POST', body: JSON.stringify({ ids }) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['drafts-queue'] }),
+  });
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids) => api('/drafts/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['drafts-queue'] }),
+  });
+  const bulkSubmitMutation = useMutation({
+    mutationFn: (ids) => api('/drafts/bulk-submit', { method: 'POST', body: JSON.stringify({ ids }) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['drafts-queue'] }),
+  });
+  const bulkExpireMutation = useMutation({
+    mutationFn: (ids) => api('/drafts/bulk-expire', { method: 'POST', body: JSON.stringify({ ids }) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['drafts-queue'] }),
+  });
+  const bulkPublishMutation = useMutation({
+    mutationFn: (ids) => api('/publish/bulk', { method: 'POST', body: JSON.stringify({ ids }) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['drafts-queue'] }),
+  });
+
   const allDrafts = useMemo(() => draftsQuery.data?.drafts || [], [draftsQuery.data]);
 
   // Client-side freetext search over title + author. Server already filters
@@ -135,15 +162,33 @@ export default function ContentWachtrij() {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [allDrafts]);
 
-  const pendingSelectableIds = useMemo(
-    () => drafts.filter((d) => d.status === 'pending_approval').map((d) => d.id),
-    [drafts]
-  );
+  // Homogeneous selection: the first row you check locks the "current" status
+  // for the bulk action bar. Other-status checkboxes disable until you clear
+  // the selection. Prevents mixed-status batches that would silently skip
+  // most of the payload.
+  const selectionStatus = useMemo(() => {
+    if (selectedIds.size === 0) return null;
+    const firstId = selectedIds.values().next().value;
+    return drafts.find((d) => d.id === firstId)?.status || null;
+  }, [selectedIds, drafts]);
 
-  const selectedPendingCount = useMemo(
-    () => pendingSelectableIds.filter((id) => selectedIds.has(id)).length,
-    [pendingSelectableIds, selectedIds]
-  );
+  // Header "select all" acts on the locked status when a selection exists,
+  // otherwise defaults to pending_approval (owner's most common quick-path).
+  const selectableIds = useMemo(() => {
+    const status = selectionStatus || 'pending_approval';
+    return drafts.filter((d) => d.status === status).map((d) => d.id);
+  }, [drafts, selectionStatus]);
+
+  const allSelectableSelected =
+    selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id));
+
+  function isCheckboxDisabled(draft) {
+    if (selectionStatus === null) {
+      // No selection yet — any status can start a batch.
+      return false;
+    }
+    return draft.status !== selectionStatus;
+  }
 
   function toggleSelect(id) {
     setSelectedIds((prev) => {
@@ -159,41 +204,72 @@ export default function ContentWachtrij() {
 
   function toggleSelectAll() {
     setSelectedIds((prev) => {
-      const allSelected = pendingSelectableIds.length > 0 &&
-        pendingSelectableIds.every((id) => prev.has(id));
-      if (allSelected) {
-        const next = new Set(prev);
-        for (const id of pendingSelectableIds) next.delete(id);
-        return next;
-      }
+      const allSelected = selectableIds.length > 0 && selectableIds.every((id) => prev.has(id));
       const next = new Set(prev);
-      for (const id of pendingSelectableIds) next.add(id);
+      if (allSelected) {
+        for (const id of selectableIds) next.delete(id);
+      } else {
+        for (const id of selectableIds) next.add(id);
+      }
       return next;
     });
   }
 
-  async function handleBulkApprove() {
-    setError('');
-    const ids = pendingSelectableIds.filter((id) => selectedIds.has(id));
-    if (ids.length === 0) return;
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
 
-    try {
-      const result = await api('/drafts/bulk-approve', {
-        method: 'POST',
-        body: JSON.stringify({ ids }),
-      });
-
-      const succeeded = result?.succeededCount || 0;
-      const skipped = result?.skippedCount || 0;
-      if (skipped > 0) {
-        setError(`${succeeded} goedgekeurd, ${skipped} overgeslagen (verkeerde status of niet gevonden).`);
-      }
-
-      setSelectedIds(new Set());
-      queryClient.invalidateQueries({ queryKey: ['drafts-queue'] });
-    } catch (err) {
-      setError(err.message || 'Bulk goedkeuren mislukt.');
+  function reportBulkResult(actionLabel, result) {
+    const succeeded = result?.succeededCount || 0;
+    const skipped = result?.skippedCount || 0;
+    if (skipped > 0) {
+      setError(`${succeeded} ${actionLabel}, ${skipped} overgeslagen (verkeerde status, niet gevonden of geen rechten).`);
+    } else {
+      setError('');
     }
+    clearSelection();
+  }
+
+  async function runBulk(mutation, actionLabel, failLabel) {
+    setError('');
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    try {
+      const result = await mutation.mutateAsync(ids);
+      reportBulkResult(actionLabel, result);
+    } catch (err) {
+      setError(err.message || failLabel);
+    }
+  }
+
+  async function handleBulkApprove() {
+    await runBulk(bulkApproveMutation, 'goedgekeurd', 'Bulk goedkeuren mislukt.');
+  }
+
+  async function handleBulkReject() {
+    await runBulk(bulkRejectMutation, 'afgewezen', 'Bulk afwijzen mislukt.');
+  }
+
+  async function handleBulkSubmit() {
+    await runBulk(bulkSubmitMutation, 'ingediend', 'Bulk indienen mislukt.');
+  }
+
+  async function handleBulkExpire() {
+    await runBulk(bulkExpireMutation, 'gesloten', 'Bulk sluiten mislukt.');
+  }
+
+  async function handleBulkPublish() {
+    if (!window.confirm(`Weet je zeker dat je ${selectedIds.size} post(s) direct wilt publiceren?`)) {
+      return;
+    }
+    await runBulk(bulkPublishMutation, 'gepubliceerd', 'Bulk publiceren mislukt.');
+  }
+
+  async function handleBulkDelete() {
+    if (!window.confirm(`Weet je zeker dat je ${selectedIds.size} concept(en) wilt verwijderen? Dit kan niet ongedaan gemaakt worden.`)) {
+      return;
+    }
+    await runBulk(bulkDeleteMutation, 'verwijderd', 'Bulk verwijderen mislukt.');
   }
 
   async function handleDuplicate(id) {
@@ -267,11 +343,15 @@ export default function ContentWachtrij() {
     approveMutation.isPending ||
     rejectMutation.isPending ||
     deleteMutation.isPending ||
-    duplicateMutation.isPending;
+    duplicateMutation.isPending ||
+    bulkApproveMutation.isPending ||
+    bulkRejectMutation.isPending ||
+    bulkDeleteMutation.isPending ||
+    bulkSubmitMutation.isPending ||
+    bulkExpireMutation.isPending ||
+    bulkPublishMutation.isPending;
 
-  const allPendingSelected =
-    pendingSelectableIds.length > 0 &&
-    pendingSelectableIds.every((id) => selectedIds.has(id));
+  const selectionStatusLabel = selectionStatus ? getStatusLabel(selectionStatus) : '';
 
   return (
     <div className="queue-layout">
@@ -322,20 +402,67 @@ export default function ContentWachtrij() {
         </label>
       </div>
 
-      {role === 'owner' && selectedPendingCount > 0 ? (
+      {role === 'owner' && selectedIds.size > 0 ? (
         <div className="queue-bulk-bar">
-          <span>{selectedPendingCount} geselecteerd</span>
+          <span>
+            {selectedIds.size} geselecteerd ({selectionStatusLabel})
+          </span>
+
+          {selectionStatus === 'draft' ? (
+            <>
+              <button type="button" onClick={handleBulkApprove} disabled={isMutating}>
+                Direct goedkeuren
+              </button>
+              <button type="button" onClick={handleBulkSubmit} disabled={isMutating}>
+                Indienen ter goedkeuring
+              </button>
+              <button type="button" onClick={handleBulkDelete} disabled={isMutating}>
+                Verwijderen
+              </button>
+            </>
+          ) : null}
+
+          {selectionStatus === 'pending_approval' ? (
+            <>
+              <button type="button" onClick={handleBulkApprove} disabled={isMutating}>
+                Goedkeuren
+              </button>
+              <button type="button" onClick={handleBulkReject} disabled={isMutating}>
+                Afwijzen
+              </button>
+            </>
+          ) : null}
+
+          {selectionStatus === 'approved' ? (
+            <>
+              <button type="button" onClick={handleBulkPublish} disabled={isMutating}>
+                Publiceren
+              </button>
+              <button type="button" onClick={handleBulkDelete} disabled={isMutating}>
+                Verwijderen
+              </button>
+            </>
+          ) : null}
+
+          {selectionStatus === 'actief' ? (
+            <button type="button" onClick={handleBulkExpire} disabled={isMutating}>
+              Sluiten
+            </button>
+          ) : null}
+
+          {selectionStatus === 'published' ||
+          selectionStatus === 'expired' ||
+          selectionStatus === 'rejected' ? (
+            <button type="button" onClick={handleBulkDelete} disabled={isMutating}>
+              Verwijderen
+            </button>
+          ) : null}
+
           <button
             type="button"
-            onClick={handleBulkApprove}
+            onClick={clearSelection}
             disabled={isMutating}
-          >
-            Keur {selectedPendingCount} goed
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedIds(new Set())}
-            disabled={isMutating}
+            className="queue-bulk-clear"
           >
             Selectie wissen
           </button>
@@ -350,10 +477,14 @@ export default function ContentWachtrij() {
                 <th>
                   <input
                     type="checkbox"
-                    checked={allPendingSelected}
-                    disabled={pendingSelectableIds.length === 0}
+                    checked={allSelectableSelected}
+                    disabled={selectableIds.length === 0}
                     onChange={toggleSelectAll}
-                    aria-label="Selecteer alle wachtende concepten"
+                    aria-label={
+                      selectionStatus
+                        ? `Selecteer alle rijen met status ${selectionStatusLabel}`
+                        : 'Selecteer alle wachtende concepten'
+                    }
                   />
                 </th>
               ) : null}
@@ -385,7 +516,7 @@ export default function ContentWachtrij() {
                         <input
                           type="checkbox"
                           checked={selectedIds.has(draft.id)}
-                          disabled={draft.status !== 'pending_approval'}
+                          disabled={isCheckboxDisabled(draft)}
                           onChange={() => toggleSelect(draft.id)}
                           aria-label={`Selecteer ${draft.title || 'concept'}`}
                         />

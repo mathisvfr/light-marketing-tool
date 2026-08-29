@@ -744,9 +744,13 @@ router.post('/bulk-approve', async (req, res, next) => {
       throw fetchError;
     }
 
-    const eligible = (drafts || []).filter((d) => d.status === 'pending_approval');
+    // Owner may bulk-approve directly from 'draft' status too (skip the
+    // pending_approval gate). Recruiter is not allowed on this route at all
+    // (owner-only check above), so no need to branch by role here.
+    const APPROVABLE_STATUSES = new Set(['pending_approval', 'draft']);
+    const eligible = (drafts || []).filter((d) => APPROVABLE_STATUSES.has(d.status));
     const skipped = (drafts || [])
-      .filter((d) => d.status !== 'pending_approval')
+      .filter((d) => !APPROVABLE_STATUSES.has(d.status))
       .map((d) => ({ id: d.id, reason: 'wrong-status', status: d.status }));
     const notFound = ids
       .filter((id) => !(drafts || []).some((d) => d.id === id))
@@ -814,6 +818,273 @@ router.post('/bulk-approve', async (req, res, next) => {
       succeededCount: succeeded.length,
       skippedCount: skipped.length + notFound.length,
       succeeded,
+      skipped: [...skipped, ...notFound],
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// Shared bulk-input parser: enforces the array shape + 100-item cap and returns
+// the deduped id list. Kept here (not helper file) so every bulk route uses the
+// same error copy — the frontend surfaces these strings directly.
+function parseBulkIds(rawIds) {
+  const ids = Array.isArray(rawIds) ? rawIds : null;
+  if (!ids || ids.length === 0) {
+    return { error: 'Geen concepten geselecteerd.' };
+  }
+  if (ids.length > 100) {
+    return { error: 'Maximaal 100 concepten per keer.' };
+  }
+  return { ids: Array.from(new Set(ids.map((id) => String(id)))) };
+}
+
+// Owner-only. Rejects pending_approval drafts in one shot. Any row not in
+// pending_approval lands in skipped[] with a reason so the UI can explain
+// partial results.
+router.post('/bulk-reject', async (req, res, next) => {
+  try {
+    if (req.user.role !== 'owner') {
+      return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
+    }
+
+    const parsed = parseBulkIds(req.body?.ids);
+    if (parsed.error) {
+      return res.status(400).json({ error: parsed.error });
+    }
+
+    const { data: drafts, error: fetchError } = await supabase
+      .from('drafts')
+      .select('id, status')
+      .in('id', parsed.ids);
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    const eligible = (drafts || []).filter((d) => d.status === 'pending_approval');
+    const skipped = (drafts || [])
+      .filter((d) => d.status !== 'pending_approval')
+      .map((d) => ({ id: d.id, reason: 'wrong-status', status: d.status }));
+    const notFound = parsed.ids
+      .filter((id) => !(drafts || []).some((d) => d.id === id))
+      .map((id) => ({ id, reason: 'not-found' }));
+
+    const succeeded = [];
+    if (eligible.length > 0) {
+      const { error } = await supabase
+        .from('drafts')
+        .update({ status: 'rejected', reviewed_by: req.user.id, updated_at: new Date().toISOString() })
+        .in('id', eligible.map((d) => d.id));
+
+      if (error) {
+        throw error;
+      }
+      for (const draft of eligible) {
+        succeeded.push({ id: draft.id, status: 'rejected' });
+      }
+    }
+
+    return res.json({
+      succeededCount: succeeded.length,
+      skippedCount: skipped.length + notFound.length,
+      succeeded,
+      skipped: [...skipped, ...notFound],
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// Owner deletes anything; recruiter deletes only own drafts. Recruiter's
+// other-author selections land in skipped, so a mixed batch still deletes
+// what it can. Delete is hard — no soft-delete column exists.
+router.post('/bulk-delete', async (req, res, next) => {
+  try {
+    if (!['owner', 'recruiter'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
+    }
+
+    const parsed = parseBulkIds(req.body?.ids);
+    if (parsed.error) {
+      return res.status(400).json({ error: parsed.error });
+    }
+
+    const { data: drafts, error: fetchError } = await supabase
+      .from('drafts')
+      .select('id, created_by')
+      .in('id', parsed.ids);
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    const skipped = [];
+    const eligibleIds = [];
+
+    for (const draft of drafts || []) {
+      if (req.user.role === 'owner' || draft.created_by === req.user.id) {
+        eligibleIds.push(draft.id);
+      } else {
+        skipped.push({ id: draft.id, reason: 'not-owner' });
+      }
+    }
+
+    const notFound = parsed.ids
+      .filter((id) => !(drafts || []).some((d) => d.id === id))
+      .map((id) => ({ id, reason: 'not-found' }));
+
+    if (eligibleIds.length > 0) {
+      const { error } = await supabase.from('drafts').delete().in('id', eligibleIds);
+      if (error) {
+        throw error;
+      }
+    }
+
+    return res.json({
+      succeededCount: eligibleIds.length,
+      skippedCount: skipped.length + notFound.length,
+      succeeded: eligibleIds.map((id) => ({ id, status: 'deleted' })),
+      skipped: [...skipped, ...notFound],
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// Owner submits anything; recruiter submits only own. Only 'draft' rows
+// eligible — resubmitting a rejected or already-pending row is a UI mistake
+// and shouldn't be silently allowed.
+router.post('/bulk-submit', async (req, res, next) => {
+  try {
+    if (!['owner', 'recruiter'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
+    }
+
+    const parsed = parseBulkIds(req.body?.ids);
+    if (parsed.error) {
+      return res.status(400).json({ error: parsed.error });
+    }
+
+    const { data: drafts, error: fetchError } = await supabase
+      .from('drafts')
+      .select('id, status, created_by')
+      .in('id', parsed.ids);
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    const skipped = [];
+    const eligibleIds = [];
+
+    for (const draft of drafts || []) {
+      if (draft.status !== 'draft') {
+        skipped.push({ id: draft.id, reason: 'wrong-status', status: draft.status });
+        continue;
+      }
+      if (req.user.role !== 'owner' && draft.created_by !== req.user.id) {
+        skipped.push({ id: draft.id, reason: 'not-owner' });
+        continue;
+      }
+      eligibleIds.push(draft.id);
+    }
+
+    const notFound = parsed.ids
+      .filter((id) => !(drafts || []).some((d) => d.id === id))
+      .map((id) => ({ id, reason: 'not-found' }));
+
+    if (eligibleIds.length > 0) {
+      const { error } = await supabase
+        .from('drafts')
+        .update({ status: 'pending_approval', updated_at: new Date().toISOString() })
+        .in('id', eligibleIds);
+
+      if (error) {
+        throw error;
+      }
+    }
+
+    return res.json({
+      succeededCount: eligibleIds.length,
+      skippedCount: skipped.length + notFound.length,
+      succeeded: eligibleIds.map((id) => ({ id, status: 'pending_approval' })),
+      skipped: [...skipped, ...notFound],
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// Owner-only. Vacatures met status 'actief' -> 'expired'. Publicaties krijgen
+// dezelfde expired_at zodat de "Gepubliceerd"-tab en de feed synchroon blijven.
+// Non-vacature rows worden overgeslagen (marketing-posts hebben geen 'actief').
+router.post('/bulk-expire', async (req, res, next) => {
+  try {
+    if (req.user.role !== 'owner') {
+      return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
+    }
+
+    const parsed = parseBulkIds(req.body?.ids);
+    if (parsed.error) {
+      return res.status(400).json({ error: parsed.error });
+    }
+
+    const { data: drafts, error: fetchError } = await supabase
+      .from('drafts')
+      .select('id, type, status')
+      .in('id', parsed.ids);
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    const skipped = [];
+    const eligibleIds = [];
+
+    for (const draft of drafts || []) {
+      if (draft.type !== 'vacature') {
+        skipped.push({ id: draft.id, reason: 'not-vacature' });
+        continue;
+      }
+      if (draft.status !== 'actief') {
+        skipped.push({ id: draft.id, reason: 'wrong-status', status: draft.status });
+        continue;
+      }
+      eligibleIds.push(draft.id);
+    }
+
+    const notFound = parsed.ids
+      .filter((id) => !(drafts || []).some((d) => d.id === id))
+      .map((id) => ({ id, reason: 'not-found' }));
+
+    const nowIso = new Date().toISOString();
+
+    if (eligibleIds.length > 0) {
+      const { error: draftUpdateError } = await supabase
+        .from('drafts')
+        .update({ status: 'expired', updated_at: nowIso })
+        .in('id', eligibleIds);
+
+      if (draftUpdateError) {
+        throw draftUpdateError;
+      }
+
+      const { error: pubUpdateError } = await supabase
+        .from('publications')
+        .update({ expired_at: nowIso })
+        .in('draft_id', eligibleIds)
+        .is('expired_at', null);
+
+      if (pubUpdateError) {
+        throw pubUpdateError;
+      }
+    }
+
+    return res.json({
+      succeededCount: eligibleIds.length,
+      skippedCount: skipped.length + notFound.length,
+      succeeded: eligibleIds.map((id) => ({ id, status: 'expired' })),
       skipped: [...skipped, ...notFound],
     });
   } catch (error) {
