@@ -193,37 +193,54 @@ export default function Dashboard() {
       ) : null}
 
       <section className="dashboard-panels">
-        {role === 'owner' ? (
+        {role === 'owner' || role === 'recruiter' ? (
           <article className="dashboard-panel">
-            <h3>Goedkeuringswachtrij</h3>
+            <h3>Openstaande concepten</h3>
             {approvalQueue.length === 0 ? (
               <p>Geen concepten in wachtrij.</p>
             ) : (
               <ul className="dashboard-list">
-                {approvalQueue.map((item) => (
-                  <li key={item.id}>
-                    <strong>{item.title}</strong>
-                    <p className="dashboard-meta">
-                      {item.type} · {item.creatorName} · {formatDate(item.createdAt)}
-                    </p>
-                    <div className="dashboard-actions">
-                      <button
-                        type="button"
-                        disabled={approveMutation.isPending || rejectMutation.isPending}
-                        onClick={() => approveMutation.mutate(item.id)}
-                      >
-                        Goedkeuren
-                      </button>
-                      <button
-                        type="button"
-                        disabled={approveMutation.isPending || rejectMutation.isPending}
-                        onClick={() => rejectMutation.mutate(item.id)}
-                      >
-                        Afwijzen
-                      </button>
-                    </div>
-                  </li>
-                ))}
+                {approvalQueue.map((item) => {
+                  // Row rendering branches on status: pending_approval rows keep
+                  // the owner's approve/reject shortcut; draft rows just link to
+                  // their edit page so the author can finish them.
+                  const editPath =
+                    item.type === 'marketing-post'
+                      ? `/marketing-post?draftId=${item.id}`
+                      : `/vacature-plaatsen?draftId=${item.id}`;
+
+                  return (
+                    <li key={item.id}>
+                      <strong>{item.title}</strong>
+                      <p className="dashboard-meta">
+                        {item.type} · {item.creatorName} · {formatDate(item.createdAt)}
+                        {item.status === 'draft' ? ' · Concept' : ''}
+                      </p>
+                      <div className="dashboard-actions">
+                        {item.status === 'pending_approval' && role === 'owner' ? (
+                          <>
+                            <button
+                              type="button"
+                              disabled={approveMutation.isPending || rejectMutation.isPending}
+                              onClick={() => approveMutation.mutate(item.id)}
+                            >
+                              Goedkeuren
+                            </button>
+                            <button
+                              type="button"
+                              disabled={approveMutation.isPending || rejectMutation.isPending}
+                              onClick={() => rejectMutation.mutate(item.id)}
+                            >
+                              Afwijzen
+                            </button>
+                          </>
+                        ) : (
+                          <Link to={editPath}>Bewerken</Link>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </article>

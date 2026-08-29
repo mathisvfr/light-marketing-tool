@@ -100,11 +100,25 @@ router.get('/summary', async (req, res, next) => {
           .limit(10)
       ),
       getAllCredentialStatuses().then((data) => ({ data, error: null })),
+      // "Openstaande concepten" widget. Owner sees all pending_approval items
+      // (the classic approval queue) PLUS their own drafts (Mathis is the sole
+      // author, so pending_approval was always empty and the widget was dead).
+      // Recruiter sees only their own drafts — nothing they'd approve, but
+      // they need a "concepten die ik nog moet afmaken" surface.
+      // Viewer sees nothing (falls through to []).
       req.user.role === 'owner'
         ? supabase
             .from('drafts')
             .select('id, type, status, created_at, form_data, created_by, creator:users!drafts_created_by_fkey(name)')
-            .eq('status', 'pending_approval')
+            .or(`status.eq.pending_approval,and(status.eq.draft,created_by.eq.${req.user.id})`)
+            .order('created_at', { ascending: true })
+            .limit(10)
+        : req.user.role === 'recruiter'
+        ? supabase
+            .from('drafts')
+            .select('id, type, status, created_at, form_data, created_by, creator:users!drafts_created_by_fkey(name)')
+            .eq('created_by', req.user.id)
+            .eq('status', 'draft')
             .order('created_at', { ascending: true })
             .limit(10)
         : Promise.resolve({ data: [], error: null }),
