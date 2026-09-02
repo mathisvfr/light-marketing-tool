@@ -225,3 +225,34 @@ test('unauthenticated request is rejected in Dutch', async () => {
   const body = await response.json();
   assert.equal(body.error, 'Niet ingelogd.');
 });
+
+test('GET /api/meta/statuses returns the four catalogi with expected shape', async () => {
+  const response = await apiRequest('/api/meta/statuses');
+  assert.equal(response.status, 200);
+  const body = await response.json();
+
+  // Vier top-level namespaces zoals de frontend verwacht.
+  assert.ok(body.lifecycle, 'lifecycle catalog present');
+  assert.ok(body.channels, 'channels catalog present');
+  assert.ok(body.integrations, 'integrations catalog present');
+  assert.ok(body.roles, 'roles catalog present');
+
+  // Draft-lifecycle: NL labels + geldige tones.
+  assert.equal(body.lifecycle.draft.label, 'Concept');
+  assert.equal(body.lifecycle.pending_approval.label, 'Ingediend');
+  assert.equal(body.lifecycle.rejected.tone, 'danger');
+  assert.equal(body.lifecycle.actief.tone, 'live');
+
+  // Elke entry heeft label + tone (order optioneel).
+  for (const [ns, catalog] of Object.entries(body)) {
+    for (const [key, meta] of Object.entries(catalog)) {
+      assert.ok(typeof meta.label === 'string' && meta.label.length > 0, `${ns}.${key} missing label`);
+      assert.ok(typeof meta.tone === 'string' && meta.tone.length > 0, `${ns}.${key} missing tone`);
+    }
+  }
+});
+
+test('GET /api/meta/statuses requires auth', async () => {
+  const response = await fetch(`${baseUrl}/api/meta/statuses`);
+  assert.equal(response.status, 401);
+});
