@@ -4,8 +4,10 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import Card, { CardHeader } from '../components/shared/Card';
 import ChannelStatus from '../components/shared/ChannelStatus';
+import FormMessage from '../components/shared/FormMessage';
 import '../components/shared/card.css';
 import '../components/shared/status-strip.css';
+import '../components/shared/toast.css';
 import './merk-instellingen.css';
 
 const PROVIDER_OPTIONS = [
@@ -145,7 +147,7 @@ export default function MerkInstellingen() {
   }
 
   if (brandQuery.isError) {
-    return <p className="brand-error">Kon merk instellingen niet laden.</p>;
+    return <FormMessage variant="error">Kon merk instellingen niet laden.</FormMessage>;
   }
 
   return (
@@ -256,8 +258,8 @@ export default function MerkInstellingen() {
         </div>
       </Card>
 
-      {error ? <p className="brand-error">{error}</p> : null}
-      {success ? <p>{success}</p> : null}
+      <FormMessage variant="error">{error}</FormMessage>
+      <FormMessage variant="success">{success}</FormMessage>
     </div>
   );
 }

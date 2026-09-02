@@ -5,8 +5,10 @@ import { api } from '../lib/api';
 import Card from '../components/shared/Card';
 import Modal, { ModalFooter } from '../components/shared/Modal';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
+import FormMessage from '../components/shared/FormMessage';
 import '../components/shared/card.css';
 import '../components/shared/modal.css';
+import '../components/shared/toast.css';
 import './gebruikers.css';
 
 function formatDate(value) {
@@ -82,7 +84,7 @@ export default function Gebruikers() {
   }
 
   if (usersQuery.isError) {
-    return <p className="users-error">Kon gebruikers niet laden.</p>;
+    return <FormMessage variant="error">Kon gebruikers niet laden.</FormMessage>;
   }
 
   const users = usersQuery.data?.users || [];
@@ -276,8 +278,8 @@ export default function Gebruikers() {
         onConfirm={confirm?.onConfirm}
       />
 
-      {error ? <p className="users-error">{error}</p> : null}
-      {success ? <p>{success}</p> : null}
+      <FormMessage variant="error">{error}</FormMessage>
+      <FormMessage variant="success">{success}</FormMessage>
     </div>
   );
 }

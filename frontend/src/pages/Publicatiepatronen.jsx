@@ -3,8 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import Card, { CardHeader } from '../components/shared/Card';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
+import FormMessage from '../components/shared/FormMessage';
 import '../components/shared/card.css';
 import '../components/shared/modal.css';
+import '../components/shared/toast.css';
 import './publicatiepatronen.css';
 
 const WEEKDAY_CHIPS = [
@@ -246,8 +248,8 @@ export default function Publicatiepatronen() {
             ) : null}
           </div>
 
-          {error ? <p className="patronen-error">{error}</p> : null}
-          {success ? <p className="patronen-success">{success}</p> : null}
+          <FormMessage variant="error">{error}</FormMessage>
+          <FormMessage variant="success">{success}</FormMessage>
         </form>
       </Card>
 

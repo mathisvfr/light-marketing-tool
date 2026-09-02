@@ -6,32 +6,12 @@ import StatusBadge from '../components/shared/StatusBadge';
 import ChannelStatus from '../components/shared/ChannelStatus';
 import Modal, { ModalFooter } from '../components/shared/Modal';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
+import FormMessage from '../components/shared/FormMessage';
 import '../components/shared/status-strip.css';
 import '../components/shared/modal.css';
+import '../components/shared/toast.css';
+import { formatDate, formatDateTime, isoToLocalInput } from '../lib/datetime';
 import './gepubliceerd.css';
-
-function formatDate(value) {
-  if (!value) {
-    return 'Onbekend';
-  }
-
-  return new Intl.DateTimeFormat('nl-NL', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(new Date(value));
-}
-
-function formatDateTime(value) {
-  if (!value) return 'Onbekend';
-  return new Intl.DateTimeFormat('nl-NL', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
-}
 
 // Buffer's metrics array is normalized into a { name: value } object by the
 // sync service. Render a compact icon row: hearts/comments/reach. Any subset
@@ -63,27 +43,8 @@ function getTypeClass(type) {
 
 // getStatusDotClass verwijderd — vervangen door <ChannelStatus compact>
 // die de tone uit /api/meta/statuses haalt via useStatusMeta.
-
-// Convert a UTC ISO instant to a datetime-local value in Europe/Amsterdam
-// (YYYY-MM-DDTHH:MM). Used as the default value in the reschedule modal so
-// Luke sees "current planned time" pre-filled.
-function isoToLocalInput(iso) {
-  if (!iso) return '';
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Europe/Amsterdam',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    })
-      .formatToParts(new Date(iso))
-      .map((p) => [p.type, p.value])
-  );
-  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
-}
+//
+// isoToLocalInput + formatDate + formatDateTime verhuisd naar lib/datetime.js.
 
 export default function Gepubliceerd() {
   const { role } = useAuth();
@@ -177,7 +138,7 @@ export default function Gepubliceerd() {
   }
 
   if (publishedQuery.isError) {
-    return <p className="published-error">Kon gepubliceerde items niet laden.</p>;
+    return <FormMessage variant="error">Kon gepubliceerde items niet laden.</FormMessage>;
   }
 
   const marketingItems = publishedQuery.data?.marketingItems || [];
@@ -385,7 +346,7 @@ export default function Gepubliceerd() {
         Stats voor Type A zijn nog een stub tot de Jobit/Multiposter-methode definitief is.
       </p>
 
-      {error ? <p className="published-error">{error}</p> : null}
+      <FormMessage variant="error">{error}</FormMessage>
 
       <ConfirmDialog
         open={Boolean(confirm)}
