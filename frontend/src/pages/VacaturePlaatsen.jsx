@@ -97,7 +97,11 @@ export default function VacaturePlaatsen() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [imagePath, setImagePath] = useState('');
+  // Image-path pattern: override-first, server-fallback. Zelfde patroon als
+  // MarketingPost.jsx zodat we geen render-phase setState triggeren (React 19
+  // warning). `undefined` = geen lokale override → toon server-waarde.
+  // `''` = expliciet leeg (user removed image). String = lokale keuze.
+  const [imagePathOverride, setImagePathOverride] = useState(undefined);
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [steeringNotes, setSteeringNotes] = useState('');
@@ -113,12 +117,9 @@ export default function VacaturePlaatsen() {
 
   const loadedDraft = existingDraftQuery.data?.draft;
 
-  // Sync imagePath met geladen draft (alleen bij eerste load)
-  const [imageInitialized, setImageInitialized] = useState(false);
-  if (loadedDraft && !imageInitialized) {
-    setImagePath(loadedDraft.image_path || '');
-    setImageInitialized(true);
-  }
+  const imagePath =
+    typeof imagePathOverride === 'string' ? imagePathOverride : loadedDraft?.image_path || '';
+  const setImagePath = setImagePathOverride;
 
   const form = useMemo(
     () => ({
@@ -171,9 +172,10 @@ export default function VacaturePlaatsen() {
   // verschijnen zodra ze klaar zijn. Interval loopt tot alles binnen is of tot
   // ~10 minuten (bovengrens tegen eeuwig doorlopen); de manuele "Ververs"-knop
   // in de UI is de escape voor uitschieters.
-  const selectedLangsForPoll = Array.isArray(loadedDraft?.form_data?.talen)
-    ? loadedDraft.form_data.talen
-    : [];
+  // Lees form.talen (lokale state) i.p.v. loadedDraft.form_data.talen: als de
+  // recruiter een taal uitvinkt via de chip-picker, moeten we die direct uit
+  // de poll-set halen, niet wachten tot autosave die verwijdering commit.
+  const selectedLangsForPoll = Array.isArray(form.talen) ? form.talen : [];
   const missingTranslations = selectedLangsForPoll.filter((lang) => {
     const entry = loadedDraft?.translations?.[lang];
     return !entry || !(entry.omschrijving || entry.functie_eisen || entry.wat_wij_bieden || entry.social);
@@ -286,7 +288,6 @@ export default function VacaturePlaatsen() {
       });
 
       setImagePath(uploaded?.item?.path || '');
-      setImageInitialized(true);
       setSuccess('Afbeelding geüpload. Deze wordt gebruikt in plaats van een gegenereerde afbeelding.');
     } catch (err) {
       setError(err.message || 'Uploaden van afbeelding is mislukt.');
@@ -525,215 +526,258 @@ export default function VacaturePlaatsen() {
               : formatSavedAt(autosave.savedAt)}
           </div>
         ) : null}
-        <div className="vacature-grid">
-          <label className="vacature-field">
-            Functietitel
-            <input
-              value={form.functietitel}
-              onChange={(event) => updateField('functietitel', event.target.value)}
-              required
-            />
-          </label>
+        {/* Sectie 1 · Briefing — wat de recruiter weet over de vacature */}
+        <section className="vacature-section">
+          <h3 className="vacature-section-header">Briefing</h3>
+
+          <div className="vacature-field">
+            <span>Klantbriefing of notitie (Word/PDF, optioneel)</span>
+            {!documentText ? (
+              <>
+                <input
+                  type="file"
+                  accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,application/pdf"
+                  onChange={handleDocumentUpload}
+                  disabled={isBusy || documentUploading}
+                />
+                <small>
+                  {documentUploading
+                    ? 'Document wordt ingelezen...'
+                    : 'Upload een .docx of .pdf. De tekst wordt bij de briefing gevoegd voor Claude.'}
+                </small>
+              </>
+            ) : (
+              <div className="vacature-doc-block">
+                <div className="vacature-doc-meta">
+                  <strong>{documentFilename || 'Document'}</strong>
+                  <span>{documentText.length} tekens ingelezen</span>
+                  <button
+                    type="button"
+                    className="vacature-remove-image"
+                    onClick={clearDocument}
+                    disabled={isBusy}
+                  >
+                    Document verwijderen
+                  </button>
+                </div>
+                <textarea
+                  value={documentText}
+                  onChange={(event) => setDocumentText(event.target.value)}
+                  rows={8}
+                  disabled={isBusy}
+                />
+                <small>
+                  {documentText.length} tekens — je kunt de tekst hierboven aanpassen of inkorten voor je genereert.
+                </small>
+              </div>
+            )}
+          </div>
 
           <label className="vacature-field">
-            Locatie
-            <input
-              value={form.locatie}
-              onChange={(event) => updateField('locatie', event.target.value)}
+            Korte omschrijving {!documentText ? <span className="vacature-required">*</span> : <span className="vacature-optional">(optioneel — document geüpload)</span>}
+            <textarea
+              value={form.korteOmschrijving}
+              onChange={(event) => updateField('korteOmschrijving', event.target.value)}
+              maxLength={2000}
+              rows={6}
+              required={!documentText}
             />
+            <small>{form.korteOmschrijving.length}/2000 tekens</small>
           </label>
+        </section>
 
-          <label className="vacature-field">
-            Uren per week
-            <input
-              type="number"
-              min="1"
-              value={form.urenPerWeek}
-              onChange={(event) => updateField('urenPerWeek', event.target.value)}
-              required
-            />
-          </label>
+        {/* Sectie 2 · Vacature-details — harde eigenschappen */}
+        <section className="vacature-section">
+          <h3 className="vacature-section-header">Vacature-details</h3>
 
-          <label className="vacature-field">
-            Startdatum
-            <input
-              type="date"
-              value={form.startdatum}
-              onChange={(event) => updateField('startdatum', event.target.value)}
-            />
-          </label>
-        </div>
-
-        <label className="vacature-field">
-          Korte omschrijving {documentText ? <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>(optioneel — document geüpload)</span> : null}
-          <textarea
-            value={form.korteOmschrijving}
-            onChange={(event) => updateField('korteOmschrijving', event.target.value)}
-            maxLength={2000}
-            rows={6}
-            required={!documentText}
-          />
-          <small>{form.korteOmschrijving.length}/2000 tekens</small>
-        </label>
-
-        <div className="vacature-field">
-          <span>Klantbriefing of notitie (Word/PDF, optioneel)</span>
-          {!documentText ? (
-            <>
+          <div className="vacature-grid">
+            <label className="vacature-field">
+              Functietitel <span className="vacature-required">*</span>
               <input
-                type="file"
-                accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,application/pdf"
-                onChange={handleDocumentUpload}
-                disabled={isBusy || documentUploading}
+                value={form.functietitel}
+                onChange={(event) => updateField('functietitel', event.target.value)}
+                required
               />
-              <small>
-                {documentUploading
-                  ? 'Document wordt ingelezen...'
-                  : 'Upload een .docx of .pdf. De tekst wordt bij de briefing gevoegd voor Claude.'}
-              </small>
-            </>
-          ) : (
-            <div className="vacature-doc-block">
-              <div className="vacature-doc-meta">
-                <strong>{documentFilename || 'Document'}</strong>
-                <span>{documentText.length} tekens ingelezen</span>
+            </label>
+
+            <label className="vacature-field">
+              Locatie <span className="vacature-required">*</span>
+              <input
+                value={form.locatie}
+                onChange={(event) => updateField('locatie', event.target.value)}
+                required
+              />
+            </label>
+
+            <label className="vacature-field">
+              Uren per week <span className="vacature-required">*</span>
+              <input
+                type="number"
+                min="1"
+                value={form.urenPerWeek}
+                onChange={(event) => updateField('urenPerWeek', event.target.value)}
+                required
+              />
+            </label>
+
+            <label className="vacature-field">
+              Contract <span className="vacature-required">*</span>
+              <input
+                value={form.contract}
+                onChange={(event) => updateField('contract', event.target.value)}
+                placeholder="Bijv. Fulltime"
+                required
+              />
+            </label>
+
+            <label className="vacature-field">
+              Startdatum
+              <input
+                type="date"
+                value={form.startdatum}
+                onChange={(event) => updateField('startdatum', event.target.value)}
+              />
+            </label>
+
+            <label className="vacature-field">
+              Salaris
+              <input
+                value={form.salaris || ''}
+                onChange={(event) => updateField('salaris', event.target.value)}
+                placeholder="conform CAO"
+              />
+            </label>
+          </div>
+
+          <label className="vacature-field">
+            Sollicitatie URL
+            <input
+              type="url"
+              value={form.sollicitatie_url || ''}
+              onChange={(event) => updateField('sollicitatie_url', event.target.value)}
+              placeholder="https://"
+            />
+          </label>
+
+          <label className="vacature-field">
+            E-mailadres sollicitaties
+            <input
+              type="email"
+              value={form.email || ''}
+              onChange={(event) => updateField('email', event.target.value)}
+              placeholder="recruiter@lightpersoneelsdiensten.nl"
+            />
+          </label>
+        </section>
+
+        {/* Sectie 3 · Afbeelding — format + image (upload of bibliotheek) */}
+        <section className="vacature-section">
+          <h3 className="vacature-section-header">Afbeelding</h3>
+
+          <div className="vacature-field">
+            <span>Format</span>
+            <div className="vacature-language" role="group" aria-label="Format-keuze">
+              {TEMPLATE_OPTIONS.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  className={(form.template || 'vacancy') === option.key ? 'active' : ''}
+                  onClick={() => updateField('template', option.key)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="vacature-field">
+            <span>Afbeelding</span>
+            <div className="vacature-image-editor">
+              <div className="vacature-image-tile">
+                {imagePath ? (
+                  <img src={imagePath} alt="Vacature afbeelding" />
+                ) : (
+                  <span>Nog geen afbeelding</span>
+                )}
+              </div>
+              <div className="vacature-image-controls">
+                <label className={`vacature-button-like${isBusy ? ' is-disabled' : ''}`}>
+                  Upload eigen foto
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handlePreUpload}
+                    disabled={isBusy}
+                  />
+                </label>
                 <button
                   type="button"
-                  className="vacature-remove-image"
-                  onClick={clearDocument}
+                  className="vacature-pick-image"
+                  onClick={() => setMediaPickerOpen(true)}
                   disabled={isBusy}
                 >
-                  Document verwijderen
+                  Kies uit bibliotheek
                 </button>
+                {imagePath ? (
+                  <button
+                    type="button"
+                    className="vacature-remove-image"
+                    onClick={() => setImagePath('')}
+                    disabled={isBusy}
+                  >
+                    Afbeelding verwijderen
+                  </button>
+                ) : null}
+                <small>Leeg = wij genereren automatisch bij "Concept genereren".</small>
               </div>
-              <textarea
-                value={documentText}
-                onChange={(event) => setDocumentText(event.target.value)}
-                rows={8}
-                disabled={isBusy}
-              />
-              <small>Je kunt de tekst hieronder aanpassen of inkorten voor je genereert.</small>
             </div>
-          )}
-        </div>
-
-        <div className="vacature-field">
-          <span>Visualisatie</span>
-          <div className="vacature-language" role="group" aria-label="Visualisatiekeuze">
-            {TEMPLATE_OPTIONS.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                className={(form.template || 'vacancy') === option.key ? 'active' : ''}
-                onClick={() => updateField('template', option.key)}
-              >
-                {option.label}
-              </button>
-            ))}
           </div>
-        </div>
+        </section>
 
-        <div className="vacature-field">
-          <span>Talen</span>
-          <div className="vacature-language-list" role="group" aria-label="Extra talen naast Nederlands">
-            <span className="vacature-lang-fixed" aria-label="Nederlands is altijd geselecteerd">
-              Nederlands (basis)
-            </span>
-            {LANGUAGES.map((lang) => {
-              const checked = selectedLangs.includes(lang.code);
-              return (
-                <label
-                  key={lang.code}
-                  className={`vacature-lang-check${checked ? ' checked' : ''}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={(event) => {
-                      const nextTalen = event.target.checked
-                        ? [...selectedLangs, lang.code]
-                        : selectedLangs.filter((code) => code !== lang.code);
-                      updateField('talen', nextTalen);
-                    }}
-                  />
-                  <span>
-                    {lang.label} <em>({lang.native})</em>
-                  </span>
-                </label>
-              );
-            })}
+        {/* Sectie 4 · Talen — NL basis + extra talen (checkboxes, chip-cluster komt in PR 2a) */}
+        <section className="vacature-section">
+          <h3 className="vacature-section-header">Talen</h3>
+
+          <div className="vacature-field">
+            <div className="vacature-language-list" role="group" aria-label="Extra talen naast Nederlands">
+              <span className="vacature-lang-fixed" aria-label="Nederlands is altijd geselecteerd">
+                Nederlands (basis)
+              </span>
+              {LANGUAGES.map((lang) => {
+                const checked = selectedLangs.includes(lang.code);
+                return (
+                  <label
+                    key={lang.code}
+                    className={`vacature-lang-check${checked ? ' checked' : ''}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(event) => {
+                        const nextTalen = event.target.checked
+                          ? [...selectedLangs, lang.code]
+                          : selectedLangs.filter((code) => code !== lang.code);
+                        updateField('talen', nextTalen);
+                      }}
+                    />
+                    <span>
+                      {lang.label} <em>({lang.native})</em>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <small>
+              Nederlands is altijd de basis. Extra talen worden op de achtergrond gegenereerd en verschijnen als tabs zodra ze klaar zijn.
+            </small>
           </div>
-          <small>
-            Nederlands is altijd de basis. Extra talen worden op de achtergrond gegenereerd en verschijnen als tabs zodra ze klaar zijn.
-          </small>
-        </div>
+        </section>
 
-        <label className="vacature-field">
-          Contract
-          <input
-            value={form.contract}
-            onChange={(event) => updateField('contract', event.target.value)}
-            placeholder="Bijv. Fulltime"
-            required
-          />
-        </label>
-
-        <label className="vacature-field">
-          Salaris
-          <input
-            value={form.salaris || ''}
-            onChange={(event) => updateField('salaris', event.target.value)}
-            placeholder="Bijv. €14,- p/u of conform CAO (leeg = conform CAO)"
-          />
-        </label>
-
-        <label className="vacature-field">
-          Sollicitatie URL
-          <input
-            type="url"
-            value={form.sollicitatie_url || ''}
-            onChange={(event) => updateField('sollicitatie_url', event.target.value)}
-            placeholder="https://"
-          />
-        </label>
-
-        <label className="vacature-field">
-          E-mailadres sollicitaties
-          <input
-            type="email"
-            value={form.email || ''}
-            onChange={(event) => updateField('email', event.target.value)}
-            placeholder="recruiter@lightpersoneelsdiensten.nl"
-          />
-        </label>
-
-        <label className="vacature-field">
-          Eigen afbeelding (optioneel)
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            onChange={handlePreUpload}
-            disabled={isBusy}
-          />
-          <small>Upload je eigen foto; laat leeg om automatisch een afbeelding te genereren.</small>
-        </label>
-
-        {/* Pre-upload preview: alleen zichtbaar vóór er een draft is. Na
-            genereren neemt de preview-sectie hieronder de afbeelding over,
-            zodat we 'm niet twee keer tonen. */}
-        {imagePath && !effectiveDraftId ? (
-          <div className="vacature-image-block">
-            <img src={imagePath} alt="Geüploade afbeelding" className="vacature-preview-image" />
-            <button
-              type="button"
-              className="vacature-remove-image"
-              onClick={() => setImagePath('')}
-              disabled={isBusy}
-            >
-              Afbeelding verwijderen
-            </button>
-          </div>
-        ) : null}
+        <MediaPicker
+          open={mediaPickerOpen}
+          onSelect={(path) => setImagePath(path)}
+          onClose={() => setMediaPickerOpen(false)}
+        />
 
         <div className="form-actions">
           <button type="submit" disabled={isBusy}>
@@ -864,36 +908,13 @@ export default function VacaturePlaatsen() {
             </button>
           </div>
 
-          <div className="vacature-image-block">
-            <p className="vacature-label">Afbeelding (optioneel)</p>
-            {imagePath ? (
+          {imagePath ? (
+            <div className="vacature-image-block preview-only">
+              <p className="vacature-label">Huidige afbeelding</p>
               <img src={imagePath} alt="Vacature afbeelding" className="vacature-preview-image" />
-            ) : null}
-            <button
-              type="button"
-              className="vacature-pick-image"
-              onClick={() => setMediaPickerOpen(true)}
-              disabled={isBusy}
-            >
-              {imagePath ? 'Andere afbeelding kiezen' : 'Afbeelding kiezen uit bibliotheek'}
-            </button>
-            {imagePath ? (
-              <button
-                type="button"
-                className="vacature-remove-image"
-                onClick={() => setImagePath('')}
-                disabled={isBusy}
-              >
-                Afbeelding verwijderen
-              </button>
-            ) : null}
-          </div>
-
-          <MediaPicker
-            open={mediaPickerOpen}
-            onSelect={(path) => setImagePath(path)}
-            onClose={() => setMediaPickerOpen(false)}
-          />
+              <small>Wisselen kan bovenaan bij "Afbeelding".</small>
+            </div>
+          ) : null}
 
           <div className="form-actions">
             <button type="button" onClick={handleSaveDraft} disabled={isBusy}>
