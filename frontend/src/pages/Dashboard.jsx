@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import StatusBadge from '../components/shared/StatusBadge';
+import '../components/shared/status-strip.css';
 import './dashboard.css';
 
 const CHANNEL_LABELS = {
@@ -213,8 +215,7 @@ export default function Dashboard() {
                     <li key={item.id}>
                       <strong>{item.title}</strong>
                       <p className="dashboard-meta">
-                        {item.type} · {item.creatorName} · {formatDate(item.createdAt)}
-                        {item.status === 'draft' ? ' · Concept' : ''}
+                        {item.type} · {item.creatorName} · {formatDate(item.createdAt)} · <StatusBadge status={item.status} />
                       </p>
                       <div className="dashboard-actions">
                         {item.status === 'pending_approval' && role === 'owner' ? (
@@ -256,7 +257,7 @@ export default function Dashboard() {
                 <li key={item.id}>
                   <strong>{item.title}</strong>
                   <p className="dashboard-meta">
-                    {item.type} · status: {item.status} · {formatDate(item.updatedAt)}
+                    {item.type} · <StatusBadge status={item.status} /> · {formatDate(item.updatedAt)}
                   </p>
                 </li>
               ))}

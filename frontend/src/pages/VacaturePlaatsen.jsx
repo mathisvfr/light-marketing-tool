@@ -3,6 +3,8 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useAutosaveDraft, formatSavedAt } from '../hooks/useAutosaveDraft';
+import useImagePath from '../hooks/useImagePath';
+import useCriticus from '../hooks/useCriticus';
 import GenerationProgress from '../components/shared/GenerationProgress';
 import VersionHistoryPicker from '../components/shared/VersionHistoryPicker';
 import StatusBadge from '../components/shared/StatusBadge';
@@ -106,10 +108,6 @@ export default function VacaturePlaatsen() {
   const [draftId, setDraftId] = useState(draftIdParam);
   const [formEdits, setFormEdits] = useState({});
   const [contentEdits, setContentEdits] = useState({});
-  const [criticusOverride, setCriticusOverride] = useState({
-    passed: undefined,
-    notes: undefined,
-  });
   // Active language tab wordt uit URL afgeleid zodat bookmarks + browser-back
   // werken. Legacy tab-keys (`omschrijving_nl`, `tr:pl:social`) worden bij eerste
   // lees vertaald naar de nieuwe `lang`-param.
@@ -129,11 +127,6 @@ export default function VacaturePlaatsen() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  // Image-path pattern: override-first, server-fallback. Zelfde patroon als
-  // MarketingPost.jsx zodat we geen render-phase setState triggeren (React 19
-  // warning). `undefined` = geen lokale override → toon server-waarde.
-  // `''` = expliciet leeg (user removed image). String = lokale keuze.
-  const [imagePathOverride, setImagePathOverride] = useState(undefined);
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
   const [steeringNotes, setSteeringNotes] = useState('');
   const [documentText, setDocumentText] = useState('');
@@ -148,9 +141,12 @@ export default function VacaturePlaatsen() {
 
   const loadedDraft = existingDraftQuery.data?.draft;
 
-  const imagePath =
-    typeof imagePathOverride === 'string' ? imagePathOverride : loadedDraft?.image_path || '';
-  const setImagePath = setImagePathOverride;
+  const [imagePath, setImagePath] = useImagePath(loadedDraft);
+  const {
+    passed: criticusPassed,
+    notes: criticusNotes,
+    setOverride: setCriticusOverride,
+  } = useCriticus(loadedDraft);
 
   const form = useMemo(
     () => ({
@@ -181,18 +177,6 @@ export default function VacaturePlaatsen() {
       translations: mergedTranslations,
     };
   }, [loadedDraft, contentEdits]);
-
-  const criticusPassed =
-    typeof criticusOverride.passed === 'boolean'
-      ? criticusOverride.passed
-      : typeof loadedDraft?.criticus_passed === 'boolean'
-      ? loadedDraft.criticus_passed
-      : null;
-
-  const criticusNotes =
-    typeof criticusOverride.notes === 'string'
-      ? criticusOverride.notes
-      : loadedDraft?.criticus_notes || '';
 
   const effectiveDraftId = draftId || draftIdParam;
 

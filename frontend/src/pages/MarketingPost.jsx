@@ -3,6 +3,8 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useAutosaveDraft, formatSavedAt } from '../hooks/useAutosaveDraft';
+import useImagePath from '../hooks/useImagePath';
+import useCriticus from '../hooks/useCriticus';
 import { api } from '../lib/api';
 import MediaPicker from '../components/shared/MediaPicker';
 import PlatformPreview from '../components/shared/PlatformPreview';
@@ -45,12 +47,7 @@ export default function MarketingPost() {
   const [draftId, setDraftId] = useState(draftIdParam);
   const [formEdits, setFormEdits] = useState({});
   const [contentEdits, setContentEdits] = useState({});
-  const [imagePathOverride, setImagePathOverride] = useState(undefined);
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
-  const [criticusOverride, setCriticusOverride] = useState({
-    passed: undefined,
-    notes: undefined,
-  });
   const [activeTab, setActiveTab] = useState('linkedin_post');
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -96,22 +93,15 @@ export default function MarketingPost() {
     [loadedDraft, contentEdits]
   );
 
-  const imagePath =
-    typeof imagePathOverride === 'string' ? imagePathOverride : loadedDraft?.image_path || '';
+  const [imagePath, setImagePathOverride] = useImagePath(loadedDraft);
 
   const autosave = useAutosaveDraft(draftId, form);
 
-  const criticusPassed =
-    typeof criticusOverride.passed === 'boolean'
-      ? criticusOverride.passed
-      : typeof loadedDraft?.criticus_passed === 'boolean'
-      ? loadedDraft.criticus_passed
-      : null;
-
-  const criticusNotes =
-    typeof criticusOverride.notes === 'string'
-      ? criticusOverride.notes
-      : loadedDraft?.criticus_notes || '';
+  const {
+    passed: criticusPassed,
+    notes: criticusNotes,
+    setOverride: setCriticusOverride,
+  } = useCriticus(loadedDraft);
 
   const effectiveDraftId = draftId || draftIdParam;
 
