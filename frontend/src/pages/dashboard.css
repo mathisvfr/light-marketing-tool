@@ -9,16 +9,13 @@
   gap: 0.875rem;
 }
 
-.dashboard-card {
-  background: #ffffff;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 12px;
-  padding: 1rem;
-}
-
-.dashboard-card h3 {
+/* Metric-tile-styling: kleine label + groot getal binnen shared <Card>.
+   Card levert border/background/radius/padding; hier alleen de typografie
+   van het h3-label en .dashboard-count getal. */
+.dashboard-cards h3,
+.dashboard-cards h4 {
   margin: 0;
-  color: #334155;
+  color: var(--color-text-muted);
   font-size: 0.95rem;
 }
 
@@ -26,25 +23,13 @@
   margin: 0.5rem 0 0;
   font-size: 1.8rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .dashboard-panels {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.875rem;
-}
-
-.dashboard-panel {
-  background: #ffffff;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 12px;
-  padding: 1rem;
-}
-
-.dashboard-panel h3 {
-  margin-top: 0;
-  margin-bottom: 0.75rem;
 }
 
 .dashboard-list {
@@ -142,16 +127,14 @@
   }
 }
 
-.dashboard-onboarding {
-  padding: 1.25rem 1.5rem;
+/* Onboarding CTA: shared <Card tone="emphasized"> geeft de red accent-lijn
+   bovenaan. Extra subtiele gradient behouden voor het welkom-gevoel. */
+.dashboard-onboarding-card {
   background: linear-gradient(135deg, var(--grey-100) 0%, #fff 100%);
-  border: 1px solid var(--color-border);
-  border-left: 4px solid var(--color-primary);
-  border-radius: var(--radius-md);
   margin-bottom: 1rem;
 }
 
-.dashboard-onboarding h3 {
+.dashboard-onboarding-card h3 {
   margin: 0 0 0.35rem;
 }
 
@@ -185,13 +168,8 @@
   letter-spacing: 0.05em;
 }
 
+/* Team-totaal metric-tiles: gemuted t.o.v. eigen totalen. */
 .dashboard-card-secondary {
   opacity: 0.85;
   background: var(--grey-100);
-}
-
-.dashboard-card-secondary h4 {
-  margin: 0 0 0.3rem;
-  font-size: 0.9rem;
-  color: var(--color-text-muted);
 }

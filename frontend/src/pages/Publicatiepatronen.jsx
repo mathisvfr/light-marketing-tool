@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
+import Card, { CardHeader } from '../components/shared/Card';
+import '../components/shared/card.css';
 import './publicatiepatronen.css';
 
 const WEEKDAY_CHIPS = [
@@ -143,8 +145,8 @@ export default function Publicatiepatronen() {
         krijgt de eerst-passende datum + tijd. Alle tijden in Europe/Amsterdam.
       </p>
 
-      <section className="patronen-form-card">
-        <h3>{editingId ? 'Patroon bewerken' : 'Nieuw patroon'}</h3>
+      <Card className="patronen-form-card">
+        <CardHeader title={editingId ? 'Patroon bewerken' : 'Nieuw patroon'} />
         <form onSubmit={handleSubmit} className="patronen-form">
           <label>
             Naam
@@ -239,7 +241,7 @@ export default function Publicatiepatronen() {
           {error ? <p className="patronen-error">{error}</p> : null}
           {success ? <p className="patronen-success">{success}</p> : null}
         </form>
-      </section>
+      </Card>
 
       <section>
         <h3>Bestaande patronen ({patterns.length})</h3>

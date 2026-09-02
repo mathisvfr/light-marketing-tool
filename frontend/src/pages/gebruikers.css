@@ -15,11 +15,10 @@
   color: #475569;
 }
 
+/* Card levert border/background/radius; hier alleen overflow-x zodat de
+   tabel horizontaal kan scrollen op mobiel. */
 .users-table-wrap {
   overflow-x: auto;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  background: #ffffff;
 }
 
 .users-table {

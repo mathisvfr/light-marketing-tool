@@ -10,11 +10,11 @@
   margin: 0;
 }
 
+/* patronen-form-card wordt geleverd door shared <Card>. Overriden alleen de
+   background naar grey-100 zodat het form-blok subtle onderscheid heeft van
+   de tabel-card ernaast. */
 .patronen-form-card {
-  padding: 1rem 1.25rem 1.25rem;
   background: var(--grey-100);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
 }
 
 .patronen-form {

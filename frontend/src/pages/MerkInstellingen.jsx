@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import Card, { CardHeader } from '../components/shared/Card';
+import '../components/shared/card.css';
 import './merk-instellingen.css';
 
 const PROVIDER_OPTIONS = [
@@ -214,8 +216,8 @@ export default function MerkInstellingen() {
         </button>
       </form>
 
-      <section className="brand-integrations">
-        <h3>Kanaalkoppelingen</h3>
+      <Card className="brand-integrations">
+        <CardHeader title="Kanaalkoppelingen" />
         {bufferMetadata.organizationName ? (
           <p className="brand-meta">
             Buffer organisatie: {bufferMetadata.organizationName}
@@ -237,7 +239,7 @@ export default function MerkInstellingen() {
             const stateLabel = getCredentialLabel(state);
 
             return (
-              <article key={provider.key} className="integration-card">
+              <Card key={provider.key} padding="sm" className="integration-card">
                 <h4>{provider.label}</h4>
                 <p>
                   Status:{' '}
@@ -259,11 +261,11 @@ export default function MerkInstellingen() {
                       : 'Kanalen verversen'}
                   </button>
                 ) : null}
-              </article>
+              </Card>
             );
           })}
         </div>
-      </section>
+      </Card>
 
       {error ? <p className="brand-error">{error}</p> : null}
       {success ? <p>{success}</p> : null}

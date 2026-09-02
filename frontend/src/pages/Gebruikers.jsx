@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import Card from '../components/shared/Card';
+import '../components/shared/card.css';
 import './gebruikers.css';
 
 function formatDate(value) {
@@ -133,7 +135,7 @@ export default function Gebruikers() {
         </button>
       </div>
 
-      <div className="users-table-wrap">
+      <Card padding="sm" className="users-table-wrap">
         <table className="users-table">
           <thead>
             <tr>
@@ -182,7 +184,7 @@ export default function Gebruikers() {
             )}
           </tbody>
         </table>
-      </div>
+      </Card>
 
       {showCreateModal ? (
         <div className="users-modal-backdrop" role="dialog" aria-modal="true">
