@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import Card, { CardHeader } from '../components/shared/Card';
+import ConfirmDialog from '../components/shared/ConfirmDialog';
 import '../components/shared/card.css';
+import '../components/shared/modal.css';
 import './publicatiepatronen.css';
 
 const WEEKDAY_CHIPS = [
@@ -46,6 +48,7 @@ export default function Publicatiepatronen() {
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [confirm, setConfirm] = useState(null);
 
   const patternsQuery = useQuery({
     queryKey: ['publication-patterns'],
@@ -129,8 +132,13 @@ export default function Publicatiepatronen() {
   }
 
   function handleDelete(pattern) {
-    if (!window.confirm(`"${pattern.name}" verwijderen?`)) return;
-    deleteMutation.mutate(pattern.id);
+    setConfirm({
+      title: 'Patroon verwijderen',
+      message: `"${pattern.name}" wordt verwijderd. Marketingposts die er nog naar verwezen behouden hun eigen scheduling.`,
+      confirmLabel: 'Verwijderen',
+      variant: 'destructive',
+      onConfirm: () => deleteMutation.mutateAsync(pattern.id),
+    });
   }
 
   if (patternsQuery.isLoading) {
@@ -291,6 +299,16 @@ export default function Publicatiepatronen() {
           </table>
         )}
       </section>
+
+      <ConfirmDialog
+        open={Boolean(confirm)}
+        onOpenChange={(next) => { if (!next) setConfirm(null); }}
+        title={confirm?.title}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        variant={confirm?.variant}
+        onConfirm={confirm?.onConfirm}
+      />
     </div>
   );
 }

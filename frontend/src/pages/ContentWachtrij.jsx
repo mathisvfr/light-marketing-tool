@@ -4,7 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import StatusBadge, { getStatusLabel as getSharedStatusLabel } from '../components/shared/StatusBadge';
+import ConfirmDialog from '../components/shared/ConfirmDialog';
 import '../components/shared/status-strip.css';
+import '../components/shared/modal.css';
 import './content-wachtrij.css';
 
 function formatDate(value) {
@@ -50,6 +52,7 @@ export default function ContentWachtrij() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [error, setError] = useState('');
+  const [confirm, setConfirm] = useState(null);
 
   const draftsQuery = useQuery({
     queryKey: ['drafts-queue', statusFilter, typeFilter, authorFilter],
@@ -246,18 +249,26 @@ export default function ContentWachtrij() {
     await runBulk(bulkExpireMutation, 'gesloten', 'Bulk sluiten mislukt.');
   }
 
-  async function handleBulkPublish() {
-    if (!window.confirm(`Weet je zeker dat je ${selectedIds.size} post(s) direct wilt publiceren?`)) {
-      return;
-    }
-    await runBulk(bulkPublishMutation, 'gepubliceerd', 'Bulk publiceren mislukt.');
+  function handleBulkPublish() {
+    const count = selectedIds.size;
+    setConfirm({
+      title: 'Direct publiceren',
+      message: `${count} post${count === 1 ? '' : 's'} wordt direct gepubliceerd naar de gekoppelde kanalen.`,
+      confirmLabel: 'Publiceren',
+      variant: 'normal',
+      onConfirm: () => runBulk(bulkPublishMutation, 'gepubliceerd', 'Bulk publiceren mislukt.'),
+    });
   }
 
-  async function handleBulkDelete() {
-    if (!window.confirm(`Weet je zeker dat je ${selectedIds.size} concept(en) wilt verwijderen? Dit kan niet ongedaan gemaakt worden.`)) {
-      return;
-    }
-    await runBulk(bulkDeleteMutation, 'verwijderd', 'Bulk verwijderen mislukt.');
+  function handleBulkDelete() {
+    const count = selectedIds.size;
+    setConfirm({
+      title: 'Concepten verwijderen',
+      message: `${count} concept${count === 1 ? '' : 'en'} worden permanent verwijderd. Dit kan niet ongedaan gemaakt worden.`,
+      confirmLabel: 'Verwijderen',
+      variant: 'destructive',
+      onConfirm: () => runBulk(bulkDeleteMutation, 'verwijderd', 'Bulk verwijderen mislukt.'),
+    });
   }
 
   async function handleDuplicate(id) {
@@ -296,18 +307,22 @@ export default function ContentWachtrij() {
     }
   }
 
-  async function handleDelete(id) {
+  function handleDelete(id) {
     setError('');
-
-    if (!window.confirm('Weet je zeker dat je dit concept wilt verwijderen?')) {
-      return;
-    }
-
-    try {
-      await deleteMutation.mutateAsync(id);
-    } catch (err) {
-      setError(err.message || 'Verwijderen mislukt.');
-    }
+    setConfirm({
+      title: 'Concept verwijderen',
+      message: 'Dit concept wordt permanent verwijderd. Dit kan niet ongedaan gemaakt worden.',
+      confirmLabel: 'Verwijderen',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
+          await deleteMutation.mutateAsync(id);
+        } catch (err) {
+          setError(err.message || 'Verwijderen mislukt.');
+          throw err;
+        }
+      },
+    });
   }
 
   function handleEdit(draft) {
@@ -587,6 +602,16 @@ export default function ContentWachtrij() {
       </div>
 
       {error ? <p className="queue-error">{error}</p> : null}
+
+      <ConfirmDialog
+        open={Boolean(confirm)}
+        onOpenChange={(next) => { if (!next) setConfirm(null); }}
+        title={confirm?.title}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        variant={confirm?.variant}
+        onConfirm={confirm?.onConfirm}
+      />
     </div>
   );
 }

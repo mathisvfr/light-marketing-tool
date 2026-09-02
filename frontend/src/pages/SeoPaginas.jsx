@@ -6,8 +6,10 @@ import { Loader2, Sparkles } from 'lucide-react';
 import FormMessage from '@/components/shared/FormMessage';
 import StatusBadge from '@/components/shared/StatusBadge';
 import Card, { CardHeader, CardBody } from '@/components/shared/Card';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import '@/components/shared/card.css';
 import '@/components/shared/status-strip.css';
+import '@/components/shared/modal.css';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 
@@ -96,6 +98,7 @@ export default function SeoPaginas() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [confirm, setConfirm] = useState(null);
 
   const listQuery = useQuery({
     queryKey: ['seo-pages'],
@@ -269,19 +272,25 @@ export default function SeoPaginas() {
     }
   }
 
-  async function handleDelete(id) {
+  function handleDelete(id) {
     setError('');
-    if (!window.confirm('Weet je zeker dat je deze SEO-pagina wilt verwijderen?')) {
-      return;
-    }
-    try {
-      await deleteMutation.mutateAsync(id);
-      if (id === pageId) {
-        resetEditor();
-      }
-    } catch (err) {
-      setError(err.message || 'Verwijderen mislukt.');
-    }
+    setConfirm({
+      title: 'SEO-pagina verwijderen',
+      message: 'De pagina wordt permanent verwijderd. Als hij al gepubliceerd was, moet hij ook op de nieuwe website weggehaald worden.',
+      confirmLabel: 'Verwijderen',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
+          await deleteMutation.mutateAsync(id);
+          if (id === pageId) {
+            resetEditor();
+          }
+        } catch (err) {
+          setError(err.message || 'Verwijderen mislukt.');
+          throw err;
+        }
+      },
+    });
   }
 
   function handleEdit(id) {
@@ -547,6 +556,16 @@ export default function SeoPaginas() {
           )}
         </CardBody>
       </Card>
+
+      <ConfirmDialog
+        open={Boolean(confirm)}
+        onOpenChange={(next) => { if (!next) setConfirm(null); }}
+        title={confirm?.title}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        variant={confirm?.variant}
+        onConfirm={confirm?.onConfirm}
+      />
     </div>
   );
 }
