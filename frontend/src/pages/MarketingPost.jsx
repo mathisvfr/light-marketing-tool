@@ -3,11 +3,17 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useAutosaveDraft, formatSavedAt } from '../hooks/useAutosaveDraft';
+import useImagePath from '../hooks/useImagePath';
+import useCriticus from '../hooks/useCriticus';
 import { api } from '../lib/api';
 import MediaPicker from '../components/shared/MediaPicker';
 import PlatformPreview from '../components/shared/PlatformPreview';
 import GenerationProgress from '../components/shared/GenerationProgress';
 import VersionHistoryPicker from '../components/shared/VersionHistoryPicker';
+import StatusBadge from '../components/shared/StatusBadge';
+import StatusStrip from '../components/shared/StatusStrip';
+import StickyFooter from '../components/shared/StickyFooter';
+import '../components/shared/status-strip.css';
 import './marketing-post.css';
 
 const CHANNEL_OPTIONS = [
@@ -36,17 +42,12 @@ const TEMPLATE_OPTIONS = [
 
 export default function MarketingPost() {
   const { role, user, refreshSession } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const draftIdParam = searchParams.get('draftId');
   const [draftId, setDraftId] = useState(draftIdParam);
   const [formEdits, setFormEdits] = useState({});
   const [contentEdits, setContentEdits] = useState({});
-  const [imagePathOverride, setImagePathOverride] = useState(undefined);
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
-  const [criticusOverride, setCriticusOverride] = useState({
-    passed: undefined,
-    notes: undefined,
-  });
   const [activeTab, setActiveTab] = useState('linkedin_post');
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -92,22 +93,15 @@ export default function MarketingPost() {
     [loadedDraft, contentEdits]
   );
 
-  const imagePath =
-    typeof imagePathOverride === 'string' ? imagePathOverride : loadedDraft?.image_path || '';
+  const [imagePath, setImagePathOverride] = useImagePath(loadedDraft);
 
   const autosave = useAutosaveDraft(draftId, form);
 
-  const criticusPassed =
-    typeof criticusOverride.passed === 'boolean'
-      ? criticusOverride.passed
-      : typeof loadedDraft?.criticus_passed === 'boolean'
-      ? loadedDraft.criticus_passed
-      : null;
-
-  const criticusNotes =
-    typeof criticusOverride.notes === 'string'
-      ? criticusOverride.notes
-      : loadedDraft?.criticus_notes || '';
+  const {
+    passed: criticusPassed,
+    notes: criticusNotes,
+    setOverride: setCriticusOverride,
+  } = useCriticus(loadedDraft);
 
   const effectiveDraftId = draftId || draftIdParam;
 
@@ -124,32 +118,27 @@ export default function MarketingPost() {
       return;
     }
 
-    const interval = setInterval(async () => {
+    const interval = setInterval(() => {
       pollCountRef.current += 1;
       if (pollCountRef.current > 8) {
         clearInterval(interval);
         return;
       }
-
-      try {
-        const result = await api(`/drafts/${effectiveDraftId}`);
-        const draft = result?.draft;
-        if (draft?.image_path) {
-          setImagePathOverride(draft.image_path);
-        }
-        if (typeof draft?.criticus_passed === 'boolean') {
-          setCriticusOverride({
-            passed: draft.criticus_passed,
-            notes: draft.criticus_notes || '',
-          });
-        }
-      } catch {
-        // Ignore poll errors
+      // Guard: geen /drafts/null bij een race na createDraft.
+      if (!draftIdParam) {
+        return;
       }
+      // Zelfde consolidatie als in VacaturePlaatsen: één refetch, geen
+      // aparte api()/setState-flow. Structural sharing van TanStack Query
+      // houdt loadedDraft-reference stabiel bij ongewijzigde data, wat de
+      // autosave-feedback-loop breekt.
+      existingDraftQuery.refetch();
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [criticusPassed, imagePath, effectiveDraftId, isGenerating]);
+    // draftIdParam in de deps: zie VacaturePlaatsen voor rationale.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [criticusPassed, imagePath, effectiveDraftId, isGenerating, draftIdParam]);
 
   const apiStatus = brandQuery.data?.apiStatus || {};
 
@@ -306,6 +295,18 @@ export default function MarketingPost() {
 
         targetDraftId = created?.draft?.id;
         setDraftId(targetDraftId);
+
+        // URL syncen zodat existingDraftQuery (gekeyed op draftIdParam uit URL)
+        // meteen de nieuwe id gebruikt. Zonder deze sync spam de poll de
+        // backend met '/drafts/null' requests.
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.set('draftId', targetDraftId);
+            return next;
+          },
+          { replace: true }
+        );
 
         // If this was the caller's first draft, backend just set onboarded_at.
         // Refresh session so the dashboard checklist hides on the next visit.
@@ -502,34 +503,46 @@ export default function MarketingPost() {
         <div className="marketing-field">
           <span>Type</span>
           <div className="marketing-radio-group">
-            {['Opdrachtgevers', 'Kandidaten'].map((value) => (
-              <label key={value} className="marketing-radio-item">
-                <input
-                  type="radio"
-                  name="marketing-type"
-                  checked={form.type === value}
-                  onChange={() => updateField('type', value)}
-                />
-                {value}
-              </label>
-            ))}
+            {['Opdrachtgevers', 'Kandidaten'].map((value) => {
+              const checked = form.type === value;
+              return (
+                <label
+                  key={value}
+                  className={`marketing-radio-item${checked ? ' checked' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="marketing-type"
+                    checked={checked}
+                    onChange={() => updateField('type', value)}
+                  />
+                  {value}
+                </label>
+              );
+            })}
           </div>
         </div>
 
         <div className="marketing-field">
           <span>Visualisatie</span>
           <div className="marketing-radio-group">
-            {TEMPLATE_OPTIONS.map((option) => (
-              <label key={option.key} className="marketing-radio-item">
-                <input
-                  type="radio"
-                  name="marketing-template"
-                  checked={(form.template || 'statement') === option.key}
-                  onChange={() => updateField('template', option.key)}
-                />
-                {option.label}
-              </label>
-            ))}
+            {TEMPLATE_OPTIONS.map((option) => {
+              const checked = (form.template || 'statement') === option.key;
+              return (
+                <label
+                  key={option.key}
+                  className={`marketing-radio-item${checked ? ' checked' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="marketing-template"
+                    checked={checked}
+                    onChange={() => updateField('template', option.key)}
+                  />
+                  {option.label}
+                </label>
+              );
+            })}
           </div>
         </div>
 
@@ -538,15 +551,16 @@ export default function MarketingPost() {
           <div className="marketing-channel-group">
             {CHANNEL_OPTIONS.map((channel) => {
               const disabled = !isChannelEnabled(channel.key);
+              const checked = form.kanalen.includes(channel.key);
 
               return (
                 <label
                   key={channel.key}
-                  className={`marketing-channel-item${disabled ? ' disabled' : ''}`}
+                  className={`marketing-channel-item${disabled ? ' disabled' : ''}${checked ? ' checked' : ''}`}
                 >
                   <input
                     type="checkbox"
-                    checked={form.kanalen.includes(channel.key)}
+                    checked={checked}
                     onChange={() => toggleChannel(channel.key)}
                     disabled={disabled}
                   />
@@ -594,15 +608,42 @@ export default function MarketingPost() {
 
       {effectiveDraftId && !isGenerating ? (
         <section className="marketing-preview">
-          <h3>Voorbeeld en bewerken</h3>
+          <div className="marketing-preview-header">
+            <h3>Voorbeeld en bewerken</h3>
+            <StatusBadge status={loadedDraft?.status || 'draft'} />
+          </div>
 
-          {criticusPassed === null && effectiveDraftId ? (
-            <div className="marketing-skeleton">Criticus controleren...</div>
-          ) : criticusPassed !== null ? (
-            <div className={`marketing-criticus ${criticusPassed ? 'pass' : 'fail'}`}>
-              <strong>{criticusPassed ? 'Criticus: akkoord' : 'Criticus: aandacht nodig'}</strong>
-              <p>{criticusNotes || 'Geen opmerkingen.'}</p>
-            </div>
+          <StatusStrip
+            rows={[
+              {
+                key: 'criticus',
+                label: 'Criticus',
+                state:
+                  criticusPassed === null
+                    ? 'pending'
+                    : criticusPassed
+                    ? 'ready'
+                    : 'failed',
+                detail:
+                  criticusPassed === null
+                    ? undefined
+                    : criticusPassed
+                    ? 'akkoord'
+                    : criticusNotes || 'aandacht nodig',
+              },
+              {
+                key: 'image',
+                label: 'Afbeelding',
+                state: imagePath ? 'ready' : 'pending',
+              },
+            ]}
+          />
+
+          {criticusPassed === false && criticusNotes ? (
+            <details className="marketing-criticus fail" open>
+              <summary>Criticus-notities</summary>
+              <p>{criticusNotes}</p>
+            </details>
           ) : null}
 
           <div className="marketing-regenerate">
@@ -730,7 +771,10 @@ export default function MarketingPost() {
             />
           ) : null}
 
-          <div className="marketing-actions">
+          <StickyFooter
+            autosaveLabel={autosave.isSaving ? 'Opslaan...' : formatSavedAt(autosave.savedAt)}
+            autosaveError={autosave.error}
+          >
             <button type="button" onClick={handleSaveDraft} disabled={isBusy}>
               Opslaan als concept
             </button>
@@ -752,7 +796,7 @@ export default function MarketingPost() {
                 {scheduleAt ? 'Goedkeuren en inplannen' : 'Goedkeuren en publiceren'}
               </button>
             ) : null}
-          </div>
+          </StickyFooter>
         </section>
       ) : null}
 

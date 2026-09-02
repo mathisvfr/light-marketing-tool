@@ -3,10 +3,16 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useAutosaveDraft, formatSavedAt } from '../hooks/useAutosaveDraft';
+import useImagePath from '../hooks/useImagePath';
+import useCriticus from '../hooks/useCriticus';
 import GenerationProgress from '../components/shared/GenerationProgress';
 import VersionHistoryPicker from '../components/shared/VersionHistoryPicker';
+import StatusBadge from '../components/shared/StatusBadge';
+import StatusStrip from '../components/shared/StatusStrip';
+import StickyFooter from '../components/shared/StickyFooter';
 import { api } from '../lib/api';
 import MediaPicker from '../components/shared/MediaPicker';
+import '../components/shared/status-strip.css';
 import './vacature-plaatsen.css';
 
 const DEFAULT_FORM = {
@@ -38,68 +44,90 @@ const LANGUAGES = [
   { code: 'uk', label: 'Oekraïens', native: 'Українська' },
 ];
 
-const TRANSLATION_FIELDS = [
-  { key: 'omschrijving', label: 'Omschrijving' },
-  { key: 'functie_eisen', label: 'Functie-eisen' },
-  { key: 'wat_wij_bieden', label: 'Wat wij bieden' },
-  { key: 'social', label: 'Social post' },
+// Vier bewerkbare velden per taal. Voor NL komen de waarden uit vaste
+// draft-kolommen (omschrijving_nl, functie_eisen, ...), voor andere talen uit
+// content.translations[lang].
+const FIELD_DEFS = [
+  { key: 'omschrijving', label: 'Omschrijving', nlColumn: 'omschrijving_nl' },
+  { key: 'functie_eisen', label: 'Functie-eisen', nlColumn: 'functie_eisen' },
+  { key: 'wat_wij_bieden', label: 'Wat wij bieden', nlColumn: 'wat_wij_bieden' },
+  { key: 'social', label: 'Social post', nlColumn: 'social_nl' },
 ];
 
 function langLabel(code) {
+  if (code === 'nl') return 'Nederlands';
   const entry = LANGUAGES.find((item) => item.code === code);
   return entry ? entry.label : code.toUpperCase();
 }
 
-function createTabs(content, selectedLangs) {
-  const tabs = [
-    { key: 'omschrijving_nl', label: 'Omschrijving NL' },
-    { key: 'functie_eisen', label: 'Functie-eisen NL' },
-    { key: 'wat_wij_bieden', label: 'Wat wij bieden NL' },
-    { key: 'social_nl', label: 'Social post NL' },
-  ];
-
+// Eén tab per taal (i.p.v. vier tabs per taal in de oude opzet). Binnen een tab
+// tonen we alle vier de velden onder elkaar met een `<h4>` per veld. Voor
+// selected extra talen markeren we `pending` totdat de vertaling binnen is;
+// gebruiker kan de tab wel selecteren en ziet dan een placeholder.
+function createLangTabs(content, selectedLangs) {
+  const tabs = [{ key: 'nl', label: 'Nederlands', pending: false }];
   const translations = content?.translations || {};
   for (const lang of selectedLangs) {
     const entry = translations[lang];
-    const ready = Boolean(entry && (entry.omschrijving || entry.functie_eisen || entry.wat_wij_bieden || entry.social));
-    for (const field of TRANSLATION_FIELDS) {
-      tabs.push({
-        key: `tr:${lang}:${field.key}`,
-        label: `${field.label} ${langLabel(lang)}`,
-        pending: !ready,
-      });
-    }
+    const ready = Boolean(
+      entry && (entry.omschrijving || entry.functie_eisen || entry.wat_wij_bieden || entry.social)
+    );
+    tabs.push({ key: lang, label: langLabel(lang), pending: !ready });
   }
-
   return tabs;
 }
 
-function readTab(content, tabKey) {
-  if (!tabKey.startsWith('tr:')) {
-    return content[tabKey] || '';
+function readField(content, lang, fieldKey) {
+  if (lang === 'nl') {
+    const def = FIELD_DEFS.find((f) => f.key === fieldKey);
+    return def ? content[def.nlColumn] || '' : '';
   }
-  const [, lang, field] = tabKey.split(':');
-  return content?.translations?.[lang]?.[field] || '';
+  return content?.translations?.[lang]?.[fieldKey] || '';
+}
+
+// Legacy `activeTab` compat: URL uit vorige versie kon `?tab=omschrijving_nl`
+// of `?tab=tr:pl:social` bevatten. Vertaal 'm naar de nieuwe `?lang=` param.
+function readLangFromParams(searchParams) {
+  const langParam = searchParams.get('lang');
+  if (langParam) return langParam;
+  const legacy = searchParams.get('tab');
+  if (!legacy) return null;
+  if (legacy.startsWith('tr:')) {
+    return legacy.split(':')[1] || null;
+  }
+  if (['omschrijving_nl', 'functie_eisen', 'wat_wij_bieden', 'social_nl'].includes(legacy)) {
+    return 'nl';
+  }
+  return null;
 }
 
 export default function VacaturePlaatsen() {
   const { role, user, refreshSession } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const draftIdParam = searchParams.get('draftId');
   const [draftId, setDraftId] = useState(draftIdParam);
   const [formEdits, setFormEdits] = useState({});
   const [contentEdits, setContentEdits] = useState({});
-  const [criticusOverride, setCriticusOverride] = useState({
-    passed: undefined,
-    notes: undefined,
-  });
-  const [activeTab, setActiveTab] = useState('omschrijving_nl');
+  // Active language tab wordt uit URL afgeleid zodat bookmarks + browser-back
+  // werken. Legacy tab-keys (`omschrijving_nl`, `tr:pl:social`) worden bij eerste
+  // lees vertaald naar de nieuwe `lang`-param.
+  const activeLangTab = readLangFromParams(searchParams) || 'nl';
+  function setActiveLangTab(lang) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('lang', lang);
+        next.delete('tab');
+        return next;
+      },
+      { replace: true }
+    );
+  }
+  const [copiedField, setCopiedField] = useState(null); // 'nl:omschrijving' etc.
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [imagePath, setImagePath] = useState('');
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [steeringNotes, setSteeringNotes] = useState('');
   const [documentText, setDocumentText] = useState('');
   const [documentFilename, setDocumentFilename] = useState('');
@@ -113,12 +141,12 @@ export default function VacaturePlaatsen() {
 
   const loadedDraft = existingDraftQuery.data?.draft;
 
-  // Sync imagePath met geladen draft (alleen bij eerste load)
-  const [imageInitialized, setImageInitialized] = useState(false);
-  if (loadedDraft && !imageInitialized) {
-    setImagePath(loadedDraft.image_path || '');
-    setImageInitialized(true);
-  }
+  const [imagePath, setImagePath] = useImagePath(loadedDraft);
+  const {
+    passed: criticusPassed,
+    notes: criticusNotes,
+    setOverride: setCriticusOverride,
+  } = useCriticus(loadedDraft);
 
   const form = useMemo(
     () => ({
@@ -150,18 +178,6 @@ export default function VacaturePlaatsen() {
     };
   }, [loadedDraft, contentEdits]);
 
-  const criticusPassed =
-    typeof criticusOverride.passed === 'boolean'
-      ? criticusOverride.passed
-      : typeof loadedDraft?.criticus_passed === 'boolean'
-      ? loadedDraft.criticus_passed
-      : null;
-
-  const criticusNotes =
-    typeof criticusOverride.notes === 'string'
-      ? criticusOverride.notes
-      : loadedDraft?.criticus_notes || '';
-
   const effectiveDraftId = draftId || draftIdParam;
 
   const autosave = useAutosaveDraft(effectiveDraftId, form);
@@ -171,9 +187,10 @@ export default function VacaturePlaatsen() {
   // verschijnen zodra ze klaar zijn. Interval loopt tot alles binnen is of tot
   // ~10 minuten (bovengrens tegen eeuwig doorlopen); de manuele "Ververs"-knop
   // in de UI is de escape voor uitschieters.
-  const selectedLangsForPoll = Array.isArray(loadedDraft?.form_data?.talen)
-    ? loadedDraft.form_data.talen
-    : [];
+  // Lees form.talen (lokale state) i.p.v. loadedDraft.form_data.talen: als de
+  // recruiter een taal uitvinkt via de chip-picker, moeten we die direct uit
+  // de poll-set halen, niet wachten tot autosave die verwijdering commit.
+  const selectedLangsForPoll = Array.isArray(form.talen) ? form.talen : [];
   const missingTranslations = selectedLangsForPoll.filter((lang) => {
     const entry = loadedDraft?.translations?.[lang];
     return !entry || !(entry.omschrijving || entry.functie_eisen || entry.wat_wij_bieden || entry.social);
@@ -191,7 +208,7 @@ export default function VacaturePlaatsen() {
       return;
     }
 
-    const interval = setInterval(async () => {
+    const interval = setInterval(() => {
       pollCountRef.current += 1;
       // 10 minuten cap: 200 iteraties * 3s. Vertalingen zouden ruim binnen
       // 2 min klaar moeten zijn; deze cap is puur een safety net.
@@ -200,31 +217,28 @@ export default function VacaturePlaatsen() {
         clearInterval(interval);
         return;
       }
-
-      try {
-        const result = await api(`/drafts/${effectiveDraftId}`);
-        const draft = result?.draft;
-        if (draft?.image_path) {
-          setImagePath(draft.image_path);
-        }
-        if (typeof draft?.criticus_passed === 'boolean') {
-          setCriticusOverride({
-            passed: draft.criticus_passed,
-            notes: draft.criticus_notes || '',
-          });
-        }
-        // Refetch so translations in loadedDraft update — the useMemo picks
-        // them up and new tabs appear zonder handmatige refresh.
-        if (needsTranslations) {
-          existingDraftQuery.refetch();
-        }
-      } catch {
-        // Ignore poll errors
+      // Guard: als de URL nog geen draftId heeft (bijv. race na createDraft
+      // waar setSearchParams nog niet gepropageerd is), niet refetchen — dat
+      // zou /drafts/null bij de backend afvuren.
+      if (!draftIdParam) {
+        return;
       }
+      // Één enkele refetch — geen aparte api() + setState-flow meer. Dat
+      // vermeed dubbel werk en, belangrijker, dubbele state-mutaties die
+      // met een nieuw object-literal elke tick een render triggerden. Nu
+      // wint TanStack Query's structural sharing bij ongewijzigde data:
+      // loadedDraft-reference blijft stabiel, geen cascade naar autosave.
+      existingDraftQuery.refetch();
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [criticusPassed, imagePath, effectiveDraftId, isGenerating, missingTranslations.length]);
+    // draftIdParam in de deps: als de URL update na createDraft moet de
+    // interval opnieuw setuppen zodat existingDraftQuery-closure een
+    // fresh query met de nieuwe key vangt (anders /drafts/null spam).
+    // existingDraftQuery bewust NIET in deps — dat object wijzigt bij
+    // elke background-status-tick en zou een refetch-storm veroorzaken.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [criticusPassed, imagePath, effectiveDraftId, isGenerating, missingTranslations.length, draftIdParam]);
 
   // Referenced by the "Ververs vertalingen" button — forces een re-fetch en
   // reset de teller zodat het poll-loop opnieuw op gang komt als het gestopt was.
@@ -235,7 +249,7 @@ export default function VacaturePlaatsen() {
   }
 
   const selectedLangs = Array.isArray(form.talen) ? form.talen : [];
-  const tabs = useMemo(() => createTabs(content, selectedLangs), [content, selectedLangs]);
+  const tabs = useMemo(() => createLangTabs(content, selectedLangs), [content, selectedLangs]);
 
   const saveMutation = useMutation({
     mutationFn: (status) =>
@@ -286,7 +300,6 @@ export default function VacaturePlaatsen() {
       });
 
       setImagePath(uploaded?.item?.path || '');
-      setImageInitialized(true);
       setSuccess('Afbeelding geüpload. Deze wordt gebruikt in plaats van een gegenereerde afbeelding.');
     } catch (err) {
       setError(err.message || 'Uploaden van afbeelding is mislukt.');
@@ -411,6 +424,19 @@ export default function VacaturePlaatsen() {
         targetDraftId = created?.draft?.id;
         setDraftId(targetDraftId);
 
+        // URL syncen zodat existingDraftQuery (gekeyed op draftIdParam uit URL)
+        // meteen de nieuwe id gebruikt. Zonder deze sync bleef refetch()
+        // '/drafts/null' aanroepen, wat de backend logs vulde en de poll
+        // effectief zonder loadedDraft-update liet lopen.
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.set('draftId', targetDraftId);
+            return next;
+          },
+          { replace: true }
+        );
+
         if (!user?.onboarded_at) {
           refreshSession();
         }
@@ -446,7 +472,7 @@ export default function VacaturePlaatsen() {
             : null,
         notes: generated?.draft?.criticus_notes || '',
       });
-      setActiveTab('omschrijving_nl');
+      setActiveLangTab('nl');
       setSuccess('Concept succesvol gegenereerd.');
       setSteeringNotes('');
     } catch (err) {
@@ -516,6 +542,8 @@ export default function VacaturePlaatsen() {
   return (
     <div className="vacature-layout">
       <form className="vacature-form" onSubmit={handleGenerate}>
+        {/* Autosave-indicator boven het formulier zodra er een draft is; de
+            sticky footer beneden herhaalt hetzelfde tijdens preview-editing. */}
         {effectiveDraftId ? (
           <div className={`autosave-indicator${autosave.error ? ' error' : ''}`}>
             {autosave.isSaving
@@ -525,215 +553,258 @@ export default function VacaturePlaatsen() {
               : formatSavedAt(autosave.savedAt)}
           </div>
         ) : null}
-        <div className="vacature-grid">
-          <label className="vacature-field">
-            Functietitel
-            <input
-              value={form.functietitel}
-              onChange={(event) => updateField('functietitel', event.target.value)}
-              required
-            />
-          </label>
+        {/* Sectie 1 · Briefing — wat de recruiter weet over de vacature */}
+        <section className="vacature-section">
+          <h3 className="vacature-section-header">Briefing</h3>
+
+          <div className="vacature-field">
+            <span>Klantbriefing of notitie (Word/PDF, optioneel)</span>
+            {!documentText ? (
+              <>
+                <input
+                  type="file"
+                  accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,application/pdf"
+                  onChange={handleDocumentUpload}
+                  disabled={isBusy || documentUploading}
+                />
+                <small>
+                  {documentUploading
+                    ? 'Document wordt ingelezen...'
+                    : 'Upload een .docx of .pdf. De tekst wordt bij de briefing gevoegd voor Claude.'}
+                </small>
+              </>
+            ) : (
+              <div className="vacature-doc-block">
+                <div className="vacature-doc-meta">
+                  <strong>{documentFilename || 'Document'}</strong>
+                  <span>{documentText.length} tekens ingelezen</span>
+                  <button
+                    type="button"
+                    className="vacature-remove-image"
+                    onClick={clearDocument}
+                    disabled={isBusy}
+                  >
+                    Document verwijderen
+                  </button>
+                </div>
+                <textarea
+                  value={documentText}
+                  onChange={(event) => setDocumentText(event.target.value)}
+                  rows={8}
+                  disabled={isBusy}
+                />
+                <small>
+                  {documentText.length} tekens — je kunt de tekst hierboven aanpassen of inkorten voor je genereert.
+                </small>
+              </div>
+            )}
+          </div>
 
           <label className="vacature-field">
-            Locatie
-            <input
-              value={form.locatie}
-              onChange={(event) => updateField('locatie', event.target.value)}
+            Korte omschrijving {!documentText ? <span className="vacature-required">*</span> : <span className="vacature-optional">(optioneel — document geüpload)</span>}
+            <textarea
+              value={form.korteOmschrijving}
+              onChange={(event) => updateField('korteOmschrijving', event.target.value)}
+              maxLength={2000}
+              rows={6}
+              required={!documentText}
             />
+            <small>{form.korteOmschrijving.length}/2000 tekens</small>
           </label>
+        </section>
 
-          <label className="vacature-field">
-            Uren per week
-            <input
-              type="number"
-              min="1"
-              value={form.urenPerWeek}
-              onChange={(event) => updateField('urenPerWeek', event.target.value)}
-              required
-            />
-          </label>
+        {/* Sectie 2 · Vacature-details — harde eigenschappen */}
+        <section className="vacature-section">
+          <h3 className="vacature-section-header">Vacature-details</h3>
 
-          <label className="vacature-field">
-            Startdatum
-            <input
-              type="date"
-              value={form.startdatum}
-              onChange={(event) => updateField('startdatum', event.target.value)}
-            />
-          </label>
-        </div>
-
-        <label className="vacature-field">
-          Korte omschrijving {documentText ? <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>(optioneel — document geüpload)</span> : null}
-          <textarea
-            value={form.korteOmschrijving}
-            onChange={(event) => updateField('korteOmschrijving', event.target.value)}
-            maxLength={2000}
-            rows={6}
-            required={!documentText}
-          />
-          <small>{form.korteOmschrijving.length}/2000 tekens</small>
-        </label>
-
-        <div className="vacature-field">
-          <span>Klantbriefing of notitie (Word/PDF, optioneel)</span>
-          {!documentText ? (
-            <>
+          <div className="vacature-grid">
+            <label className="vacature-field">
+              Functietitel <span className="vacature-required">*</span>
               <input
-                type="file"
-                accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,application/pdf"
-                onChange={handleDocumentUpload}
-                disabled={isBusy || documentUploading}
+                value={form.functietitel}
+                onChange={(event) => updateField('functietitel', event.target.value)}
+                required
               />
-              <small>
-                {documentUploading
-                  ? 'Document wordt ingelezen...'
-                  : 'Upload een .docx of .pdf. De tekst wordt bij de briefing gevoegd voor Claude.'}
-              </small>
-            </>
-          ) : (
-            <div className="vacature-doc-block">
-              <div className="vacature-doc-meta">
-                <strong>{documentFilename || 'Document'}</strong>
-                <span>{documentText.length} tekens ingelezen</span>
+            </label>
+
+            <label className="vacature-field">
+              Locatie <span className="vacature-required">*</span>
+              <input
+                value={form.locatie}
+                onChange={(event) => updateField('locatie', event.target.value)}
+                required
+              />
+            </label>
+
+            <label className="vacature-field">
+              Uren per week <span className="vacature-required">*</span>
+              <input
+                type="number"
+                min="1"
+                value={form.urenPerWeek}
+                onChange={(event) => updateField('urenPerWeek', event.target.value)}
+                required
+              />
+            </label>
+
+            <label className="vacature-field">
+              Contract <span className="vacature-required">*</span>
+              <input
+                value={form.contract}
+                onChange={(event) => updateField('contract', event.target.value)}
+                placeholder="Bijv. Fulltime"
+                required
+              />
+            </label>
+
+            <label className="vacature-field">
+              Startdatum
+              <input
+                type="date"
+                value={form.startdatum}
+                onChange={(event) => updateField('startdatum', event.target.value)}
+              />
+            </label>
+
+            <label className="vacature-field">
+              Salaris
+              <input
+                value={form.salaris || ''}
+                onChange={(event) => updateField('salaris', event.target.value)}
+                placeholder="conform CAO"
+              />
+            </label>
+          </div>
+
+          <label className="vacature-field">
+            Sollicitatie URL
+            <input
+              type="url"
+              value={form.sollicitatie_url || ''}
+              onChange={(event) => updateField('sollicitatie_url', event.target.value)}
+              placeholder="https://"
+            />
+          </label>
+
+          <label className="vacature-field">
+            E-mailadres sollicitaties
+            <input
+              type="email"
+              value={form.email || ''}
+              onChange={(event) => updateField('email', event.target.value)}
+              placeholder="recruiter@lightpersoneelsdiensten.nl"
+            />
+          </label>
+        </section>
+
+        {/* Sectie 3 · Afbeelding — format + image (upload of bibliotheek) */}
+        <section className="vacature-section">
+          <h3 className="vacature-section-header">Afbeelding</h3>
+
+          <div className="vacature-field">
+            <span>Format</span>
+            <div className="vacature-language" role="group" aria-label="Format-keuze">
+              {TEMPLATE_OPTIONS.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  className={(form.template || 'vacancy') === option.key ? 'active' : ''}
+                  onClick={() => updateField('template', option.key)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="vacature-field">
+            <span>Afbeelding</span>
+            <div className="vacature-image-editor">
+              <div className="vacature-image-tile">
+                {imagePath ? (
+                  <img src={imagePath} alt="Vacature afbeelding" />
+                ) : (
+                  <span>Nog geen afbeelding</span>
+                )}
+              </div>
+              <div className="vacature-image-controls">
+                <label className={`vacature-button-like${isBusy ? ' is-disabled' : ''}`}>
+                  Upload eigen foto
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handlePreUpload}
+                    disabled={isBusy}
+                  />
+                </label>
                 <button
                   type="button"
-                  className="vacature-remove-image"
-                  onClick={clearDocument}
+                  className="vacature-pick-image"
+                  onClick={() => setMediaPickerOpen(true)}
                   disabled={isBusy}
                 >
-                  Document verwijderen
+                  Kies uit bibliotheek
                 </button>
+                {imagePath ? (
+                  <button
+                    type="button"
+                    className="vacature-remove-image"
+                    onClick={() => setImagePath('')}
+                    disabled={isBusy}
+                  >
+                    Afbeelding verwijderen
+                  </button>
+                ) : null}
+                <small>Leeg = wij genereren automatisch bij "Concept genereren".</small>
               </div>
-              <textarea
-                value={documentText}
-                onChange={(event) => setDocumentText(event.target.value)}
-                rows={8}
-                disabled={isBusy}
-              />
-              <small>Je kunt de tekst hieronder aanpassen of inkorten voor je genereert.</small>
             </div>
-          )}
-        </div>
-
-        <div className="vacature-field">
-          <span>Visualisatie</span>
-          <div className="vacature-language" role="group" aria-label="Visualisatiekeuze">
-            {TEMPLATE_OPTIONS.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                className={(form.template || 'vacancy') === option.key ? 'active' : ''}
-                onClick={() => updateField('template', option.key)}
-              >
-                {option.label}
-              </button>
-            ))}
           </div>
-        </div>
+        </section>
 
-        <div className="vacature-field">
-          <span>Talen</span>
-          <div className="vacature-language-list" role="group" aria-label="Extra talen naast Nederlands">
-            <span className="vacature-lang-fixed" aria-label="Nederlands is altijd geselecteerd">
-              Nederlands (basis)
-            </span>
-            {LANGUAGES.map((lang) => {
-              const checked = selectedLangs.includes(lang.code);
-              return (
-                <label
-                  key={lang.code}
-                  className={`vacature-lang-check${checked ? ' checked' : ''}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={(event) => {
-                      const nextTalen = event.target.checked
-                        ? [...selectedLangs, lang.code]
-                        : selectedLangs.filter((code) => code !== lang.code);
-                      updateField('talen', nextTalen);
-                    }}
-                  />
-                  <span>
-                    {lang.label} <em>({lang.native})</em>
-                  </span>
-                </label>
-              );
-            })}
+        {/* Sectie 4 · Talen — NL basis + extra talen (checkboxes, chip-cluster komt in PR 2a) */}
+        <section className="vacature-section">
+          <h3 className="vacature-section-header">Talen</h3>
+
+          <div className="vacature-field">
+            <div className="vacature-language-list" role="group" aria-label="Extra talen naast Nederlands">
+              <span className="vacature-lang-fixed" aria-label="Nederlands is altijd geselecteerd">
+                Nederlands (basis)
+              </span>
+              {LANGUAGES.map((lang) => {
+                const checked = selectedLangs.includes(lang.code);
+                return (
+                  <label
+                    key={lang.code}
+                    className={`vacature-lang-check${checked ? ' checked' : ''}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(event) => {
+                        const nextTalen = event.target.checked
+                          ? [...selectedLangs, lang.code]
+                          : selectedLangs.filter((code) => code !== lang.code);
+                        updateField('talen', nextTalen);
+                      }}
+                    />
+                    <span>
+                      {lang.label} <em>({lang.native})</em>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <small>
+              Nederlands is altijd de basis. Extra talen worden op de achtergrond gegenereerd en verschijnen als tabs zodra ze klaar zijn.
+            </small>
           </div>
-          <small>
-            Nederlands is altijd de basis. Extra talen worden op de achtergrond gegenereerd en verschijnen als tabs zodra ze klaar zijn.
-          </small>
-        </div>
+        </section>
 
-        <label className="vacature-field">
-          Contract
-          <input
-            value={form.contract}
-            onChange={(event) => updateField('contract', event.target.value)}
-            placeholder="Bijv. Fulltime"
-            required
-          />
-        </label>
-
-        <label className="vacature-field">
-          Salaris
-          <input
-            value={form.salaris || ''}
-            onChange={(event) => updateField('salaris', event.target.value)}
-            placeholder="Bijv. €14,- p/u of conform CAO (leeg = conform CAO)"
-          />
-        </label>
-
-        <label className="vacature-field">
-          Sollicitatie URL
-          <input
-            type="url"
-            value={form.sollicitatie_url || ''}
-            onChange={(event) => updateField('sollicitatie_url', event.target.value)}
-            placeholder="https://"
-          />
-        </label>
-
-        <label className="vacature-field">
-          E-mailadres sollicitaties
-          <input
-            type="email"
-            value={form.email || ''}
-            onChange={(event) => updateField('email', event.target.value)}
-            placeholder="recruiter@lightpersoneelsdiensten.nl"
-          />
-        </label>
-
-        <label className="vacature-field">
-          Eigen afbeelding (optioneel)
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            onChange={handlePreUpload}
-            disabled={isBusy}
-          />
-          <small>Upload je eigen foto; laat leeg om automatisch een afbeelding te genereren.</small>
-        </label>
-
-        {/* Pre-upload preview: alleen zichtbaar vóór er een draft is. Na
-            genereren neemt de preview-sectie hieronder de afbeelding over,
-            zodat we 'm niet twee keer tonen. */}
-        {imagePath && !effectiveDraftId ? (
-          <div className="vacature-image-block">
-            <img src={imagePath} alt="Geüploade afbeelding" className="vacature-preview-image" />
-            <button
-              type="button"
-              className="vacature-remove-image"
-              onClick={() => setImagePath('')}
-              disabled={isBusy}
-            >
-              Afbeelding verwijderen
-            </button>
-          </div>
-        ) : null}
+        <MediaPicker
+          open={mediaPickerOpen}
+          onSelect={(path) => setImagePath(path)}
+          onClose={() => setMediaPickerOpen(false)}
+        />
 
         <div className="form-actions">
           <button type="submit" disabled={isBusy}>
@@ -746,15 +817,59 @@ export default function VacaturePlaatsen() {
 
       {effectiveDraftId && !isGenerating ? (
         <section className="vacature-preview">
-          <h3>Voorbeeld en bewerken</h3>
+          <div className="vacature-preview-header">
+            <h3>Voorbeeld en bewerken</h3>
+            <StatusBadge status={loadedDraft?.status || 'draft'} />
+          </div>
 
-          {criticusPassed === null && effectiveDraftId ? (
-            <div className="skeleton">Criticus controleren...</div>
-          ) : criticusPassed !== null ? (
-            <div className={`criticus-box ${criticusPassed ? 'pass' : 'fail'}`}>
-              <strong>{criticusPassed ? 'Criticus: akkoord' : 'Criticus: aandacht nodig'}</strong>
-              <p>{criticusNotes || 'Geen opmerkingen.'}</p>
-            </div>
+          <StatusStrip
+            rows={[
+              {
+                key: 'criticus',
+                label: 'Criticus',
+                state:
+                  criticusPassed === null
+                    ? 'pending'
+                    : criticusPassed
+                    ? 'ready'
+                    : 'failed',
+                detail:
+                  criticusPassed === null
+                    ? undefined
+                    : criticusPassed
+                    ? 'akkoord'
+                    : criticusNotes || 'aandacht nodig',
+              },
+              {
+                key: 'image',
+                label: 'Afbeelding',
+                state: imagePath ? 'ready' : 'pending',
+              },
+              selectedLangs.length > 0
+                ? {
+                    key: 'translations',
+                    label: 'Vertalingen',
+                    state:
+                      missingTranslations.length === 0
+                        ? 'ready'
+                        : 'pending',
+                    detail:
+                      selectedLangs.length -
+                        missingTranslations.length +
+                      '/' +
+                      selectedLangs.length +
+                      ' klaar',
+                    onRetry: missingTranslations.length > 0 ? refreshTranslationsNow : undefined,
+                  }
+                : null,
+            ]}
+          />
+
+          {criticusPassed === false && criticusNotes ? (
+            <details className="criticus-box fail" open>
+              <summary>Criticus-notities</summary>
+              <p>{criticusNotes}</p>
+            </details>
           ) : null}
 
           <div className="vacature-regenerate">
@@ -808,18 +923,21 @@ export default function VacaturePlaatsen() {
           />
 
           <div className="preview-tabs">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                className={`${activeTab === tab.key ? 'active' : ''}${tab.pending ? ' pending' : ''}`}
-                onClick={() => setActiveTab(tab.key)}
-                disabled={tab.pending}
-                title={tab.pending ? 'Vertaling wordt nog gegenereerd...' : undefined}
-              >
-                {tab.label}{tab.pending ? ' …' : ''}
-              </button>
-            ))}
+            {tabs.map((tab) => {
+              const isActive = activeLangTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  className={`${isActive ? 'active' : ''}${tab.pending ? ' pending' : ''}`}
+                  onClick={() => setActiveLangTab(tab.key)}
+                  title={tab.pending ? 'Vertaling wordt nog gegenereerd...' : undefined}
+                >
+                  {tab.label}
+                  {tab.pending ? ' …' : ''}
+                </button>
+              );
+            })}
             {missingTranslations.length > 0 ? (
               <button
                 type="button"
@@ -832,70 +950,88 @@ export default function VacaturePlaatsen() {
             ) : null}
           </div>
 
-          <div className="preview-pane">
-            <textarea
-              value={readTab(content, activeTab)}
-              onChange={(event) => {
-                const value = event.target.value;
-                if (!activeTab.startsWith('tr:')) {
-                  setContentEdits((prev) => ({ ...prev, [activeTab]: value }));
-                  return;
-                }
-                const [, lang, field] = activeTab.split(':');
-                setContentEdits((prev) => ({
-                  ...prev,
-                  translations: {
-                    ...(prev.translations || {}),
-                    [lang]: { ...(prev.translations?.[lang] || {}), [field]: value },
-                  },
-                }));
-              }}
-            />
-            <button
-              type="button"
-              className="copy-text-btn"
-              onClick={() => {
-                navigator.clipboard.writeText(readTab(content, activeTab));
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1500);
-              }}
-            >
-              {copied ? 'Gekopieerd!' : 'Kopieer tekst'}
-            </button>
-          </div>
+          {/* LanguagePane: alle vier de velden onder elkaar voor de actieve taal.
+              Bij een pending vertaal-tab tonen we een placeholder in plaats van
+              lege textareas — anders lijkt het alsof je moet schrijven. */}
+          {(() => {
+            const activeTab = tabs.find((t) => t.key === activeLangTab) || tabs[0];
+            if (activeTab.pending) {
+              return (
+                <div className="preview-pane preview-pane-pending">
+                  <p>
+                    Vertaling voor <strong>{langLabel(activeLangTab)}</strong> wordt nog gegenereerd. Zodra Claude klaar is verschijnen de velden hier automatisch.
+                  </p>
+                  <button
+                    type="button"
+                    className="preview-tab-refresh"
+                    onClick={refreshTranslationsNow}
+                  >
+                    ↻ Nu controleren
+                  </button>
+                </div>
+              );
+            }
+            return (
+              <div className="preview-pane preview-pane-lang">
+                {FIELD_DEFS.map((field) => {
+                  const value = readField(content, activeLangTab, field.key);
+                  const copyKey = `${activeLangTab}:${field.key}`;
+                  const isCopied = copiedField === copyKey;
+                  return (
+                    <div key={field.key} className="preview-field-block">
+                      <div className="preview-field-header">
+                        <h4>{field.label}</h4>
+                        <button
+                          type="button"
+                          className="copy-text-btn"
+                          onClick={() => {
+                            navigator.clipboard.writeText(value);
+                            setCopiedField(copyKey);
+                            setTimeout(() => setCopiedField(null), 1500);
+                          }}
+                        >
+                          {isCopied ? 'Gekopieerd!' : 'Kopieer'}
+                        </button>
+                      </div>
+                      <textarea
+                        value={value}
+                        onChange={(event) => {
+                          const nextValue = event.target.value;
+                          if (activeLangTab === 'nl') {
+                            setContentEdits((prev) => ({ ...prev, [field.nlColumn]: nextValue }));
+                            return;
+                          }
+                          setContentEdits((prev) => ({
+                            ...prev,
+                            translations: {
+                              ...(prev.translations || {}),
+                              [activeLangTab]: {
+                                ...(prev.translations?.[activeLangTab] || {}),
+                                [field.key]: nextValue,
+                              },
+                            },
+                          }));
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
-          <div className="vacature-image-block">
-            <p className="vacature-label">Afbeelding (optioneel)</p>
-            {imagePath ? (
+          {imagePath ? (
+            <div className="vacature-image-block preview-only">
+              <p className="vacature-label">Huidige afbeelding</p>
               <img src={imagePath} alt="Vacature afbeelding" className="vacature-preview-image" />
-            ) : null}
-            <button
-              type="button"
-              className="vacature-pick-image"
-              onClick={() => setMediaPickerOpen(true)}
-              disabled={isBusy}
-            >
-              {imagePath ? 'Andere afbeelding kiezen' : 'Afbeelding kiezen uit bibliotheek'}
-            </button>
-            {imagePath ? (
-              <button
-                type="button"
-                className="vacature-remove-image"
-                onClick={() => setImagePath('')}
-                disabled={isBusy}
-              >
-                Afbeelding verwijderen
-              </button>
-            ) : null}
-          </div>
+              <small>Wisselen kan bovenaan bij "Afbeelding".</small>
+            </div>
+          ) : null}
 
-          <MediaPicker
-            open={mediaPickerOpen}
-            onSelect={(path) => setImagePath(path)}
-            onClose={() => setMediaPickerOpen(false)}
-          />
-
-          <div className="form-actions">
+          <StickyFooter
+            autosaveLabel={autosave.isSaving ? 'Opslaan...' : formatSavedAt(autosave.savedAt)}
+            autosaveError={autosave.error}
+          >
             <button type="button" onClick={handleSaveDraft} disabled={isBusy}>
               Opslaan als concept
             </button>
@@ -911,7 +1047,7 @@ export default function VacaturePlaatsen() {
                 Goedkeuren
               </button>
             ) : null}
-          </div>
+          </StickyFooter>
         </section>
       ) : null}
 

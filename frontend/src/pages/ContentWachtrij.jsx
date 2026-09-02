@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import StatusBadge, { getStatusLabel as getSharedStatusLabel } from '../components/shared/StatusBadge';
+import '../components/shared/status-strip.css';
 import './content-wachtrij.css';
 
 function formatDate(value) {
@@ -25,23 +27,9 @@ function getTypeLabel(type) {
   return type === 'marketing-post' ? 'Marketing' : 'Vacature';
 }
 
-function getStatusBadgeClass(status) {
-  return `queue-badge status-${status}`;
-}
-
-function getStatusLabel(status) {
-  const labels = {
-    draft: 'Concept',
-    pending_approval: 'Wacht op goedkeuring',
-    approved: 'Goedgekeurd',
-    actief: 'Actief',
-    published: 'Gepubliceerd',
-    expired: 'Verlopen',
-    rejected: 'Afgewezen',
-  };
-
-  return labels[status] || status;
-}
+// Legacy wachtrij-specifieke helpers zijn vervangen door de shared StatusBadge
+// component; filter-labels blijven lokaal want ze bevatten "Alle" en "Wacht op
+// goedkeuring" die geen 1-op-1 status-mapping hebben.
 
 function formatChannels(channels) {
   if (!Array.isArray(channels) || channels.length === 0) {
@@ -351,7 +339,7 @@ export default function ContentWachtrij() {
     bulkExpireMutation.isPending ||
     bulkPublishMutation.isPending;
 
-  const selectionStatusLabel = selectionStatus ? getStatusLabel(selectionStatus) : '';
+  const selectionStatusLabel = selectionStatus ? getSharedStatusLabel(selectionStatus) : '';
 
   return (
     <div className="queue-layout">
@@ -528,9 +516,7 @@ export default function ContentWachtrij() {
                     <td>{draft.title}</td>
                     <td>{draft.authorName}</td>
                     <td>
-                      <span className={getStatusBadgeClass(draft.status)}>
-                        {getStatusLabel(draft.status)}
-                      </span>
+                      <StatusBadge status={draft.status} />
                     </td>
                     <td>{formatDate(draft.createdAt)}</td>
                     <td>{formatChannels(draft.channels)}</td>

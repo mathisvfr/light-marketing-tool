@@ -60,29 +60,51 @@
   gap: 0.4rem;
   border: 1.5px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
-  padding: 0.5rem 0.7rem;
-  background: var(--grey-50);
+  padding: 0.5rem 0.85rem;
+  background: var(--color-bg);
+  color: var(--color-text);
   cursor: pointer;
-  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+  transition: border-color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
   user-select: none;
   font-family: var(--font-display);
   font-weight: 600;
   font-size: 14px;
 }
 
-.marketing-radio-item:hover,
-.marketing-channel-item:hover:not(.disabled) {
+.marketing-radio-item:hover:not(.checked),
+.marketing-channel-item:hover:not(.disabled):not(.checked) {
   border-color: var(--light-red-300);
   background: var(--light-red-50);
 }
 
+/* Gevulde staat voor geselecteerde chips — zelfde behandeling als
+   .vacature-lang-check.checked zodat beide pagina's dezelfde chip-taal spreken. */
+.marketing-radio-item.checked,
+.marketing-channel-item.checked {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+/* Native input visueel verbergen zonder a11y-verlies. */
 .marketing-radio-item input[type='radio'],
 .marketing-channel-item input[type='checkbox'] {
-  accent-color: var(--color-primary);
-  width: 1rem;
-  height: 1rem;
-  cursor: pointer;
-  flex-shrink: 0;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.marketing-radio-item:focus-within,
+.marketing-channel-item:focus-within {
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 .marketing-channel-item.disabled {
@@ -243,8 +265,7 @@
   margin: var(--space-2) 0 0;
   font-size: 14px;
   line-height: 1.5;
-  max-height: 4.5em;
-  overflow: hidden;
+  white-space: pre-wrap;
 }
 
 .marketing-criticus.pass {
@@ -340,4 +361,23 @@
   .marketing-schedule input[type="datetime-local"] {
     max-width: 100%;
   }
+}
+
+.marketing-preview-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.marketing-preview-header h3 {
+  margin: 0;
+  flex: 1;
+}
+
+.marketing-criticus.fail summary {
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: #7f1d1d;
 }
