@@ -208,7 +208,7 @@ export default function VacaturePlaatsen() {
       return;
     }
 
-    const interval = setInterval(async () => {
+    const interval = setInterval(() => {
       pollCountRef.current += 1;
       // 10 minuten cap: 200 iteraties * 3s. Vertalingen zouden ruim binnen
       // 2 min klaar moeten zijn; deze cap is puur een safety net.
@@ -217,31 +217,28 @@ export default function VacaturePlaatsen() {
         clearInterval(interval);
         return;
       }
-
-      try {
-        const result = await api(`/drafts/${effectiveDraftId}`);
-        const draft = result?.draft;
-        if (draft?.image_path) {
-          setImagePath(draft.image_path);
-        }
-        if (typeof draft?.criticus_passed === 'boolean') {
-          setCriticusOverride({
-            passed: draft.criticus_passed,
-            notes: draft.criticus_notes || '',
-          });
-        }
-        // Refetch so translations in loadedDraft update — the useMemo picks
-        // them up and new tabs appear zonder handmatige refresh.
-        if (needsTranslations) {
-          existingDraftQuery.refetch();
-        }
-      } catch {
-        // Ignore poll errors
+      // Guard: als de URL nog geen draftId heeft (bijv. race na createDraft
+      // waar setSearchParams nog niet gepropageerd is), niet refetchen — dat
+      // zou /drafts/null bij de backend afvuren.
+      if (!draftIdParam) {
+        return;
       }
+      // Één enkele refetch — geen aparte api() + setState-flow meer. Dat
+      // vermeed dubbel werk en, belangrijker, dubbele state-mutaties die
+      // met een nieuw object-literal elke tick een render triggerden. Nu
+      // wint TanStack Query's structural sharing bij ongewijzigde data:
+      // loadedDraft-reference blijft stabiel, geen cascade naar autosave.
+      existingDraftQuery.refetch();
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [criticusPassed, imagePath, effectiveDraftId, isGenerating, missingTranslations.length]);
+    // draftIdParam in de deps: als de URL update na createDraft moet de
+    // interval opnieuw setuppen zodat existingDraftQuery-closure een
+    // fresh query met de nieuwe key vangt (anders /drafts/null spam).
+    // existingDraftQuery bewust NIET in deps — dat object wijzigt bij
+    // elke background-status-tick en zou een refetch-storm veroorzaken.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [criticusPassed, imagePath, effectiveDraftId, isGenerating, missingTranslations.length, draftIdParam]);
 
   // Referenced by the "Ververs vertalingen" button — forces een re-fetch en
   // reset de teller zodat het poll-loop opnieuw op gang komt als het gestopt was.
@@ -426,6 +423,19 @@ export default function VacaturePlaatsen() {
 
         targetDraftId = created?.draft?.id;
         setDraftId(targetDraftId);
+
+        // URL syncen zodat existingDraftQuery (gekeyed op draftIdParam uit URL)
+        // meteen de nieuwe id gebruikt. Zonder deze sync bleef refetch()
+        // '/drafts/null' aanroepen, wat de backend logs vulde en de poll
+        // effectief zonder loadedDraft-update liet lopen.
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.set('draftId', targetDraftId);
+            return next;
+          },
+          { replace: true }
+        );
 
         if (!user?.onboarded_at) {
           refreshSession();

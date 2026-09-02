@@ -42,7 +42,7 @@ const TEMPLATE_OPTIONS = [
 
 export default function MarketingPost() {
   const { role, user, refreshSession } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const draftIdParam = searchParams.get('draftId');
   const [draftId, setDraftId] = useState(draftIdParam);
   const [formEdits, setFormEdits] = useState({});
@@ -118,32 +118,27 @@ export default function MarketingPost() {
       return;
     }
 
-    const interval = setInterval(async () => {
+    const interval = setInterval(() => {
       pollCountRef.current += 1;
       if (pollCountRef.current > 8) {
         clearInterval(interval);
         return;
       }
-
-      try {
-        const result = await api(`/drafts/${effectiveDraftId}`);
-        const draft = result?.draft;
-        if (draft?.image_path) {
-          setImagePathOverride(draft.image_path);
-        }
-        if (typeof draft?.criticus_passed === 'boolean') {
-          setCriticusOverride({
-            passed: draft.criticus_passed,
-            notes: draft.criticus_notes || '',
-          });
-        }
-      } catch {
-        // Ignore poll errors
+      // Guard: geen /drafts/null bij een race na createDraft.
+      if (!draftIdParam) {
+        return;
       }
+      // Zelfde consolidatie als in VacaturePlaatsen: één refetch, geen
+      // aparte api()/setState-flow. Structural sharing van TanStack Query
+      // houdt loadedDraft-reference stabiel bij ongewijzigde data, wat de
+      // autosave-feedback-loop breekt.
+      existingDraftQuery.refetch();
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [criticusPassed, imagePath, effectiveDraftId, isGenerating]);
+    // draftIdParam in de deps: zie VacaturePlaatsen voor rationale.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [criticusPassed, imagePath, effectiveDraftId, isGenerating, draftIdParam]);
 
   const apiStatus = brandQuery.data?.apiStatus || {};
 
@@ -300,6 +295,18 @@ export default function MarketingPost() {
 
         targetDraftId = created?.draft?.id;
         setDraftId(targetDraftId);
+
+        // URL syncen zodat existingDraftQuery (gekeyed op draftIdParam uit URL)
+        // meteen de nieuwe id gebruikt. Zonder deze sync spam de poll de
+        // backend met '/drafts/null' requests.
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.set('draftId', targetDraftId);
+            return next;
+          },
+          { replace: true }
+        );
 
         // If this was the caller's first draft, backend just set onboarded_at.
         // Refresh session so the dashboard checklist hides on the next visit.
