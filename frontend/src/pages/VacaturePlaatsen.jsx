@@ -38,53 +38,66 @@ const LANGUAGES = [
   { code: 'uk', label: 'Oekraïens', native: 'Українська' },
 ];
 
-const TRANSLATION_FIELDS = [
-  { key: 'omschrijving', label: 'Omschrijving' },
-  { key: 'functie_eisen', label: 'Functie-eisen' },
-  { key: 'wat_wij_bieden', label: 'Wat wij bieden' },
-  { key: 'social', label: 'Social post' },
+// Vier bewerkbare velden per taal. Voor NL komen de waarden uit vaste
+// draft-kolommen (omschrijving_nl, functie_eisen, ...), voor andere talen uit
+// content.translations[lang].
+const FIELD_DEFS = [
+  { key: 'omschrijving', label: 'Omschrijving', nlColumn: 'omschrijving_nl' },
+  { key: 'functie_eisen', label: 'Functie-eisen', nlColumn: 'functie_eisen' },
+  { key: 'wat_wij_bieden', label: 'Wat wij bieden', nlColumn: 'wat_wij_bieden' },
+  { key: 'social', label: 'Social post', nlColumn: 'social_nl' },
 ];
 
 function langLabel(code) {
+  if (code === 'nl') return 'Nederlands';
   const entry = LANGUAGES.find((item) => item.code === code);
   return entry ? entry.label : code.toUpperCase();
 }
 
-function createTabs(content, selectedLangs) {
-  const tabs = [
-    { key: 'omschrijving_nl', label: 'Omschrijving NL' },
-    { key: 'functie_eisen', label: 'Functie-eisen NL' },
-    { key: 'wat_wij_bieden', label: 'Wat wij bieden NL' },
-    { key: 'social_nl', label: 'Social post NL' },
-  ];
-
+// Eén tab per taal (i.p.v. vier tabs per taal in de oude opzet). Binnen een tab
+// tonen we alle vier de velden onder elkaar met een `<h4>` per veld. Voor
+// selected extra talen markeren we `pending` totdat de vertaling binnen is;
+// gebruiker kan de tab wel selecteren en ziet dan een placeholder.
+function createLangTabs(content, selectedLangs) {
+  const tabs = [{ key: 'nl', label: 'Nederlands', pending: false }];
   const translations = content?.translations || {};
   for (const lang of selectedLangs) {
     const entry = translations[lang];
-    const ready = Boolean(entry && (entry.omschrijving || entry.functie_eisen || entry.wat_wij_bieden || entry.social));
-    for (const field of TRANSLATION_FIELDS) {
-      tabs.push({
-        key: `tr:${lang}:${field.key}`,
-        label: `${field.label} ${langLabel(lang)}`,
-        pending: !ready,
-      });
-    }
+    const ready = Boolean(
+      entry && (entry.omschrijving || entry.functie_eisen || entry.wat_wij_bieden || entry.social)
+    );
+    tabs.push({ key: lang, label: langLabel(lang), pending: !ready });
   }
-
   return tabs;
 }
 
-function readTab(content, tabKey) {
-  if (!tabKey.startsWith('tr:')) {
-    return content[tabKey] || '';
+function readField(content, lang, fieldKey) {
+  if (lang === 'nl') {
+    const def = FIELD_DEFS.find((f) => f.key === fieldKey);
+    return def ? content[def.nlColumn] || '' : '';
   }
-  const [, lang, field] = tabKey.split(':');
-  return content?.translations?.[lang]?.[field] || '';
+  return content?.translations?.[lang]?.[fieldKey] || '';
+}
+
+// Legacy `activeTab` compat: URL uit vorige versie kon `?tab=omschrijving_nl`
+// of `?tab=tr:pl:social` bevatten. Vertaal 'm naar de nieuwe `?lang=` param.
+function readLangFromParams(searchParams) {
+  const langParam = searchParams.get('lang');
+  if (langParam) return langParam;
+  const legacy = searchParams.get('tab');
+  if (!legacy) return null;
+  if (legacy.startsWith('tr:')) {
+    return legacy.split(':')[1] || null;
+  }
+  if (['omschrijving_nl', 'functie_eisen', 'wat_wij_bieden', 'social_nl'].includes(legacy)) {
+    return 'nl';
+  }
+  return null;
 }
 
 export default function VacaturePlaatsen() {
   const { role, user, refreshSession } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const draftIdParam = searchParams.get('draftId');
   const [draftId, setDraftId] = useState(draftIdParam);
   const [formEdits, setFormEdits] = useState({});
@@ -93,7 +106,22 @@ export default function VacaturePlaatsen() {
     passed: undefined,
     notes: undefined,
   });
-  const [activeTab, setActiveTab] = useState('omschrijving_nl');
+  // Active language tab wordt uit URL afgeleid zodat bookmarks + browser-back
+  // werken. Legacy tab-keys (`omschrijving_nl`, `tr:pl:social`) worden bij eerste
+  // lees vertaald naar de nieuwe `lang`-param.
+  const activeLangTab = readLangFromParams(searchParams) || 'nl';
+  function setActiveLangTab(lang) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('lang', lang);
+        next.delete('tab');
+        return next;
+      },
+      { replace: true }
+    );
+  }
+  const [copiedField, setCopiedField] = useState(null); // 'nl:omschrijving' etc.
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -103,7 +131,6 @@ export default function VacaturePlaatsen() {
   // `''` = expliciet leeg (user removed image). String = lokale keuze.
   const [imagePathOverride, setImagePathOverride] = useState(undefined);
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [steeringNotes, setSteeringNotes] = useState('');
   const [documentText, setDocumentText] = useState('');
   const [documentFilename, setDocumentFilename] = useState('');
@@ -237,7 +264,7 @@ export default function VacaturePlaatsen() {
   }
 
   const selectedLangs = Array.isArray(form.talen) ? form.talen : [];
-  const tabs = useMemo(() => createTabs(content, selectedLangs), [content, selectedLangs]);
+  const tabs = useMemo(() => createLangTabs(content, selectedLangs), [content, selectedLangs]);
 
   const saveMutation = useMutation({
     mutationFn: (status) =>
@@ -447,7 +474,7 @@ export default function VacaturePlaatsen() {
             : null,
         notes: generated?.draft?.criticus_notes || '',
       });
-      setActiveTab('omschrijving_nl');
+      setActiveLangTab('nl');
       setSuccess('Concept succesvol gegenereerd.');
       setSteeringNotes('');
     } catch (err) {
@@ -852,18 +879,21 @@ export default function VacaturePlaatsen() {
           />
 
           <div className="preview-tabs">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                className={`${activeTab === tab.key ? 'active' : ''}${tab.pending ? ' pending' : ''}`}
-                onClick={() => setActiveTab(tab.key)}
-                disabled={tab.pending}
-                title={tab.pending ? 'Vertaling wordt nog gegenereerd...' : undefined}
-              >
-                {tab.label}{tab.pending ? ' …' : ''}
-              </button>
-            ))}
+            {tabs.map((tab) => {
+              const isActive = activeLangTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  className={`${isActive ? 'active' : ''}${tab.pending ? ' pending' : ''}`}
+                  onClick={() => setActiveLangTab(tab.key)}
+                  title={tab.pending ? 'Vertaling wordt nog gegenereerd...' : undefined}
+                >
+                  {tab.label}
+                  {tab.pending ? ' …' : ''}
+                </button>
+              );
+            })}
             {missingTranslations.length > 0 ? (
               <button
                 type="button"
@@ -876,37 +906,75 @@ export default function VacaturePlaatsen() {
             ) : null}
           </div>
 
-          <div className="preview-pane">
-            <textarea
-              value={readTab(content, activeTab)}
-              onChange={(event) => {
-                const value = event.target.value;
-                if (!activeTab.startsWith('tr:')) {
-                  setContentEdits((prev) => ({ ...prev, [activeTab]: value }));
-                  return;
-                }
-                const [, lang, field] = activeTab.split(':');
-                setContentEdits((prev) => ({
-                  ...prev,
-                  translations: {
-                    ...(prev.translations || {}),
-                    [lang]: { ...(prev.translations?.[lang] || {}), [field]: value },
-                  },
-                }));
-              }}
-            />
-            <button
-              type="button"
-              className="copy-text-btn"
-              onClick={() => {
-                navigator.clipboard.writeText(readTab(content, activeTab));
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1500);
-              }}
-            >
-              {copied ? 'Gekopieerd!' : 'Kopieer tekst'}
-            </button>
-          </div>
+          {/* LanguagePane: alle vier de velden onder elkaar voor de actieve taal.
+              Bij een pending vertaal-tab tonen we een placeholder in plaats van
+              lege textareas — anders lijkt het alsof je moet schrijven. */}
+          {(() => {
+            const activeTab = tabs.find((t) => t.key === activeLangTab) || tabs[0];
+            if (activeTab.pending) {
+              return (
+                <div className="preview-pane preview-pane-pending">
+                  <p>
+                    Vertaling voor <strong>{langLabel(activeLangTab)}</strong> wordt nog gegenereerd. Zodra Claude klaar is verschijnen de velden hier automatisch.
+                  </p>
+                  <button
+                    type="button"
+                    className="preview-tab-refresh"
+                    onClick={refreshTranslationsNow}
+                  >
+                    ↻ Nu controleren
+                  </button>
+                </div>
+              );
+            }
+            return (
+              <div className="preview-pane preview-pane-lang">
+                {FIELD_DEFS.map((field) => {
+                  const value = readField(content, activeLangTab, field.key);
+                  const copyKey = `${activeLangTab}:${field.key}`;
+                  const isCopied = copiedField === copyKey;
+                  return (
+                    <div key={field.key} className="preview-field-block">
+                      <div className="preview-field-header">
+                        <h4>{field.label}</h4>
+                        <button
+                          type="button"
+                          className="copy-text-btn"
+                          onClick={() => {
+                            navigator.clipboard.writeText(value);
+                            setCopiedField(copyKey);
+                            setTimeout(() => setCopiedField(null), 1500);
+                          }}
+                        >
+                          {isCopied ? 'Gekopieerd!' : 'Kopieer'}
+                        </button>
+                      </div>
+                      <textarea
+                        value={value}
+                        onChange={(event) => {
+                          const nextValue = event.target.value;
+                          if (activeLangTab === 'nl') {
+                            setContentEdits((prev) => ({ ...prev, [field.nlColumn]: nextValue }));
+                            return;
+                          }
+                          setContentEdits((prev) => ({
+                            ...prev,
+                            translations: {
+                              ...(prev.translations || {}),
+                              [activeLangTab]: {
+                                ...(prev.translations?.[activeLangTab] || {}),
+                                [field.key]: nextValue,
+                              },
+                            },
+                          }));
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           {imagePath ? (
             <div className="vacature-image-block preview-only">

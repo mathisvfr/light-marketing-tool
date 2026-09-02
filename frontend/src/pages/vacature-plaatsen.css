@@ -402,20 +402,68 @@
 }
 
 .preview-pane textarea {
-  min-height: 220px;
+  min-height: 180px;
   width: 100%;
+}
+
+/* LanguagePane: één taal-tab toont alle vier de velden gestackt, elk met
+   een `<h4>`-header + eigen copy-knop en textarea. Geen accordion, geen
+   sub-scroll — natuurlijke pagina-scroll. */
+.preview-pane-lang {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.preview-field-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.preview-field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.preview-field-header h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* Placeholder-pane wanneer een vertaal-tab nog pending is. */
+.preview-pane-pending {
+  padding: var(--space-5) var(--space-4);
+  background: var(--grey-50);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.preview-pane-pending p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .copy-text-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  margin-top: var(--space-2);
-  padding: 0.35rem 0.75rem;
+  padding: 0.3rem 0.65rem;
   background: var(--grey-100);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--color-text-muted);
   cursor: pointer;
