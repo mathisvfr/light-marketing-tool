@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import StatusBadge from '../components/shared/StatusBadge';
+import ChannelStatus from '../components/shared/ChannelStatus';
 import Card, { CardHeader, CardBody } from '../components/shared/Card';
 import '../components/shared/status-strip.css';
 import '../components/shared/card.css';
@@ -24,37 +25,8 @@ function formatDate(dateValue) {
   }).format(new Date(dateValue));
 }
 
-function getStatusDotClass(status) {
-  if (status === 'connected') {
-    return 'status-dot success';
-  }
-
-  if (status === 'expiring') {
-    return 'status-dot pending';
-  }
-
-  if (status === 'disconnected') {
-    return 'status-dot failed';
-  }
-
-  return 'status-dot unknown';
-}
-
-function getChannelStatusLabel(status) {
-  if (status === 'connected') {
-    return 'Verbonden';
-  }
-
-  if (status === 'expiring') {
-    return 'Verloopt binnenkort';
-  }
-
-  if (status === 'disconnected') {
-    return 'Niet verbonden';
-  }
-
-  return status || 'Onbekend';
-}
+// Kanaal- en integratielabels komen nu uit <ChannelStatus namespace="integrations">;
+// de losse getStatusDotClass/getChannelStatusLabel-helpers zijn weg.
 
 function getFeedHealthLabel(itemsWithIssues) {
   if (itemsWithIssues === 0) {
@@ -277,11 +249,11 @@ export default function Dashboard() {
             {channelHealth.map((item) => (
               <li key={item.channel}>
                 <strong>
-                  <span className={getStatusDotClass(item.status)} />
+                  <ChannelStatus status={item.status} namespace="integrations" compact />{' '}
                   {CHANNEL_LABELS[item.channel] || item.channel}
                 </strong>
                 <p className="dashboard-meta">
-                  Laatste status: {getChannelStatusLabel(item.status)} · {formatDate(item.updatedAt)}
+                  Laatste status: <ChannelStatus status={item.status} namespace="integrations" /> · {formatDate(item.updatedAt)}
                 </p>
               </li>
             ))}

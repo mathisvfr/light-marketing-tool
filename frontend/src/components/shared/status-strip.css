@@ -1,9 +1,15 @@
 /* Shared: StatusBadge + StatusStrip + StickyFooter — geimporteerd door beide
    vacature- en marketing-pagina's zodat statustaal identiek is. */
 
-/* ---------- StatusBadge ---------- */
+/* ---------- Pill primitives (StatusBadge / ChannelStatus / RoleBadge) ---------- */
 
-.status-badge {
+/* Gedeelde base voor alle drie de pill-componenten. `.pill-base` = layout +
+   typografie; `.pill-tone-*` = kleur-varianten. Componenten voegen zelf géén
+   extra class toe boven op deze twee — dat garandeert dat een status-,
+   channel- en role-pill visueel identiek zijn op tone-basis (design-review
+   UC4: één visuele taal, drie semantische componenten). */
+
+.pill-base {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -18,51 +24,69 @@
   border: 1px solid transparent;
 }
 
-.status-badge-icon {
+.pill-base-icon {
   font-size: 10px;
   line-height: 1;
 }
 
-.status-badge-neutral {
+.pill-tone-neutral {
   background: var(--grey-100);
   color: var(--color-text-muted);
   border-color: var(--color-border-strong);
 }
 
-.status-badge-attention {
+.pill-tone-attention {
   background: #fef3c7;
   color: #92400e;
   border-color: #f59e0b;
 }
 
-.status-badge-success {
+.pill-tone-success {
   background: #dcfce7;
   color: #14532d;
   border-color: var(--color-success);
 }
 
-.status-badge-live {
+.pill-tone-live {
   background: #dcfce7;
   color: #14532d;
   border-color: var(--color-success);
-  animation: status-badge-pulse 2.4s var(--ease-inout, ease-in-out) infinite;
+  animation: pill-live-pulse 2.4s var(--ease-inout, ease-in-out) infinite;
 }
 
-@keyframes status-badge-pulse {
+@keyframes pill-live-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.25); }
   50%      { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0);    }
 }
 
-.status-badge-muted {
+@media (prefers-reduced-motion: reduce) {
+  .pill-tone-live {
+    animation: none;
+  }
+}
+
+.pill-tone-muted {
   background: var(--grey-50);
   color: var(--color-text-muted);
   border-color: var(--color-border);
 }
 
-.status-badge-danger {
+.pill-tone-danger {
   background: #fee2e2;
   color: #7f1d1d;
   border-color: var(--color-primary);
+}
+
+/* Compact variant voor <ChannelStatus compact> — alleen een gekleurd dotje
+   met aria-label + title voor a11y. Voor tabellen waar tekst-labels te veel
+   ruimte kosten. */
+.pill-dot {
+  display: inline-block;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  transform: translateY(1px);
+  border: 1px solid transparent;
 }
 
 /* ---------- StatusStrip ---------- */

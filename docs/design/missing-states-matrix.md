@@ -89,37 +89,44 @@ staan zodat een throw in de reducer niet de hele app sloopt.
 
 ---
 
-## `<StatusBadge>` (PR 1b — na splitsing)
+## `<StatusBadge>` (PR 1b) — ✅ IMPLEMENTED
 
 Reduceert tot alleen draft-lifecycle. `<ChannelStatus>` en `<RoleBadge>`
 zijn aparte componenten met dezelfde `.pill-base` CSS.
 
-| State | Verplicht? | Visueel patroon | Acceptance criterium |
-|-------|-----------|-----------------|----------------------|
-| Bekende status (draft/pending_approval/approved/actief/published/expired/rejected) | Ja | Icoon + label uit `/api/meta/statuses`, tone-kleur | Non-color-only via icoon |
-| Onbekende status (fallback) | Ja | Grey badge, raw status string als label | Voorkomt crash op nieuwe DB-values |
-| Loading (meta-endpoint fetch pending) | Ja | Skeleton pill 60px breed, subtiele shimmer | 1st-load state |
-| Overflow (lang label) | Ja | Max-width 160px + ellipsis + title-tooltip | Voorkomt kapotte tabel-layout |
-| Prefers-reduced-motion | Ja | Live-status pulse-animatie uitzetten | A11y |
+| State | Verplicht? | Sign-off | Visueel patroon | Acceptance criterium |
+|-------|-----------|----------|-----------------|----------------------|
+| Bekende status (draft/pending_approval/approved/actief/published/expired/rejected) | Ja | ✅ | Icoon + label uit `/api/meta/statuses`, tone-kleur | Non-color-only via icoon |
+| Onbekende status (fallback) | Ja | ✅ | Neutral badge, raw status string als label | Voorkomt crash op nieuwe DB-values |
+| Loading (meta-endpoint fetch pending) | Ja | ✅ | FALLBACK_META in component zorgt dat je nooit een leeg badge ziet | 1st-load state — verouderde labels alleen zolang query loading is |
+| Overflow (lang label) | Nee | — | Labels zijn kort per definitie (max 12 chars) | Niet nodig voor v1 |
+| Prefers-reduced-motion | Ja | ✅ | Live-status pulse-animatie uitgezet via `@media (prefers-reduced-motion)` in status-strip.css | A11y |
+
+**Ge-adopteerd in**: Vacature, Marketing, Dashboard, ContentWachtrij, SeoPaginas, Gepubliceerd (PR 1b).
 
 ---
 
-## `<ChannelStatus>` (PR 1b — nieuw component of `ChannelIndicator.jsx` uitbreiden)
+## `<ChannelStatus>` (PR 1b) — ✅ IMPLEMENTED
 
-| State | Verplicht? | Visueel patroon | Acceptance criterium |
-|-------|-----------|-----------------|----------------------|
-| scheduled / success / failed / pending / cancelled | Ja | Icoon + label uit `/api/meta/statuses` (channels namespace) | Vervangt hardcoded `.status-dot`-classes in Gp + Merk |
-| Onbekende status | Ja | Grey fallback | — |
-| Compact-mode (alleen dot, geen label) | Ja | `<ChannelStatus status="..." compact />` — 12px dot + `aria-label` | Voor tabellen waar ruimte krap is (bijv. Gp tabel) |
+| State | Verplicht? | Sign-off | Visueel patroon | Acceptance criterium |
+|-------|-----------|----------|-----------------|----------------------|
+| scheduled / success / failed / pending / cancelled | Ja | ✅ | Icoon + label uit `/api/meta/statuses` (channels namespace) | Vervangt hardcoded `.status-dot`-classes in Gp + Merk |
+| Onbekende status | Ja | ✅ | Neutral fallback (raw status) | — |
+| Compact-mode (alleen dot, geen label) | Ja | ✅ | `<ChannelStatus status="..." compact />` — 10px dot met tone-kleur, aria-label + title | Voor tabellen waar ruimte krap is (bijv. Gp tabel) |
+| Namespace-prop (channels vs integrations) | Ja | ✅ | `namespace="integrations"` schakelt over naar integratie-catalogus | Vervangt integration-pill in MerkInstellingen |
+
+**Ge-adopteerd in**: Gepubliceerd (compact + full), Dashboard (integrations), MerkInstellingen (integrations).
 
 ---
 
-## `<RoleBadge>` (PR 1b — nieuw of `TypeBadge.jsx` uitbreiden)
+## `<RoleBadge>` (PR 1b) — ✅ IMPLEMENTED
 
-| State | Verplicht? | Visueel patroon | Acceptance criterium |
-|-------|-----------|-----------------|----------------------|
-| owner / recruiter / viewer | Ja | Label uit `/api/meta/statuses` (roles namespace), tone-kleur | Vervangt `ROLE_BADGE`-inline in Header |
-| Onbekende rol | Ja | Grey fallback | — |
+| State | Verplicht? | Sign-off | Visueel patroon | Acceptance criterium |
+|-------|-----------|----------|-----------------|----------------------|
+| owner / recruiter / viewer | Ja | ✅ | Label uit `/api/meta/statuses` (roles namespace), tone-kleur | Vervangt `ROLE_BADGE`-inline in Header |
+| Onbekende rol | Ja | ✅ | Neutral fallback | — |
+
+**Ge-adopteerd in**: Header.jsx.
 
 ---
 
