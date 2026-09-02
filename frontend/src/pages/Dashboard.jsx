@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import StatusBadge from '../components/shared/StatusBadge';
+import Card, { CardHeader, CardBody } from '../components/shared/Card';
 import '../components/shared/status-strip.css';
+import '../components/shared/card.css';
 import './dashboard.css';
 
 const CHANNEL_LABELS = {
@@ -125,7 +127,7 @@ export default function Dashboard() {
   return (
     <div className="dashboard-grid">
       {isEmptyDashboard ? (
-        <section className="dashboard-onboarding">
+        <Card tone="emphasized" padding="lg" className="dashboard-onboarding-card">
           <h3>Welkom bij Light Marketing. Aan de slag.</h3>
           <p className="dashboard-meta">
             Nog geen content in de tool. Deze drie stappen brengen je naar je eerste post.
@@ -146,31 +148,31 @@ export default function Dashboard() {
               </li>
             ) : null}
           </ol>
-        </section>
+        </Card>
       ) : null}
 
       <section className="dashboard-cards">
-        <article className="dashboard-card">
+        <Card padding="sm">
           <h3>{label('Wacht op goedkeuring')}</h3>
           <p className="dashboard-count">{counts.pendingApproval}</p>
-        </article>
-        <article className="dashboard-card">
+        </Card>
+        <Card padding="sm">
           <h3>{label('Gepubliceerd deze week')}</h3>
           <p className="dashboard-count">{counts.publishedThisWeek}</p>
-        </article>
-        <article className="dashboard-card">
+        </Card>
+        <Card padding="sm">
           <h3>{label('Actieve vacatures')}</h3>
           <p className="dashboard-count">{counts.activeVacatures}</p>
-        </article>
+        </Card>
         {role === 'owner' ? (
-          <article className="dashboard-card">
+          <Card padding="sm">
             <h3>Feed gezondheid</h3>
             <p className="dashboard-count">{feedHealth?.totalItems || 0}</p>
             <p className="dashboard-meta">
               Items met issues: {feedIssueCount} · {getFeedHealthLabel(feedIssueCount)}
             </p>
             <p className="dashboard-meta">Laatste check: {formatDate(feedHealth?.generatedAt)}</p>
-          </article>
+          </Card>
         ) : null}
       </section>
 
@@ -178,26 +180,26 @@ export default function Dashboard() {
         <section className="dashboard-section">
           <h3>Team totaal</h3>
           <div className="dashboard-cards">
-            <article className="dashboard-card dashboard-card-secondary">
+            <Card padding="sm" className="dashboard-card-secondary">
               <h4>Wacht op goedkeuring</h4>
               <p className="dashboard-count">{teamCounts.pendingApproval}</p>
-            </article>
-            <article className="dashboard-card dashboard-card-secondary">
+            </Card>
+            <Card padding="sm" className="dashboard-card-secondary">
               <h4>Gepubliceerd deze week</h4>
               <p className="dashboard-count">{teamCounts.publishedThisWeek}</p>
-            </article>
-            <article className="dashboard-card dashboard-card-secondary">
+            </Card>
+            <Card padding="sm" className="dashboard-card-secondary">
               <h4>Actieve vacatures</h4>
               <p className="dashboard-count">{teamCounts.activeVacatures}</p>
-            </article>
+            </Card>
           </div>
         </section>
       ) : null}
 
       <section className="dashboard-panels">
         {role === 'owner' || role === 'recruiter' ? (
-          <article className="dashboard-panel">
-            <h3>Openstaande concepten</h3>
+          <Card>
+            <CardHeader title="Openstaande concepten" />
             {approvalQueue.length === 0 ? (
               <p>Geen concepten in wachtrij.</p>
             ) : (
@@ -244,11 +246,11 @@ export default function Dashboard() {
                 })}
               </ul>
             )}
-          </article>
+          </Card>
         ) : null}
 
-        <article className="dashboard-panel">
-          <h3>Recente activiteit</h3>
+        <Card>
+          <CardHeader title="Recente activiteit" />
           {recentActivity.length === 0 ? (
             <p>Geen recente wijzigingen.</p>
           ) : (
@@ -263,11 +265,11 @@ export default function Dashboard() {
               ))}
             </ul>
           )}
-        </article>
+        </Card>
       </section>
 
-      <section className="dashboard-panel">
-        <h3>Kanaalstatus</h3>
+      <Card>
+        <CardHeader title="Kanaalstatus" />
         {channelHealth.length === 0 ? (
           <p>Nog geen kanaalstatus beschikbaar.</p>
         ) : (
@@ -285,7 +287,7 @@ export default function Dashboard() {
             ))}
           </ul>
         )}
-      </section>
+      </Card>
     </div>
   );
 }
