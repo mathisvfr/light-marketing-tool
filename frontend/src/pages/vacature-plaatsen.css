@@ -129,6 +129,25 @@
   margin-top: var(--space-4);
 }
 
+.vacature-preview-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.vacature-preview-header h3 {
+  margin: 0;
+  flex: 1;
+}
+
+.criticus-box.fail summary {
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: #7f1d1d;
+}
+
 .vacature-field {
   display: grid;
   gap: var(--space-2);

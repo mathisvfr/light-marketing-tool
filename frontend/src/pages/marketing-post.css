@@ -265,8 +265,7 @@
   margin: var(--space-2) 0 0;
   font-size: 14px;
   line-height: 1.5;
-  max-height: 4.5em;
-  overflow: hidden;
+  white-space: pre-wrap;
 }
 
 .marketing-criticus.pass {
@@ -362,4 +361,23 @@
   .marketing-schedule input[type="datetime-local"] {
     max-width: 100%;
   }
+}
+
+.marketing-preview-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.marketing-preview-header h3 {
+  margin: 0;
+  flex: 1;
+}
+
+.marketing-criticus.fail summary {
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: #7f1d1d;
 }

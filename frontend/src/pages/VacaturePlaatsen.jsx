@@ -5,8 +5,12 @@ import { useAuth } from '../hooks/useAuth';
 import { useAutosaveDraft, formatSavedAt } from '../hooks/useAutosaveDraft';
 import GenerationProgress from '../components/shared/GenerationProgress';
 import VersionHistoryPicker from '../components/shared/VersionHistoryPicker';
+import StatusBadge from '../components/shared/StatusBadge';
+import StatusStrip from '../components/shared/StatusStrip';
+import StickyFooter from '../components/shared/StickyFooter';
 import { api } from '../lib/api';
 import MediaPicker from '../components/shared/MediaPicker';
+import '../components/shared/status-strip.css';
 import './vacature-plaatsen.css';
 
 const DEFAULT_FORM = {
@@ -544,6 +548,8 @@ export default function VacaturePlaatsen() {
   return (
     <div className="vacature-layout">
       <form className="vacature-form" onSubmit={handleGenerate}>
+        {/* Autosave-indicator boven het formulier zodra er een draft is; de
+            sticky footer beneden herhaalt hetzelfde tijdens preview-editing. */}
         {effectiveDraftId ? (
           <div className={`autosave-indicator${autosave.error ? ' error' : ''}`}>
             {autosave.isSaving
@@ -817,15 +823,59 @@ export default function VacaturePlaatsen() {
 
       {effectiveDraftId && !isGenerating ? (
         <section className="vacature-preview">
-          <h3>Voorbeeld en bewerken</h3>
+          <div className="vacature-preview-header">
+            <h3>Voorbeeld en bewerken</h3>
+            <StatusBadge status={loadedDraft?.status || 'draft'} />
+          </div>
 
-          {criticusPassed === null && effectiveDraftId ? (
-            <div className="skeleton">Criticus controleren...</div>
-          ) : criticusPassed !== null ? (
-            <div className={`criticus-box ${criticusPassed ? 'pass' : 'fail'}`}>
-              <strong>{criticusPassed ? 'Criticus: akkoord' : 'Criticus: aandacht nodig'}</strong>
-              <p>{criticusNotes || 'Geen opmerkingen.'}</p>
-            </div>
+          <StatusStrip
+            rows={[
+              {
+                key: 'criticus',
+                label: 'Criticus',
+                state:
+                  criticusPassed === null
+                    ? 'pending'
+                    : criticusPassed
+                    ? 'ready'
+                    : 'failed',
+                detail:
+                  criticusPassed === null
+                    ? undefined
+                    : criticusPassed
+                    ? 'akkoord'
+                    : criticusNotes || 'aandacht nodig',
+              },
+              {
+                key: 'image',
+                label: 'Afbeelding',
+                state: imagePath ? 'ready' : 'pending',
+              },
+              selectedLangs.length > 0
+                ? {
+                    key: 'translations',
+                    label: 'Vertalingen',
+                    state:
+                      missingTranslations.length === 0
+                        ? 'ready'
+                        : 'pending',
+                    detail:
+                      selectedLangs.length -
+                        missingTranslations.length +
+                      '/' +
+                      selectedLangs.length +
+                      ' klaar',
+                    onRetry: missingTranslations.length > 0 ? refreshTranslationsNow : undefined,
+                  }
+                : null,
+            ]}
+          />
+
+          {criticusPassed === false && criticusNotes ? (
+            <details className="criticus-box fail" open>
+              <summary>Criticus-notities</summary>
+              <p>{criticusNotes}</p>
+            </details>
           ) : null}
 
           <div className="vacature-regenerate">
@@ -984,7 +1034,10 @@ export default function VacaturePlaatsen() {
             </div>
           ) : null}
 
-          <div className="form-actions">
+          <StickyFooter
+            autosaveLabel={autosave.isSaving ? 'Opslaan...' : formatSavedAt(autosave.savedAt)}
+            autosaveError={autosave.error}
+          >
             <button type="button" onClick={handleSaveDraft} disabled={isBusy}>
               Opslaan als concept
             </button>
@@ -1000,7 +1053,7 @@ export default function VacaturePlaatsen() {
                 Goedkeuren
               </button>
             ) : null}
-          </div>
+          </StickyFooter>
         </section>
       ) : null}
 

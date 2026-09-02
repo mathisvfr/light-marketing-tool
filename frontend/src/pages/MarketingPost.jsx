@@ -8,6 +8,10 @@ import MediaPicker from '../components/shared/MediaPicker';
 import PlatformPreview from '../components/shared/PlatformPreview';
 import GenerationProgress from '../components/shared/GenerationProgress';
 import VersionHistoryPicker from '../components/shared/VersionHistoryPicker';
+import StatusBadge from '../components/shared/StatusBadge';
+import StatusStrip from '../components/shared/StatusStrip';
+import StickyFooter from '../components/shared/StickyFooter';
+import '../components/shared/status-strip.css';
 import './marketing-post.css';
 
 const CHANNEL_OPTIONS = [
@@ -607,15 +611,42 @@ export default function MarketingPost() {
 
       {effectiveDraftId && !isGenerating ? (
         <section className="marketing-preview">
-          <h3>Voorbeeld en bewerken</h3>
+          <div className="marketing-preview-header">
+            <h3>Voorbeeld en bewerken</h3>
+            <StatusBadge status={loadedDraft?.status || 'draft'} />
+          </div>
 
-          {criticusPassed === null && effectiveDraftId ? (
-            <div className="marketing-skeleton">Criticus controleren...</div>
-          ) : criticusPassed !== null ? (
-            <div className={`marketing-criticus ${criticusPassed ? 'pass' : 'fail'}`}>
-              <strong>{criticusPassed ? 'Criticus: akkoord' : 'Criticus: aandacht nodig'}</strong>
-              <p>{criticusNotes || 'Geen opmerkingen.'}</p>
-            </div>
+          <StatusStrip
+            rows={[
+              {
+                key: 'criticus',
+                label: 'Criticus',
+                state:
+                  criticusPassed === null
+                    ? 'pending'
+                    : criticusPassed
+                    ? 'ready'
+                    : 'failed',
+                detail:
+                  criticusPassed === null
+                    ? undefined
+                    : criticusPassed
+                    ? 'akkoord'
+                    : criticusNotes || 'aandacht nodig',
+              },
+              {
+                key: 'image',
+                label: 'Afbeelding',
+                state: imagePath ? 'ready' : 'pending',
+              },
+            ]}
+          />
+
+          {criticusPassed === false && criticusNotes ? (
+            <details className="marketing-criticus fail" open>
+              <summary>Criticus-notities</summary>
+              <p>{criticusNotes}</p>
+            </details>
           ) : null}
 
           <div className="marketing-regenerate">
@@ -743,7 +774,10 @@ export default function MarketingPost() {
             />
           ) : null}
 
-          <div className="marketing-actions">
+          <StickyFooter
+            autosaveLabel={autosave.isSaving ? 'Opslaan...' : formatSavedAt(autosave.savedAt)}
+            autosaveError={autosave.error}
+          >
             <button type="button" onClick={handleSaveDraft} disabled={isBusy}>
               Opslaan als concept
             </button>
@@ -765,7 +799,7 @@ export default function MarketingPost() {
                 {scheduleAt ? 'Goedkeuren en inplannen' : 'Goedkeuren en publiceren'}
               </button>
             ) : null}
-          </div>
+          </StickyFooter>
         </section>
       ) : null}
 
