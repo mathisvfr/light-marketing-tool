@@ -502,34 +502,46 @@ export default function MarketingPost() {
         <div className="marketing-field">
           <span>Type</span>
           <div className="marketing-radio-group">
-            {['Opdrachtgevers', 'Kandidaten'].map((value) => (
-              <label key={value} className="marketing-radio-item">
-                <input
-                  type="radio"
-                  name="marketing-type"
-                  checked={form.type === value}
-                  onChange={() => updateField('type', value)}
-                />
-                {value}
-              </label>
-            ))}
+            {['Opdrachtgevers', 'Kandidaten'].map((value) => {
+              const checked = form.type === value;
+              return (
+                <label
+                  key={value}
+                  className={`marketing-radio-item${checked ? ' checked' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="marketing-type"
+                    checked={checked}
+                    onChange={() => updateField('type', value)}
+                  />
+                  {value}
+                </label>
+              );
+            })}
           </div>
         </div>
 
         <div className="marketing-field">
           <span>Visualisatie</span>
           <div className="marketing-radio-group">
-            {TEMPLATE_OPTIONS.map((option) => (
-              <label key={option.key} className="marketing-radio-item">
-                <input
-                  type="radio"
-                  name="marketing-template"
-                  checked={(form.template || 'statement') === option.key}
-                  onChange={() => updateField('template', option.key)}
-                />
-                {option.label}
-              </label>
-            ))}
+            {TEMPLATE_OPTIONS.map((option) => {
+              const checked = (form.template || 'statement') === option.key;
+              return (
+                <label
+                  key={option.key}
+                  className={`marketing-radio-item${checked ? ' checked' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="marketing-template"
+                    checked={checked}
+                    onChange={() => updateField('template', option.key)}
+                  />
+                  {option.label}
+                </label>
+              );
+            })}
           </div>
         </div>
 
@@ -538,15 +550,16 @@ export default function MarketingPost() {
           <div className="marketing-channel-group">
             {CHANNEL_OPTIONS.map((channel) => {
               const disabled = !isChannelEnabled(channel.key);
+              const checked = form.kanalen.includes(channel.key);
 
               return (
                 <label
                   key={channel.key}
-                  className={`marketing-channel-item${disabled ? ' disabled' : ''}`}
+                  className={`marketing-channel-item${disabled ? ' disabled' : ''}${checked ? ' checked' : ''}`}
                 >
                   <input
                     type="checkbox"
-                    checked={form.kanalen.includes(channel.key)}
+                    checked={checked}
                     onChange={() => toggleChannel(channel.key)}
                     disabled={disabled}
                   />
