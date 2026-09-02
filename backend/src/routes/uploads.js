@@ -1,6 +1,7 @@
 const express = require('express');
 const mammoth = require('mammoth');
 const { PDFParse } = require('pdf-parse');
+const { extractDocumentFields } = require('../services/claude');
 
 const router = express.Router();
 
@@ -76,7 +77,11 @@ router.post('/extract-text', requireWriteRole, async (req, res, next) => {
       });
     }
 
-    return res.json({ filename, text, chars: text.length });
+    // Extra Claude-call om formulier-velden alvast te vullen. Best-effort:
+    // faalt de call, dan blijven fields leeg en de tekst gaat gewoon door.
+    const fields = await extractDocumentFields(text);
+
+    return res.json({ filename, text, chars: text.length, fields });
   } catch (err) {
     return next(err);
   }

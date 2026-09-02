@@ -163,6 +163,23 @@
   font-style: italic;
 }
 
+.preview-tab-refresh {
+  margin-left: auto;
+  border: 1px solid var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.preview-tab-refresh:hover {
+  background: var(--grey-50);
+  color: var(--color-text);
+}
+
 .viewer-readonly-banner {
   background: var(--grey-100);
   border: 1px solid var(--color-border);

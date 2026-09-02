@@ -168,8 +168,9 @@ export default function VacaturePlaatsen() {
 
   // Poll voor achtergrond-tasks: criticus, image render, én per-taal vertalingen.
   // Elke poll ververst existingDraftQuery zodat translations vanzelf in de UI
-  // verschijnen zodra ze klaar zijn. Bounded op ~40s (20 polls * 2s) om nooit
-  // eeuwig door te lopen als een vertaling faalt.
+  // verschijnen zodra ze klaar zijn. Interval loopt tot alles binnen is of tot
+  // ~10 minuten (bovengrens tegen eeuwig doorlopen); de manuele "Ververs"-knop
+  // in de UI is de escape voor uitschieters.
   const selectedLangsForPoll = Array.isArray(loadedDraft?.form_data?.talen)
     ? loadedDraft.form_data.talen
     : [];
@@ -177,6 +178,7 @@ export default function VacaturePlaatsen() {
     const entry = loadedDraft?.translations?.[lang];
     return !entry || !(entry.omschrijving || entry.functie_eisen || entry.wat_wij_bieden || entry.social);
   });
+  const pollGaveUpRef = useRef(false);
 
   const pollCountRef = useRef(0);
   useEffect(() => {
@@ -185,12 +187,16 @@ export default function VacaturePlaatsen() {
     const needsTranslations = missingTranslations.length > 0;
     if ((!needsCriticus && !needsImage && !needsTranslations) || !effectiveDraftId || isGenerating) {
       pollCountRef.current = 0;
+      pollGaveUpRef.current = false;
       return;
     }
 
     const interval = setInterval(async () => {
       pollCountRef.current += 1;
-      if (pollCountRef.current > 20) {
+      // 10 minuten cap: 200 iteraties * 3s. Vertalingen zouden ruim binnen
+      // 2 min klaar moeten zijn; deze cap is puur een safety net.
+      if (pollCountRef.current > 200) {
+        pollGaveUpRef.current = true;
         clearInterval(interval);
         return;
       }
@@ -215,10 +221,18 @@ export default function VacaturePlaatsen() {
       } catch {
         // Ignore poll errors
       }
-    }, 2000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [criticusPassed, imagePath, effectiveDraftId, isGenerating, missingTranslations.length]);
+
+  // Referenced by the "Ververs vertalingen" button — forces een re-fetch en
+  // reset de teller zodat het poll-loop opnieuw op gang komt als het gestopt was.
+  function refreshTranslationsNow() {
+    pollCountRef.current = 0;
+    pollGaveUpRef.current = false;
+    existingDraftQuery.refetch();
+  }
 
   const selectedLangs = Array.isArray(form.talen) ? form.talen : [];
   const tabs = useMemo(() => createTabs(content, selectedLangs), [content, selectedLangs]);
@@ -306,7 +320,34 @@ export default function VacaturePlaatsen() {
 
       setDocumentText(result?.text || '');
       setDocumentFilename(result?.filename || file.name);
-      setSuccess('Document ingelezen. Tekst wordt meegenomen bij het genereren.');
+
+      // Auto-fill velden die uit het document te halen zijn — alleen als het
+      // formulierveld nog leeg is, zodat handmatige input van de recruiter
+      // nooit overschreven wordt.
+      const extracted = result?.fields || {};
+      const applied = [];
+      const patch = {};
+      const isEmpty = (v) => v === undefined || v === null || String(v).trim() === '';
+      const FIELD_LABELS = {
+        functietitel: 'functietitel',
+        locatie: 'locatie',
+        urenPerWeek: 'uren per week',
+        contract: 'contract',
+        salaris: 'salaris',
+        startdatum: 'startdatum',
+      };
+      for (const [key, label] of Object.entries(FIELD_LABELS)) {
+        if (extracted[key] !== undefined && isEmpty(form[key])) {
+          patch[key] = extracted[key];
+          applied.push(label);
+        }
+      }
+      if (Object.keys(patch).length > 0) {
+        setFormEdits((prev) => ({ ...prev, ...patch }));
+      }
+
+      const baseMsg = 'Document ingelezen. Tekst wordt meegenomen bij het genereren.';
+      setSuccess(applied.length > 0 ? `${baseMsg} Automatisch ingevuld: ${applied.join(', ')}.` : baseMsg);
     } catch (err) {
       setError(err.message || 'Uitlezen van document is mislukt.');
     } finally {
@@ -677,7 +718,10 @@ export default function VacaturePlaatsen() {
           <small>Upload je eigen foto; laat leeg om automatisch een afbeelding te genereren.</small>
         </label>
 
-        {imagePath ? (
+        {/* Pre-upload preview: alleen zichtbaar vóór er een draft is. Na
+            genereren neemt de preview-sectie hieronder de afbeelding over,
+            zodat we 'm niet twee keer tonen. */}
+        {imagePath && !effectiveDraftId ? (
           <div className="vacature-image-block">
             <img src={imagePath} alt="Geüploade afbeelding" className="vacature-preview-image" />
             <button
@@ -776,6 +820,16 @@ export default function VacaturePlaatsen() {
                 {tab.label}{tab.pending ? ' …' : ''}
               </button>
             ))}
+            {missingTranslations.length > 0 ? (
+              <button
+                type="button"
+                className="preview-tab-refresh"
+                onClick={refreshTranslationsNow}
+                title="Handmatig controleren of vertalingen al binnen zijn"
+              >
+                ↻ Ververs vertalingen
+              </button>
+            ) : null}
           </div>
 
           <div className="preview-pane">

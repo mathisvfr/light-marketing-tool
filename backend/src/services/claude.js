@@ -486,10 +486,65 @@ async function criticus(input) {
   };
 }
 
+// Best-effort veld-extractie uit een geüpload klantdocument (docx/pdf tekst).
+// Faalt zacht: bij een parse-fout of API-hik geven we {} terug zodat de upload
+// zelf blijft werken. Alleen expliciete velden worden geretourneerd; de prompt
+// mag niets verzinnen.
+async function extractDocumentFields(text) {
+  const trimmed = String(text || '').trim();
+  if (!trimmed) {
+    return {};
+  }
+
+  try {
+    const [brandKnowledge, extractPrompt] = await Promise.all([
+      loadBrandKnowledge(),
+      loadPrompt('document-extract-fields'),
+    ]);
+    // We skippen brandContext hier bewust — extractie is puur mechanisch en
+    // hoeft geen brand-tone. Scheelt tokens.
+    const systemBlocks = buildSystemBlocks(brandKnowledge, '', extractPrompt);
+    const result = await callAnthropicExpectingJson(systemBlocks, { text: trimmed });
+
+    if (!result || typeof result !== 'object') {
+      return {};
+    }
+
+    const fields = {};
+    if (typeof result.functietitel === 'string' && result.functietitel.trim()) {
+      fields.functietitel = result.functietitel.trim().slice(0, 200);
+    }
+    if (typeof result.locatie === 'string' && result.locatie.trim()) {
+      fields.locatie = result.locatie.trim().slice(0, 100);
+    }
+    if (Number.isInteger(result.urenPerWeek) && result.urenPerWeek > 0 && result.urenPerWeek <= 80) {
+      fields.urenPerWeek = result.urenPerWeek;
+    } else if (typeof result.urenPerWeek === 'string') {
+      const parsed = parseInt(result.urenPerWeek, 10);
+      if (Number.isFinite(parsed) && parsed > 0 && parsed <= 80) {
+        fields.urenPerWeek = parsed;
+      }
+    }
+    if (typeof result.contract === 'string' && result.contract.trim()) {
+      fields.contract = result.contract.trim().slice(0, 60);
+    }
+    if (typeof result.salaris === 'string' && result.salaris.trim()) {
+      fields.salaris = result.salaris.trim().slice(0, 100);
+    }
+    if (typeof result.startdatum === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(result.startdatum.trim())) {
+      fields.startdatum = result.startdatum.trim();
+    }
+    return fields;
+  } catch (_err) {
+    return {};
+  }
+}
+
 module.exports = {
   loadBrandContext,
   generate,
   translateVacature,
+  extractDocumentFields,
   criticus,
   SUPPORTED_TRANSLATION_LANGS,
 };
