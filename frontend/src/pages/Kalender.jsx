@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import FormMessage from '../components/shared/FormMessage';
+import '../components/shared/toast.css';
 import './kalender.css';
 
 const APP_TIMEZONE = 'Europe/Amsterdam';
@@ -124,7 +126,7 @@ export default function Kalender() {
   if (publishedQuery.isError) {
     return (
       <div className="kalender-layout">
-        <p className="kalender-error">Kon kalender niet laden. Probeer opnieuw.</p>
+        <FormMessage variant="error">Kon kalender niet laden. Probeer opnieuw.</FormMessage>
       </div>
     );
   }

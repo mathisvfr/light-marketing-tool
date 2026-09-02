@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useAutosaveDraft, formatSavedAt } from '../hooks/useAutosaveDraft';
 import useImagePath from '../hooks/useImagePath';
 import useCriticus from '../hooks/useCriticus';
+import { isoToLocalInput } from '../lib/datetime';
 import { api } from '../lib/api';
 import MediaPicker from '../components/shared/MediaPicker';
 import PlatformPreview from '../components/shared/PlatformPreview';
@@ -13,7 +14,9 @@ import VersionHistoryPicker from '../components/shared/VersionHistoryPicker';
 import StatusBadge from '../components/shared/StatusBadge';
 import StatusStrip from '../components/shared/StatusStrip';
 import StickyFooter from '../components/shared/StickyFooter';
+import FormMessage from '../components/shared/FormMessage';
 import '../components/shared/status-strip.css';
+import '../components/shared/toast.css';
 import './marketing-post.css';
 
 const CHANNEL_OPTIONS = [
@@ -800,8 +803,8 @@ export default function MarketingPost() {
         </section>
       ) : null}
 
-      {error ? <p className="marketing-error">{error}</p> : null}
-      {success ? <p>{success}</p> : null}
+      {error ? <FormMessage variant="error">{error}</FormMessage> : null}
+      {success ? <FormMessage variant="success">{success}</FormMessage> : null}
     </div>
   );
 }
@@ -836,22 +839,9 @@ function PatternPickerBlock({ form, scheduleAt, setScheduleAt, resolveDueAt, for
       const result = await api(`/patterns/${patternId}/next-slot`);
       const next = result?.nextSlot;
       if (!next) throw new Error('Geen datum ontvangen.');
-      // Convert UTC ISO to a datetime-local wall-clock in Europe/Amsterdam.
-      // Intl formatting gets us the parts; the input eats YYYY-MM-DDTHH:MM.
-      const parts = Object.fromEntries(
-        new Intl.DateTimeFormat('en-GB', {
-          timeZone: 'Europe/Amsterdam',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-        })
-          .formatToParts(new Date(next))
-          .map((p) => [p.type, p.value])
-      );
-      setScheduleAt(`${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`);
+      // Shared util converteert UTC ISO naar datetime-local wall-clock in
+      // Europe/Amsterdam. Zelfde functie als Gepubliceerd reschedule.
+      setScheduleAt(isoToLocalInput(next));
     } catch (err) {
       setPatternError(err?.message || 'Kon volgend moment niet ophalen.');
     } finally {

@@ -10,9 +10,11 @@ import VersionHistoryPicker from '../components/shared/VersionHistoryPicker';
 import StatusBadge from '../components/shared/StatusBadge';
 import StatusStrip from '../components/shared/StatusStrip';
 import StickyFooter from '../components/shared/StickyFooter';
+import FormMessage from '../components/shared/FormMessage';
 import { api } from '../lib/api';
 import MediaPicker from '../components/shared/MediaPicker';
 import '../components/shared/status-strip.css';
+import '../components/shared/toast.css';
 import './vacature-plaatsen.css';
 
 const DEFAULT_FORM = {
@@ -542,17 +544,8 @@ export default function VacaturePlaatsen() {
   return (
     <div className="vacature-layout">
       <form className="vacature-form" onSubmit={handleGenerate}>
-        {/* Autosave-indicator boven het formulier zodra er een draft is; de
-            sticky footer beneden herhaalt hetzelfde tijdens preview-editing. */}
-        {effectiveDraftId ? (
-          <div className={`autosave-indicator${autosave.error ? ' error' : ''}`}>
-            {autosave.isSaving
-              ? 'Opslaan...'
-              : autosave.error
-              ? autosave.error
-              : formatSavedAt(autosave.savedAt)}
-          </div>
-        ) : null}
+        {/* Autosave-status leeft nu alleen in de sticky footer onder de preview
+            (UC7 uit autoplan-review: dubbele indicator was verwarrend). */}
         {/* Sectie 1 · Briefing — wat de recruiter weet over de vacature */}
         <section className="vacature-section">
           <h3 className="vacature-section-header">Briefing</h3>
@@ -1051,8 +1044,8 @@ export default function VacaturePlaatsen() {
         </section>
       ) : null}
 
-      {error ? <p className="error-text">{error}</p> : null}
-      {success ? <p>{success}</p> : null}
+      <FormMessage variant="error">{error}</FormMessage>
+      <FormMessage variant="success">{success}</FormMessage>
     </div>
   );
 }

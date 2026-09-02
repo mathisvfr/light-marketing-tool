@@ -5,8 +5,10 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import StatusBadge, { getStatusLabel as getSharedStatusLabel } from '../components/shared/StatusBadge';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
+import FormMessage from '../components/shared/FormMessage';
 import '../components/shared/status-strip.css';
 import '../components/shared/modal.css';
+import '../components/shared/toast.css';
 import './content-wachtrij.css';
 
 function formatDate(value) {
@@ -339,7 +341,7 @@ export default function ContentWachtrij() {
   }
 
   if (draftsQuery.isError) {
-    return <p className="queue-error">Kon wachtrij niet laden.</p>;
+    return <FormMessage variant="error">Kon wachtrij niet laden.</FormMessage>;
   }
 
   const isMutating =
@@ -601,7 +603,7 @@ export default function ContentWachtrij() {
         </table>
       </div>
 
-      {error ? <p className="queue-error">{error}</p> : null}
+      <FormMessage variant="error">{error}</FormMessage>
 
       <ConfirmDialog
         open={Boolean(confirm)}
