@@ -96,11 +96,15 @@ function evaluateItemQuality(draft, item) {
       )
     );
 
-    if (draft.omschrijving_pl && String(draft.omschrijving_pl).trim() !== '') {
+    const translations = draft.translations && typeof draft.translations === 'object' ? draft.translations : {};
+    const hasAnyTranslation = Object.values(translations).some(
+      (entry) => entry && String(entry?.omschrijving || '').trim() !== ''
+    );
+    if (hasAnyTranslation) {
       issues.push(
         createIssue(
-          'only_polish_description',
-          'Alleen Poolse omschrijving aanwezig. Jobit distribueert naar NL-boards — voeg een Nederlandse omschrijving toe.',
+          'only_translation_description',
+          'Alleen een vertaalde omschrijving aanwezig. Jobit distribueert naar NL-boards — voeg een Nederlandse omschrijving toe.',
           'omschrijving'
         )
       );
@@ -191,7 +195,7 @@ async function generateJobsFeedXml() {
 async function fetchActiveVacatureDrafts() {
   const { data, error } = await supabase
     .from('drafts')
-    .select('id, created_at, form_data, titel, plaats, omschrijving_nl, omschrijving_pl, functie_eisen, functie_eisen_pl, wat_wij_bieden, wat_wij_bieden_pl, salaris, uren, contract, sollicitatie_url')
+    .select('id, created_at, form_data, titel, plaats, omschrijving_nl, translations, functie_eisen, wat_wij_bieden, salaris, uren, contract, sollicitatie_url')
     .eq('type', 'vacature')
     .eq('status', 'actief')
     .order('updated_at', { ascending: false })

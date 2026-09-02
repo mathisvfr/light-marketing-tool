@@ -15,7 +15,7 @@ const DEFAULT_FORM = {
   urenPerWeek: '',
   startdatum: '',
   korteOmschrijving: '',
-  taal: 'NL',
+  talen: [],
   contract: '',
   email: 'vacature@lightpersoneelsdiensten.nl',
   template: 'vacancy',
@@ -26,7 +26,31 @@ const TEMPLATE_OPTIONS = [
   { key: 'story', label: 'Story (verticaal, Instagram)' },
 ];
 
-function createTabs(content) {
+// Extra kandidaat-talen. NL is de basis en blijft altijd aan.
+const LANGUAGES = [
+  { code: 'pl', label: 'Pools', native: 'Polski' },
+  { code: 'bg', label: 'Bulgaars', native: 'Български' },
+  { code: 'sk', label: 'Slowaaks', native: 'Slovenčina' },
+  { code: 'lv', label: 'Lets', native: 'Latviešu' },
+  { code: 'en', label: 'Engels', native: 'English' },
+  { code: 'hu', label: 'Hongaars', native: 'Magyar' },
+  { code: 'ro', label: 'Roemeens', native: 'Română' },
+  { code: 'uk', label: 'Oekraïens', native: 'Українська' },
+];
+
+const TRANSLATION_FIELDS = [
+  { key: 'omschrijving', label: 'Omschrijving' },
+  { key: 'functie_eisen', label: 'Functie-eisen' },
+  { key: 'wat_wij_bieden', label: 'Wat wij bieden' },
+  { key: 'social', label: 'Social post' },
+];
+
+function langLabel(code) {
+  const entry = LANGUAGES.find((item) => item.code === code);
+  return entry ? entry.label : code.toUpperCase();
+}
+
+function createTabs(content, selectedLangs) {
   const tabs = [
     { key: 'omschrijving_nl', label: 'Omschrijving NL' },
     { key: 'functie_eisen', label: 'Functie-eisen NL' },
@@ -34,23 +58,28 @@ function createTabs(content) {
     { key: 'social_nl', label: 'Social post NL' },
   ];
 
-  if (content.omschrijving_pl) {
-    tabs.push({ key: 'omschrijving_pl', label: 'Omschrijving PL' });
-  }
-
-  if (content.functie_eisen_pl) {
-    tabs.push({ key: 'functie_eisen_pl', label: 'Functie-eisen PL' });
-  }
-
-  if (content.wat_wij_bieden_pl) {
-    tabs.push({ key: 'wat_wij_bieden_pl', label: 'Wat wij bieden PL' });
-  }
-
-  if (content.social_pl) {
-    tabs.push({ key: 'social_pl', label: 'Social post PL' });
+  const translations = content?.translations || {};
+  for (const lang of selectedLangs) {
+    const entry = translations[lang];
+    const ready = Boolean(entry && (entry.omschrijving || entry.functie_eisen || entry.wat_wij_bieden || entry.social));
+    for (const field of TRANSLATION_FIELDS) {
+      tabs.push({
+        key: `tr:${lang}:${field.key}`,
+        label: `${field.label} ${langLabel(lang)}`,
+        pending: !ready,
+      });
+    }
   }
 
   return tabs;
+}
+
+function readTab(content, tabKey) {
+  if (!tabKey.startsWith('tr:')) {
+    return content[tabKey] || '';
+  }
+  const [, lang, field] = tabKey.split(':');
+  return content?.translations?.[lang]?.[field] || '';
 }
 
 export default function VacaturePlaatsen() {
@@ -100,20 +129,26 @@ export default function VacaturePlaatsen() {
     [loadedDraft, formEdits]
   );
 
-  const content = useMemo(
-    () => ({
+  // Merge server translations with any local edits (contentEdits.translations
+  // overrides field-by-field, per language). Local edits alleen zichtbaar zolang
+  // ze niet zijn opgeslagen; na save komt de nieuwe server-versie terug via de
+  // query en overschrijft ze.
+  const content = useMemo(() => {
+    const serverTranslations = loadedDraft?.translations || {};
+    const editTranslations = contentEdits.translations || {};
+    const mergedTranslations = { ...serverTranslations };
+    for (const [lang, fields] of Object.entries(editTranslations)) {
+      mergedTranslations[lang] = { ...(mergedTranslations[lang] || {}), ...fields };
+    }
+    return {
       omschrijving_nl: loadedDraft?.omschrijving_nl || '',
       functie_eisen: loadedDraft?.functie_eisen || '',
       wat_wij_bieden: loadedDraft?.wat_wij_bieden || '',
-      omschrijving_pl: loadedDraft?.omschrijving_pl || '',
-      functie_eisen_pl: loadedDraft?.functie_eisen_pl || '',
-      wat_wij_bieden_pl: loadedDraft?.wat_wij_bieden_pl || '',
       social_nl: loadedDraft?.social_nl || '',
-      social_pl: loadedDraft?.social_pl || '',
       ...contentEdits,
-    }),
-    [loadedDraft, contentEdits]
-  );
+      translations: mergedTranslations,
+    };
+  }, [loadedDraft, contentEdits]);
 
   const criticusPassed =
     typeof criticusOverride.passed === 'boolean'
@@ -131,20 +166,31 @@ export default function VacaturePlaatsen() {
 
   const autosave = useAutosaveDraft(effectiveDraftId, form);
 
-  // Poll for the background criticus result AND the rendered image until both
-  // have arrived (bounded), so a slower image render still appears without reload.
+  // Poll voor achtergrond-tasks: criticus, image render, én per-taal vertalingen.
+  // Elke poll ververst existingDraftQuery zodat translations vanzelf in de UI
+  // verschijnen zodra ze klaar zijn. Bounded op ~40s (20 polls * 2s) om nooit
+  // eeuwig door te lopen als een vertaling faalt.
+  const selectedLangsForPoll = Array.isArray(loadedDraft?.form_data?.talen)
+    ? loadedDraft.form_data.talen
+    : [];
+  const missingTranslations = selectedLangsForPoll.filter((lang) => {
+    const entry = loadedDraft?.translations?.[lang];
+    return !entry || !(entry.omschrijving || entry.functie_eisen || entry.wat_wij_bieden || entry.social);
+  });
+
   const pollCountRef = useRef(0);
   useEffect(() => {
     const needsCriticus = criticusPassed === null;
     const needsImage = !imagePath;
-    if ((!needsCriticus && !needsImage) || !effectiveDraftId || isGenerating) {
+    const needsTranslations = missingTranslations.length > 0;
+    if ((!needsCriticus && !needsImage && !needsTranslations) || !effectiveDraftId || isGenerating) {
       pollCountRef.current = 0;
       return;
     }
 
     const interval = setInterval(async () => {
       pollCountRef.current += 1;
-      if (pollCountRef.current > 8) {
+      if (pollCountRef.current > 20) {
         clearInterval(interval);
         return;
       }
@@ -161,15 +207,21 @@ export default function VacaturePlaatsen() {
             notes: draft.criticus_notes || '',
           });
         }
+        // Refetch so translations in loadedDraft update — the useMemo picks
+        // them up and new tabs appear zonder handmatige refresh.
+        if (needsTranslations) {
+          existingDraftQuery.refetch();
+        }
       } catch {
         // Ignore poll errors
       }
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [criticusPassed, imagePath, effectiveDraftId, isGenerating]);
+  }, [criticusPassed, imagePath, effectiveDraftId, isGenerating, missingTranslations.length]);
 
-  const tabs = useMemo(() => createTabs(content), [content]);
+  const selectedLangs = Array.isArray(form.talen) ? form.talen : [];
+  const tabs = useMemo(() => createTabs(content, selectedLangs), [content, selectedLangs]);
 
   const saveMutation = useMutation({
     mutationFn: (status) =>
@@ -179,11 +231,8 @@ export default function VacaturePlaatsen() {
           omschrijving_nl: content.omschrijving_nl,
           functie_eisen: content.functie_eisen,
           wat_wij_bieden: content.wat_wij_bieden,
-          omschrijving_pl: content.omschrijving_pl,
-          functie_eisen_pl: content.functie_eisen_pl,
-          wat_wij_bieden_pl: content.wat_wij_bieden_pl,
           social_nl: content.social_nl,
-          social_pl: content.social_pl,
+          translations: content.translations || {},
           image_path: imagePath || null,
           criticus_passed: criticusPassed,
           criticus_notes: criticusNotes,
@@ -344,11 +393,8 @@ export default function VacaturePlaatsen() {
         omschrijving_nl: generated?.draft?.omschrijving_nl || '',
         functie_eisen: generated?.draft?.functie_eisen || '',
         wat_wij_bieden: generated?.draft?.wat_wij_bieden || '',
-        omschrijving_pl: generated?.draft?.omschrijving_pl || '',
-        functie_eisen_pl: generated?.draft?.functie_eisen_pl || '',
-        wat_wij_bieden_pl: generated?.draft?.wat_wij_bieden_pl || '',
         social_nl: generated?.draft?.social_nl || '',
-        social_pl: generated?.draft?.social_pl || '',
+        translations: generated?.draft?.translations || {},
       };
 
       setContentEdits(nextContent);
@@ -547,19 +593,38 @@ export default function VacaturePlaatsen() {
         </div>
 
         <div className="vacature-field">
-          <span>Taal</span>
-          <div className="vacature-language" role="group" aria-label="Taalkeuze">
-            {[['NL', 'NL'], ['NL+PL', 'NL + PL'], ['PL', 'PL']].map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                className={form.taal === value ? 'active' : ''}
-                onClick={() => updateField('taal', value)}
-              >
-                {label}
-              </button>
-            ))}
+          <span>Talen</span>
+          <div className="vacature-language-list" role="group" aria-label="Extra talen naast Nederlands">
+            <span className="vacature-lang-fixed" aria-label="Nederlands is altijd geselecteerd">
+              Nederlands (basis)
+            </span>
+            {LANGUAGES.map((lang) => {
+              const checked = selectedLangs.includes(lang.code);
+              return (
+                <label
+                  key={lang.code}
+                  className={`vacature-lang-check${checked ? ' checked' : ''}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(event) => {
+                      const nextTalen = event.target.checked
+                        ? [...selectedLangs, lang.code]
+                        : selectedLangs.filter((code) => code !== lang.code);
+                      updateField('talen', nextTalen);
+                    }}
+                  />
+                  <span>
+                    {lang.label} <em>({lang.native})</em>
+                  </span>
+                </label>
+              );
+            })}
           </div>
+          <small>
+            Nederlands is altijd de basis. Extra talen worden op de achtergrond gegenereerd en verschijnen als tabs zodra ze klaar zijn.
+          </small>
         </div>
 
         <label className="vacature-field">
@@ -674,15 +739,25 @@ export default function VacaturePlaatsen() {
             draftType="vacature"
             onRestored={(restored) => {
               if (!restored) return;
+              // Oude snapshots kunnen nog *_pl velden hebben; vertaal ze naar
+              // translations.pl zodat de restore ook onder de nieuwe structuur werkt.
+              const restoredTranslations = restored.translations && typeof restored.translations === 'object'
+                ? { ...restored.translations }
+                : {};
+              if (restored.omschrijving_pl || restored.functie_eisen_pl || restored.wat_wij_bieden_pl || restored.social_pl) {
+                restoredTranslations.pl = {
+                  omschrijving: restored.omschrijving_pl || restoredTranslations.pl?.omschrijving || '',
+                  functie_eisen: restored.functie_eisen_pl || restoredTranslations.pl?.functie_eisen || '',
+                  wat_wij_bieden: restored.wat_wij_bieden_pl || restoredTranslations.pl?.wat_wij_bieden || '',
+                  social: restored.social_pl || restoredTranslations.pl?.social || '',
+                };
+              }
               setContentEdits({
                 omschrijving_nl: restored.omschrijving_nl || '',
                 functie_eisen: restored.functie_eisen || '',
                 wat_wij_bieden: restored.wat_wij_bieden || '',
-                omschrijving_pl: restored.omschrijving_pl || '',
-                functie_eisen_pl: restored.functie_eisen_pl || '',
-                wat_wij_bieden_pl: restored.wat_wij_bieden_pl || '',
                 social_nl: restored.social_nl || '',
-                social_pl: restored.social_pl || '',
+                translations: restoredTranslations,
               });
               existingDraftQuery.refetch();
             }}
@@ -693,29 +768,40 @@ export default function VacaturePlaatsen() {
               <button
                 key={tab.key}
                 type="button"
-                className={activeTab === tab.key ? 'active' : ''}
+                className={`${activeTab === tab.key ? 'active' : ''}${tab.pending ? ' pending' : ''}`}
                 onClick={() => setActiveTab(tab.key)}
+                disabled={tab.pending}
+                title={tab.pending ? 'Vertaling wordt nog gegenereerd...' : undefined}
               >
-                {tab.label}
+                {tab.label}{tab.pending ? ' …' : ''}
               </button>
             ))}
           </div>
 
           <div className="preview-pane">
             <textarea
-              value={content[activeTab] || ''}
-              onChange={(event) =>
+              value={readTab(content, activeTab)}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (!activeTab.startsWith('tr:')) {
+                  setContentEdits((prev) => ({ ...prev, [activeTab]: value }));
+                  return;
+                }
+                const [, lang, field] = activeTab.split(':');
                 setContentEdits((prev) => ({
                   ...prev,
-                  [activeTab]: event.target.value,
-                }))
-              }
+                  translations: {
+                    ...(prev.translations || {}),
+                    [lang]: { ...(prev.translations?.[lang] || {}), [field]: value },
+                  },
+                }));
+              }}
             />
             <button
               type="button"
               className="copy-text-btn"
               onClick={() => {
-                navigator.clipboard.writeText(content[activeTab] || '');
+                navigator.clipboard.writeText(readTab(content, activeTab));
                 setCopied(true);
                 setTimeout(() => setCopied(false), 1500);
               }}

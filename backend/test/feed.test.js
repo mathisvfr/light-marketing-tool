@@ -29,7 +29,7 @@ function vacature(overrides) {
     titel: overrides.titel || 'Orderpicker',
     plaats: overrides.plaats || null,
     omschrijving_nl: overrides.omschrijving_nl || 'Werken in de logistiek.',
-    omschrijving_pl: overrides.omschrijving_pl || null,
+    translations: overrides.translations || {},
     functie_eisen: null,
     wat_wij_bieden: null,
     salaris: null,

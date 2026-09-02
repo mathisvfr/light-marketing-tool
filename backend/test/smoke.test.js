@@ -65,14 +65,21 @@ mockModule('../src/services/claude', {
       omschrijving_nl: 'Gegenereerde vacaturetekst NL',
       functie_eisen: 'Test functie-eisen',
       wat_wij_bieden: 'Test wat wij bieden',
-      omschrijving_pl: null,
       social_nl: 'Test social NL',
-      social_pl: null,
+    };
+  },
+  async translateVacature(lang) {
+    return {
+      omschrijving: `vertaling ${lang}`,
+      functie_eisen: `eisen ${lang}`,
+      wat_wij_bieden: `bieden ${lang}`,
+      social: `social ${lang}`,
     };
   },
   async criticus() {
     return { passed: true, notes: 'Goedgekeurd door mock-criticus.' };
   },
+  SUPPORTED_TRANSLATION_LANGS: ['pl', 'bg', 'sk', 'lv', 'en', 'hu', 'ro', 'uk'],
 });
 
 // Now safe to load the configured Express app (it does not listen because

@@ -382,7 +382,9 @@ doorgaat. Bouw NIET alles in één keer.
 
 ### Stap 5 — Vacature plaatsen (Type A) [HOOGSTE WAARDE — eerst af]
 Formulier: Functietitel, Locatie (default Rotterdam), Uren/week, Startdatum,
-Korte omschrijving (max 400 tekens, teller), Taal (NL | NL+PL), Contract.
+Korte omschrijving (max 2000 tekens, teller), Talen (NL altijd + optionele
+extra talen via checkbox: PL, BG, SK, LV, EN, HU, RO, UK), Contract.
+Recruiter kan ook een klantbriefing (.docx of .pdf) uploaden als extra input.
 - POST /api/drafts (status 'draft') → POST /api/drafts/:id/generate.
 - Claude genereert **gestructureerde velden** (niet één blob):
   omschrijving_nl, functie_eisen, wat_wij_bieden, en bij NL+PL ook

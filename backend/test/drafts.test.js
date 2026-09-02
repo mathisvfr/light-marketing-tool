@@ -19,14 +19,21 @@ const claudeMock = {
       omschrijving_nl: 'NL tekst',
       functie_eisen: 'eisen',
       wat_wij_bieden: 'bieden',
-      omschrijving_pl: null,
       social_nl: 'social',
-      social_pl: null,
+    };
+  },
+  async translateVacature(lang) {
+    return {
+      omschrijving: `vertaling ${lang}`,
+      functie_eisen: `eisen ${lang}`,
+      wat_wij_bieden: `bieden ${lang}`,
+      social: `social ${lang}`,
     };
   },
   async criticus() {
     return { passed: true, notes: 'ok' };
   },
+  SUPPORTED_TRANSLATION_LANGS: ['pl', 'bg', 'sk', 'lv', 'en', 'hu', 'ro', 'uk'],
 };
 
 const { setup, startServer, stopServer, makeClient, waitFor, USERS } = require('../test-helpers/harness');

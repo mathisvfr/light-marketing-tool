@@ -56,14 +56,21 @@ function defaultClaudeMock() {
         omschrijving_nl: 'Gegenereerde vacaturetekst NL',
         functie_eisen: 'Test functie-eisen',
         wat_wij_bieden: 'Test wat wij bieden',
-        omschrijving_pl: null,
         social_nl: 'Test social NL',
-        social_pl: null,
+      };
+    },
+    async translateVacature(lang) {
+      return {
+        omschrijving: `Vertaling omschrijving ${lang}`,
+        functie_eisen: `Vertaling eisen ${lang}`,
+        wat_wij_bieden: `Vertaling bieden ${lang}`,
+        social: `Vertaling social ${lang}`,
       };
     },
     async criticus() {
       return { passed: true, notes: 'Goedgekeurd door mock-criticus.' };
     },
+    SUPPORTED_TRANSLATION_LANGS: ['pl', 'bg', 'sk', 'lv', 'en', 'hu', 'ro', 'uk'],
   };
 }
 

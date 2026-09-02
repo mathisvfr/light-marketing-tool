@@ -11,8 +11,6 @@ async function publish(draftId, type, channels, contentPayload, options = {}) {
     form_data: contentPayload?.form_data || {},
     content_nl: contentPayload?.omschrijving_nl || null,
     social_nl: contentPayload?.social_nl || null,
-    content_pl: contentPayload?.omschrijving_pl || null,
-    social_pl: contentPayload?.social_pl || null,
     linkedin_post: contentPayload?.linkedin_post || null,
     instagram_caption: contentPayload?.instagram_caption || null,
     image_path: contentPayload?.image_path || null,

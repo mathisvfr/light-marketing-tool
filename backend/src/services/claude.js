@@ -432,6 +432,42 @@ async function generate(type, formData) {
   return sanitizeGenerated(generated);
 }
 
+// Ondersteunde talen voor kandidaat-vertalingen (naast NL). Uitbreiden = één
+// entry toevoegen én de prompt bijwerken.
+const SUPPORTED_TRANSLATION_LANGS = ['pl', 'bg', 'sk', 'lv', 'en', 'hu', 'ro', 'uk'];
+
+async function translateVacature(lang, formData, nlContent) {
+  if (!SUPPORTED_TRANSLATION_LANGS.includes(lang)) {
+    throw new Error(`Onbekende taal: ${lang}`);
+  }
+
+  const [brandKnowledge, brandContext, translatePrompt] = await Promise.all([
+    loadBrandKnowledge(),
+    loadBrandContext(),
+    loadPrompt('vacature-translate'),
+  ]);
+
+  const systemBlocks = buildSystemBlocks(brandKnowledge, brandContext, translatePrompt);
+  const payload = {
+    lang,
+    form_data: formData,
+    nl: {
+      omschrijving_nl: nlContent?.omschrijving_nl || '',
+      functie_eisen: nlContent?.functie_eisen || '',
+      wat_wij_bieden: nlContent?.wat_wij_bieden || '',
+      social_nl: nlContent?.social_nl || '',
+    },
+  };
+
+  const result = await callAnthropicExpectingJson(systemBlocks, payload);
+  return sanitizeGenerated({
+    omschrijving: result?.omschrijving || '',
+    functie_eisen: result?.functie_eisen || '',
+    wat_wij_bieden: result?.wat_wij_bieden || '',
+    social: result?.social || '',
+  });
+}
+
 async function criticus(input) {
   const [brandKnowledge, brandContext, criticusPrompt] = await Promise.all([
     loadBrandKnowledge(),
@@ -453,5 +489,7 @@ async function criticus(input) {
 module.exports = {
   loadBrandContext,
   generate,
+  translateVacature,
   criticus,
+  SUPPORTED_TRANSLATION_LANGS,
 };

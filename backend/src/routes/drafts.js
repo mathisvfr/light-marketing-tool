@@ -2,7 +2,7 @@ const express = require('express');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { supabase } = require('../db/client');
-const { generate, criticus } = require('../services/claude');
+const { generate, criticus, translateVacature, SUPPORTED_TRANSLATION_LANGS } = require('../services/claude');
 const { renderSocialImage, saveUploadedImageDataUrl } = require('../services/render');
 const { notifyAfterCommit } = require('../services/notifications');
 
@@ -83,6 +83,41 @@ function normalizeDraftType(type) {
   return 'vacature';
 }
 
+function normalizeTranslations(value) {
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+  const result = {};
+  for (const lang of SUPPORTED_TRANSLATION_LANGS) {
+    const entry = value[lang];
+    if (entry && typeof entry === 'object') {
+      result[lang] = {
+        omschrijving: entry.omschrijving || '',
+        functie_eisen: entry.functie_eisen || '',
+        wat_wij_bieden: entry.wat_wij_bieden || '',
+        social: entry.social || '',
+      };
+    }
+  }
+  return result;
+}
+
+function normalizeTalen(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const seen = new Set();
+  const result = [];
+  for (const raw of value) {
+    const code = String(raw || '').trim().toLowerCase();
+    if (SUPPORTED_TRANSLATION_LANGS.includes(code) && !seen.has(code)) {
+      seen.add(code);
+      result.push(code);
+    }
+  }
+  return result;
+}
+
 function formatDraftForResponse(draft) {
   return {
     id: draft.id,
@@ -92,11 +127,8 @@ function formatDraftForResponse(draft) {
     omschrijving_nl: draft.omschrijving_nl,
     functie_eisen: draft.functie_eisen,
     wat_wij_bieden: draft.wat_wij_bieden,
-    omschrijving_pl: draft.omschrijving_pl,
-    functie_eisen_pl: draft.functie_eisen_pl,
-    wat_wij_bieden_pl: draft.wat_wij_bieden_pl,
     social_nl: draft.social_nl,
-    social_pl: draft.social_pl,
+    translations: normalizeTranslations(draft.translations),
     linkedin_post: draft.linkedin_post,
     instagram_caption: draft.instagram_caption,
     image_path: draft.image_path,
@@ -172,7 +204,7 @@ router.get('/:id', async (req, res, next) => {
     const { data, error } = await supabase
       .from('drafts')
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, created_by, generation_history'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, created_by, generation_history'
       )
       .eq('id', draftId)
       .maybeSingle();
@@ -220,7 +252,7 @@ router.post('/', async (req, res, next) => {
       .from('drafts')
       .insert(payload)
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
       )
       .single();
 
@@ -316,7 +348,7 @@ router.post('/:id/restore-version', async (req, res, next) => {
     const { data: draft, error: draftError } = await supabase
       .from('drafts')
       .select(
-        'id, type, form_data, created_by, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, generation_history'
+        'id, type, form_data, created_by, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, generation_history'
       )
       .eq('id', draftId)
       .maybeSingle();
@@ -340,19 +372,44 @@ router.post('/:id/restore-version', async (req, res, next) => {
         omschrijving_nl: draft.omschrijving_nl || null,
         functie_eisen: draft.functie_eisen || null,
         wat_wij_bieden: draft.wat_wij_bieden || null,
-        omschrijving_pl: draft.omschrijving_pl || null,
-        functie_eisen_pl: draft.functie_eisen_pl || null,
-        wat_wij_bieden_pl: draft.wat_wij_bieden_pl || null,
         social_nl: draft.social_nl || null,
-        social_pl: draft.social_pl || null,
+        translations: draft.translations && typeof draft.translations === 'object' ? draft.translations : {},
         linkedin_post: draft.linkedin_post || null,
         instagram_caption: draft.instagram_caption || null,
       },
     };
     const newHistory = [currentSnapshot, ...history.filter((_, i) => i !== rawIndex)].slice(0, 3);
 
+    // Restore only known columns. Oude snapshots kunnen nog omschrijving_pl
+    // etc. bevatten van vóór de translations-migratie — die kolommen bestaan
+    // niet meer, dus filter ze eruit en verplaats PL-content naar
+    // translations.pl waar mogelijk.
+    const rawContent = target.content || {};
+    const restoredContent = {
+      omschrijving_nl: rawContent.omschrijving_nl ?? null,
+      functie_eisen: rawContent.functie_eisen ?? null,
+      wat_wij_bieden: rawContent.wat_wij_bieden ?? null,
+      social_nl: rawContent.social_nl ?? null,
+      translations: rawContent.translations && typeof rawContent.translations === 'object'
+        ? rawContent.translations
+        : {},
+      linkedin_post: rawContent.linkedin_post ?? null,
+      instagram_caption: rawContent.instagram_caption ?? null,
+    };
+    if (rawContent.omschrijving_pl || rawContent.functie_eisen_pl || rawContent.wat_wij_bieden_pl || rawContent.social_pl) {
+      restoredContent.translations = {
+        ...restoredContent.translations,
+        pl: {
+          omschrijving: rawContent.omschrijving_pl || restoredContent.translations.pl?.omschrijving || '',
+          functie_eisen: rawContent.functie_eisen_pl || restoredContent.translations.pl?.functie_eisen || '',
+          wat_wij_bieden: rawContent.wat_wij_bieden_pl || restoredContent.translations.pl?.wat_wij_bieden || '',
+          social: rawContent.social_pl || restoredContent.translations.pl?.social || '',
+        },
+      };
+    }
+
     const updatePayload = {
-      ...target.content,
+      ...restoredContent,
       generation_history: newHistory,
       updated_at: new Date().toISOString(),
     };
@@ -362,7 +419,7 @@ router.post('/:id/restore-version', async (req, res, next) => {
       .update(updatePayload)
       .eq('id', draft.id)
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, generation_history'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, generation_history'
       )
       .single();
 
@@ -384,7 +441,7 @@ router.post('/:id/generate', async (req, res, next) => {
     const { data: draft, error: draftError } = await supabase
       .from('drafts')
       .select(
-        'id, type, form_data, created_by, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, generation_history'
+        'id, type, form_data, created_by, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, generation_history'
       )
       .eq('id', draftId)
       .maybeSingle();
@@ -432,8 +489,7 @@ router.post('/:id/generate', async (req, res, next) => {
             omschrijving_nl: null,
             functie_eisen: null,
             wat_wij_bieden: null,
-            omschrijving_pl: null,
-            social_pl: null,
+            translations: {},
             criticus_passed: null,
             criticus_notes: null,
             updated_at: new Date().toISOString(),
@@ -442,11 +498,10 @@ router.post('/:id/generate', async (req, res, next) => {
             omschrijving_nl: generated.omschrijving_nl || draft.omschrijving_nl || null,
             functie_eisen: generated.functie_eisen || draft.functie_eisen || null,
             wat_wij_bieden: generated.wat_wij_bieden || draft.wat_wij_bieden || null,
-            omschrijving_pl: generated.omschrijving_pl || null,
-            functie_eisen_pl: generated.functie_eisen_pl || null,
-            wat_wij_bieden_pl: generated.wat_wij_bieden_pl || null,
             social_nl: generated.social_nl || draft.social_nl || null,
-            social_pl: generated.social_pl || null,
+            // Vertalingen worden hieronder async gegenereerd; reset naar leeg
+            // zodat oude vertalingen niet blijven hangen na een regeneratie.
+            translations: {},
             linkedin_post: null,
             criticus_passed: null,
             criticus_notes: null,
@@ -471,11 +526,8 @@ router.post('/:id/generate', async (req, res, next) => {
           omschrijving_nl: draft.omschrijving_nl || null,
           functie_eisen: draft.functie_eisen || null,
           wat_wij_bieden: draft.wat_wij_bieden || null,
-          omschrijving_pl: draft.omschrijving_pl || null,
-          functie_eisen_pl: draft.functie_eisen_pl || null,
-          wat_wij_bieden_pl: draft.wat_wij_bieden_pl || null,
           social_nl: draft.social_nl || null,
-          social_pl: draft.social_pl || null,
+          translations: draft.translations && typeof draft.translations === 'object' ? draft.translations : {},
           linkedin_post: draft.linkedin_post || null,
           instagram_caption: draft.instagram_caption || null,
         },
@@ -490,7 +542,7 @@ router.post('/:id/generate', async (req, res, next) => {
       .update(updatePayload)
       .eq('id', draft.id)
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, generation_history'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, generation_history'
       )
       .single();
 
@@ -535,6 +587,40 @@ router.post('/:id/generate', async (req, res, next) => {
       .catch((err) => {
         console.error('Background criticus/render failed:', err);
       });
+
+    // Vertalingen naar extra talen: parallel op de achtergrond. NL is al terug
+    // in de response; iedere taal die klaar is wordt los in translations[lang]
+    // weggeschreven zodat de UI 'm kan oppikken via polling. Falen van één taal
+    // blokkeert nooit de anderen.
+    if (draft.type === 'vacature') {
+      const talen = normalizeTalen(draft.form_data?.talen);
+      for (const lang of talen) {
+        translateVacature(lang, draft.form_data, generated)
+          .then(async (translation) => {
+            // Read-modify-write: merge into the current translations object so
+            // parallel completions don't clobber each other. Small racy window
+            // is acceptable — worst case one language re-runs on manual refresh.
+            const { data: currentRow } = await supabase
+              .from('drafts')
+              .select('translations')
+              .eq('id', draft.id)
+              .maybeSingle();
+            const merged = {
+              ...(currentRow?.translations && typeof currentRow.translations === 'object'
+                ? currentRow.translations
+                : {}),
+              [lang]: translation,
+            };
+            await supabase
+              .from('drafts')
+              .update({ translations: merged, updated_at: new Date().toISOString() })
+              .eq('id', draft.id);
+          })
+          .catch((err) => {
+            console.error(`Vertaling ${lang} mislukt voor draft ${draft.id}:`, err.message || err);
+          });
+      }
+    }
 
     return;
   } catch (error) {
@@ -623,11 +709,8 @@ router.put('/:id', async (req, res, next) => {
       omschrijving_nl: req.body?.omschrijving_nl || null,
       functie_eisen: req.body?.functie_eisen || null,
       wat_wij_bieden: req.body?.wat_wij_bieden || null,
-      omschrijving_pl: req.body?.omschrijving_pl || null,
-      functie_eisen_pl: req.body?.functie_eisen_pl || null,
-      wat_wij_bieden_pl: req.body?.wat_wij_bieden_pl || null,
       social_nl: req.body?.social_nl || null,
-      social_pl: req.body?.social_pl || null,
+      translations: normalizeTranslations(req.body?.translations),
       linkedin_post: req.body?.linkedin_post || null,
       instagram_caption: req.body?.instagram_caption || null,
       image_path: req.body?.image_path || null,
@@ -642,7 +725,7 @@ router.put('/:id', async (req, res, next) => {
       .update(payload)
       .eq('id', draft.id)
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
       )
       .single();
 
@@ -687,7 +770,7 @@ router.post('/:id/submit', async (req, res, next) => {
       .update({ status: 'pending_approval', updated_at: new Date().toISOString() })
       .eq('id', draft.id)
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
       )
       .single();
 
@@ -1146,7 +1229,7 @@ router.post('/:id/approve', async (req, res, next) => {
       })
       .eq('id', draftId)
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
       )
       .maybeSingle();
 
@@ -1213,7 +1296,7 @@ router.post('/:id/reject', async (req, res, next) => {
       })
       .eq('id', draftId)
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, omschrijving_pl, functie_eisen_pl, wat_wij_bieden_pl, social_nl, social_pl, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
       )
       .maybeSingle();
 

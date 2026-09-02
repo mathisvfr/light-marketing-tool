@@ -191,7 +191,7 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
 
     const { data: fullDraft, error: fullDraftError } = await supabase
       .from('drafts')
-      .select('id, type, omschrijving_nl, social_nl, omschrijving_pl, social_pl, linkedin_post, instagram_caption, image_path, form_data')
+      .select('id, type, omschrijving_nl, social_nl, linkedin_post, instagram_caption, image_path, form_data')
       .eq('id', draftId)
       .single();
 
@@ -202,8 +202,6 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
     const contentPayload = {
       omschrijving_nl: fullDraft.omschrijving_nl,
       social_nl: fullDraft.social_nl,
-      omschrijving_pl: fullDraft.omschrijving_pl,
-      social_pl: fullDraft.social_pl,
       linkedin_post: fullDraft.linkedin_post,
       instagram_caption: fullDraft.instagram_caption,
       image_path: fullDraft.image_path,
@@ -367,8 +365,6 @@ router.post('/bulk', requireRole('owner'), async (req, res, next) => {
       const contentPayload = {
         omschrijving_nl: draft.omschrijving_nl,
         social_nl: draft.social_nl,
-        omschrijving_pl: draft.omschrijving_pl,
-        social_pl: draft.social_pl,
         linkedin_post: draft.linkedin_post,
         instagram_caption: draft.instagram_caption,
         image_path: draft.image_path,
