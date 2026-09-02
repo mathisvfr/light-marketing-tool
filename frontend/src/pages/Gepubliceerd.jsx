@@ -4,7 +4,10 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import StatusBadge from '../components/shared/StatusBadge';
 import ChannelStatus from '../components/shared/ChannelStatus';
+import Modal, { ModalFooter } from '../components/shared/Modal';
+import ConfirmDialog from '../components/shared/ConfirmDialog';
 import '../components/shared/status-strip.css';
+import '../components/shared/modal.css';
 import './gepubliceerd.css';
 
 function formatDate(value) {
@@ -88,6 +91,7 @@ export default function Gepubliceerd() {
   const [error, setError] = useState('');
   const [reschedTarget, setReschedTarget] = useState(null); // { publicationId, title, channel, currentIso }
   const [reschedValue, setReschedValue] = useState('');
+  const [confirm, setConfirm] = useState(null);
 
   const publishedQuery = useQuery({
     queryKey: ['published-items'],
@@ -141,22 +145,31 @@ export default function Gepubliceerd() {
 
   function handleCancel(scheduledRow, title) {
     setError('');
-    if (!window.confirm(`Ingeplande post op ${scheduledRow.channel} voor "${title}" annuleren?`)) return;
-    cancelMutation.mutate(scheduledRow.id);
+    setConfirm({
+      title: 'Ingeplande post annuleren',
+      message: `De ingeplande post op ${scheduledRow.channel} voor "${title}" wordt geannuleerd.`,
+      confirmLabel: 'Annuleren van post',
+      variant: 'destructive',
+      onConfirm: () => cancelMutation.mutateAsync(scheduledRow.id),
+    });
   }
 
-  async function handleExpire(draftId) {
+  function handleExpire(draftId) {
     setError('');
-
-    if (!window.confirm('Weet je zeker dat je deze vacature wilt sluiten?')) {
-      return;
-    }
-
-    try {
-      await expireMutation.mutateAsync(draftId);
-    } catch (err) {
-      setError(err.message || 'Sluiten van vacature mislukt.');
-    }
+    setConfirm({
+      title: 'Vacature sluiten',
+      message: 'De vacature wordt uit de feed gehaald. Bestaande sollicitanten blijven bewaard.',
+      confirmLabel: 'Sluiten',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
+          await expireMutation.mutateAsync(draftId);
+        } catch (err) {
+          setError(err.message || 'Sluiten van vacature mislukt.');
+          throw err;
+        }
+      },
+    });
   }
 
   if (publishedQuery.isLoading) {
@@ -227,14 +240,14 @@ export default function Gepubliceerd() {
         </section>
       ) : null}
 
-      {reschedTarget ? (
-        <div className="published-modal-backdrop" onClick={() => setReschedTarget(null)}>
-          <form
-            className="published-modal"
-            onClick={(event) => event.stopPropagation()}
-            onSubmit={submitReschedule}
-          >
-            <h3>Plan wijzigen</h3>
+      <Modal
+        open={Boolean(reschedTarget)}
+        onOpenChange={(next) => { if (!next) setReschedTarget(null); }}
+        title="Plan wijzigen"
+        size="sm"
+      >
+        {reschedTarget ? (
+          <form onSubmit={submitReschedule} className="published-modal-form">
             <p className="published-modal-title">{reschedTarget.title}</p>
             <p className="published-modal-meta">
               <strong>Huidige planning:</strong> {reschedTarget.channel} —{' '}
@@ -247,23 +260,25 @@ export default function Gepubliceerd() {
                 value={reschedValue}
                 onChange={(event) => setReschedValue(event.target.value)}
                 required
+                autoFocus
               />
             </label>
-            <div className="published-modal-actions">
-              <button type="submit" disabled={rescheduleMutation.isPending}>
-                {rescheduleMutation.isPending ? 'Verplaatsen...' : `Verplaatsen naar ${reschedValue || '...'}`}
-              </button>
+            <ModalFooter>
               <button
                 type="button"
+                className="confirm-btn-cancel"
                 onClick={() => setReschedTarget(null)}
                 disabled={rescheduleMutation.isPending}
               >
                 Annuleren
               </button>
-            </div>
+              <button type="submit" className="confirm-btn-primary" disabled={rescheduleMutation.isPending}>
+                {rescheduleMutation.isPending ? 'Verplaatsen...' : `Verplaatsen naar ${reschedValue || '...'}`}
+              </button>
+            </ModalFooter>
           </form>
-        </div>
-      ) : null}
+        ) : null}
+      </Modal>
 
       <section className="published-section">
         <h3>Marketingpublicaties (Type B)</h3>
@@ -371,6 +386,16 @@ export default function Gepubliceerd() {
       </p>
 
       {error ? <p className="published-error">{error}</p> : null}
+
+      <ConfirmDialog
+        open={Boolean(confirm)}
+        onOpenChange={(next) => { if (!next) setConfirm(null); }}
+        title={confirm?.title}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        variant={confirm?.variant}
+        onConfirm={confirm?.onConfirm}
+      />
     </div>
   );
 }

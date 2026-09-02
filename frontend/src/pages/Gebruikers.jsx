@@ -3,7 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import Card from '../components/shared/Card';
+import Modal, { ModalFooter } from '../components/shared/Modal';
+import ConfirmDialog from '../components/shared/ConfirmDialog';
 import '../components/shared/card.css';
+import '../components/shared/modal.css';
 import './gebruikers.css';
 
 function formatDate(value) {
@@ -30,6 +33,7 @@ export default function Gebruikers() {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [confirm, setConfirm] = useState(null);
 
   const usersQuery = useQuery({
     queryKey: ['users-list'],
@@ -110,20 +114,24 @@ export default function Gebruikers() {
     }
   }
 
-  async function handleDeleteUser(userId, userName) {
+  function requestDeleteUser(userId, userName) {
     setError('');
     setSuccess('');
-
-    if (!window.confirm(`Weet je zeker dat je ${userName} wilt verwijderen?`)) {
-      return;
-    }
-
-    try {
-      await deleteUserMutation.mutateAsync(userId);
-      setSuccess('Gebruiker verwijderd.');
-    } catch (err) {
-      setError(err.message || 'Gebruiker verwijderen mislukt.');
-    }
+    setConfirm({
+      title: 'Gebruiker verwijderen',
+      message: `${userName} wordt permanent verwijderd. Dit kan niet ongedaan gemaakt worden.`,
+      confirmLabel: 'Verwijderen',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
+          await deleteUserMutation.mutateAsync(userId);
+          setSuccess('Gebruiker verwijderd.');
+        } catch (err) {
+          setError(err.message || 'Gebruiker verwijderen mislukt.');
+          throw err; // laat ConfirmDialog open zodat gebruiker het ziet
+        }
+      },
+    });
   }
 
   return (
@@ -173,7 +181,7 @@ export default function Gebruikers() {
                   <td>
                     <button
                       type="button"
-                      onClick={() => handleDeleteUser(item.id, item.name)}
+                      onClick={() => requestDeleteUser(item.id, item.name)}
                       disabled={updateRoleMutation.isPending || deleteUserMutation.isPending}
                     >
                       Verwijderen
@@ -186,71 +194,87 @@ export default function Gebruikers() {
         </table>
       </Card>
 
-      {showCreateModal ? (
-        <div className="users-modal-backdrop" role="dialog" aria-modal="true">
-          <form className="users-modal" onSubmit={handleCreateUser}>
-            <h3>Nieuwe gebruiker</h3>
+      <Modal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        title="Nieuwe gebruiker"
+        size="sm"
+      >
+        <form onSubmit={handleCreateUser} className="users-modal-form">
+          <label>
+            Naam
+            <input
+              value={createForm.name}
+              onChange={(event) =>
+                setCreateForm((prev) => ({ ...prev, name: event.target.value }))
+              }
+              required
+              autoFocus
+            />
+          </label>
 
-            <label>
-              Naam
-              <input
-                value={createForm.name}
-                onChange={(event) =>
-                  setCreateForm((prev) => ({ ...prev, name: event.target.value }))
-                }
-                required
-              />
-            </label>
+          <label>
+            E-mail
+            <input
+              type="email"
+              value={createForm.email}
+              onChange={(event) =>
+                setCreateForm((prev) => ({ ...prev, email: event.target.value }))
+              }
+              required
+            />
+          </label>
 
-            <label>
-              E-mail
-              <input
-                type="email"
-                value={createForm.email}
-                onChange={(event) =>
-                  setCreateForm((prev) => ({ ...prev, email: event.target.value }))
-                }
-                required
-              />
-            </label>
+          <label>
+            Tijdelijk wachtwoord
+            <input
+              type="text"
+              value={createForm.temporaryPassword}
+              onChange={(event) =>
+                setCreateForm((prev) => ({ ...prev, temporaryPassword: event.target.value }))
+              }
+              required
+            />
+          </label>
 
-            <label>
-              Tijdelijk wachtwoord
-              <input
-                type="text"
-                value={createForm.temporaryPassword}
-                onChange={(event) =>
-                  setCreateForm((prev) => ({ ...prev, temporaryPassword: event.target.value }))
-                }
-                required
-              />
-            </label>
+          <label>
+            Rol
+            <select
+              value={createForm.role}
+              onChange={(event) =>
+                setCreateForm((prev) => ({ ...prev, role: event.target.value }))
+              }
+            >
+              <option value="owner">owner</option>
+              <option value="recruiter">recruiter</option>
+              <option value="viewer">viewer</option>
+            </select>
+          </label>
 
-            <label>
-              Rol
-              <select
-                value={createForm.role}
-                onChange={(event) =>
-                  setCreateForm((prev) => ({ ...prev, role: event.target.value }))
-                }
-              >
-                <option value="owner">owner</option>
-                <option value="recruiter">recruiter</option>
-                <option value="viewer">viewer</option>
-              </select>
-            </label>
+          <ModalFooter>
+            <button
+              type="button"
+              className="confirm-btn-cancel"
+              onClick={() => setShowCreateModal(false)}
+            >
+              Annuleren
+            </button>
+            <button type="submit" className="confirm-btn-primary" disabled={createMutation.isPending}>
+              Opslaan
+            </button>
+          </ModalFooter>
+        </form>
+      </Modal>
 
-            <div className="users-modal-actions">
-              <button type="button" onClick={() => setShowCreateModal(false)}>
-                Annuleren
-              </button>
-              <button type="submit" disabled={createMutation.isPending}>
-                Opslaan
-              </button>
-            </div>
-          </form>
-        </div>
-      ) : null}
+      <ConfirmDialog
+        open={Boolean(confirm)}
+        onOpenChange={(next) => { if (!next) setConfirm(null); }}
+        title={confirm?.title}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        variant={confirm?.variant}
+        onConfirm={confirm?.onConfirm}
+      />
 
       {error ? <p className="users-error">{error}</p> : null}
       {success ? <p>{success}</p> : null}

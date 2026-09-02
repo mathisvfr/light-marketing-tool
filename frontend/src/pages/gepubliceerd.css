@@ -141,30 +141,12 @@
   cursor: not-allowed;
 }
 
-.published-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  display: grid;
-  place-items: center;
-  z-index: 40;
-  padding: 1rem;
-}
-
-.published-modal {
-  background: #fff;
-  border-radius: var(--radius-md);
-  padding: 1.25rem 1.5rem;
-  max-width: 26rem;
-  width: 100%;
+/* Published-modal backdrop/container/actions worden nu geleverd door shared
+   <Modal>. Alleen de form-layout binnenin blijft page-specifiek. */
+.published-modal-form {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-}
-
-.published-modal h3 {
-  margin: 0;
 }
 
 .published-modal-title {
@@ -178,17 +160,11 @@
   font-size: 0.9rem;
 }
 
-.published-modal label {
+.published-modal-form label {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
   font-size: 0.9rem;
-}
-
-.published-modal-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.35rem;
 }
 
 .channel-metrics {

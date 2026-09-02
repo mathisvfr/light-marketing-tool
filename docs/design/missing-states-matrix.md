@@ -35,36 +35,38 @@ criterium. Als een state N/A is, expliciet motiveren waarom.
 
 ---
 
-## `<Modal>` (PR 2a — via Radix Dialog wrap)
+## `<Modal>` (PR 2a — via Radix Dialog wrap) — ✅ IMPLEMENTED
 
-| State | Verplicht? | Visueel patroon | Acceptance criterium |
-|-------|-----------|-----------------|----------------------|
-| Open (default) | Ja | Backdrop 50% opacity, modal gecentreerd, size prop (sm=400px / md=560px / lg=720px) | Radix Dialog handles focus-trap + escape |
-| Closed | Ja | Volledig unmounted (`Dialog.Root open={false}`) | Geen orphan-DOM, memory-friendly |
-| Loading (async open) | Nee | N/A — open-state is synchroon | Documenteer in usage-guide |
-| Submitting (form-in-modal) | Ja | Primary button toont spinner + disabled, andere buttons disabled | Voorkomt dubbele submit |
-| Error (submit fail) | Ja | Inline `<FormMessage type="error">` binnen modal-body, boven de knoppen. Modal blijft open. | User ziet fout zonder modal-restart |
-| Dirty (unsaved changes) | Ja | Backdrop-click en Escape triggeren `onCloseAttempt` — parent beslist of confirm-dialog opent | Verlies-preventie |
-| Mobile (<640px) | Ja | Fullscreen: geen backdrop, modal vult viewport, close-knop in top-right | Voorkomt iOS-Safari keyboard-issues |
-| Long content | Ja | Header + footer sticky, body scrollable | Ook op laptops met 800px height |
-| Prefers-reduced-motion | Ja | Fade-in/-out uitzetten (`@media (prefers-reduced-motion)`) | A11y baseline |
+| State | Verplicht? | Sign-off | Visueel patroon | Acceptance criterium |
+|-------|-----------|----------|-----------------|----------------------|
+| Open (default) | Ja | ✅ | Backdrop 50% opacity, modal gecentreerd, size prop (sm=400px / md=560px / lg=720px) | Radix Dialog handles focus-trap + escape |
+| Closed | Ja | ✅ | Radix Dialog.Root open={false} = unmounted (Portal remove) | Geen orphan-DOM |
+| Loading (async open) | Nee | — | N/A: open-state is synchroon | Gedocumenteerd in Modal.jsx |
+| Submitting (form-in-modal) | Ja | ✅ | ConfirmDialog primary button toont "Bezig..." + disabled | Voorkomt dubbele submit |
+| Error (submit fail) | Ja | ✅ | Parent kan error inline in modal-body renderen; ConfirmDialog laat onConfirm throw → dialog blijft open | User ziet fout zonder modal-restart |
+| Dirty (unsaved changes) | Ja | ✅ | onCloseAttempt-prop: escape/backdrop-click roept die aan i.p.v. onOpenChange(false) | Parent beslist over confirm-flow |
+| Mobile (<640px) | Ja | ✅ | Fullscreen via media-query in modal.css: top/left 0, 100vw/100vh, geen border-radius, safe-area-inset-bottom | Voorkomt iOS-Safari keyboard-issues |
+| Long content | Ja | ✅ | Header + footer flex-shrink:0; body flex:1 met overflow-y:auto | Ook op laptops met 800px height |
+| Prefers-reduced-motion | Ja | ✅ | Overlay + content animation:none in @media block | A11y baseline |
 
-**N/A**: empty (modals hebben altijd content), overflow-x (max-width via size prop).
+**Ge-adopteerd in**: Gebruikers (create-user form), Gepubliceerd (reschedule).
 
 ---
 
-## `<ConfirmDialog>` (PR 2a)
+## `<ConfirmDialog>` (PR 2a) — ✅ IMPLEMENTED
 
-Wrappt `<Modal>` met een specifieke API. Vervangt 7× `window.confirm()`
-in Gp, CW, SEO.
+Wrappt `<Modal>` met een specifieke API. Vervangt 8× `window.confirm()`
+in Gp/CW/PP/Gebr/SEO.
 
-| State | Verplicht? | Visueel patroon | Acceptance criterium |
-|-------|-----------|-----------------|----------------------|
-| Open — normale confirmatie | Ja | Modal size=sm, title + message, twee buttons (Annuleren secondary, Bevestigen primary) | Focus start op Annuleren (destructive-veilig) |
-| Open — destructieve confirmatie | Ja | Primary button variant=danger (rood), title bevat "verwijderen"/"annuleren" | Focus start op Annuleren, extra `type="destructive"` prop |
-| Submitting | Ja | Bevestigen-knop toont spinner + beide disabled | Voorkomt dubbele delete |
-| Error (action fail) | Ja | Inline `<FormMessage type="error">` in dialog-body, dialog blijft open | User kan retry |
-| Mobile | Ja | Zelfde als Modal fullscreen | — |
+| State | Verplicht? | Sign-off | Visueel patroon | Acceptance criterium |
+|-------|-----------|----------|-----------------|----------------------|
+| Open — normale confirmatie | Ja | ✅ | Modal size=sm, title + message, twee buttons (Annuleren secondary, Bevestigen primary) | Focus start op Annuleren via autoFocus |
+| Open — destructieve confirmatie | Ja | ✅ | variant="destructive" prop; primary button behoudt rode kleur (rood is al primary in dit merk); focus op Annuleren voor safety | Extra prop op button-element voor toekomstige styling-override |
+| Submitting | Ja | ✅ | Bevestigen-knop toont "Bezig..." tekst + beide buttons disabled; onOpenChange geblokkeerd | Voorkomt dubbele delete |
+| Error (action fail) | Ja | ✅ | onConfirm mag throw'en; dialog blijft dan open (submitting reset naar false) | User kan retry of parent kan error tonen |
+| Mobile | Ja | ✅ | Erft Modal-mobile-behavior (fullscreen op <640px) | — |
+
+**Ge-adopteerd in**: Gebruikers (delete), ContentWachtrij (bulk publish/delete + single delete), Gepubliceerd (cancel + expire), Publicatiepatronen (delete), SeoPaginas (delete).
 
 ---
 
