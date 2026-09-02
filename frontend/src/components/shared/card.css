@@ -1,0 +1,145 @@
+/* Shared Card primitive — content-container voor alle pagina's.
+   Missing-states matrix: zie docs/design/missing-states-matrix.md */
+
+.card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+  /* Padding wordt gezet door .card-padding-* — dit is neutraal. */
+}
+
+/* --- tones --- */
+
+.card-tone-neutral {
+  /* default — geen extra styling */
+}
+
+/* Emphasized = accent-lijn bovenaan die het logo-notch DNA van Light echoot.
+   Design-review rec: "border-top: 3px solid var(--color-primary)". */
+.card-tone-emphasized {
+  border-top: 3px solid var(--color-primary);
+  border-top-left-radius: var(--radius-md);
+  border-top-right-radius: var(--radius-md);
+}
+
+/* --- padding-scale --- */
+
+.card-padding-sm {
+  padding: var(--space-3);
+}
+
+.card-padding-md {
+  padding: var(--space-5);
+}
+
+.card-padding-lg {
+  padding: var(--space-6);
+}
+
+/* Op mobiel valt padding altijd terug naar sm ongeacht prop, om te veel
+   witruimte te vermijden. Baseline uit missing-states matrix. */
+@media (max-width: 640px) {
+  .card-padding-md,
+  .card-padding-lg {
+    padding: var(--space-3);
+  }
+}
+
+/* --- scrollable body --- */
+
+.card-scrollable {
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.card-scrollable .card-header,
+.card-scrollable .card-footer {
+  flex-shrink: 0;
+}
+
+.card-scrollable .card-body {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* --- CardHeader --- */
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.card-header-title {
+  margin: 0;
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.card-header-body {
+  flex: 1;
+}
+
+.card-header-action {
+  flex-shrink: 0;
+}
+
+/* Als Card een header heeft, laat CardBody de padding-top overnemen van
+   Card zelf (geen extra ruimte tussen header en body). */
+.card-header + .card-body {
+  margin-top: 0;
+}
+
+/* --- CardFooter --- */
+
+.card-footer {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* --- CardLoading --- */
+
+.card-loading-skeleton {
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  background: var(--grey-50);
+  border: 1px dashed var(--color-border-strong);
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* --- CardEmpty --- */
+
+.card-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+.card-empty-message {
+  margin: 0;
+  text-align: center;
+}
+
+.card-empty-action {
+  margin-top: var(--space-2);
+}

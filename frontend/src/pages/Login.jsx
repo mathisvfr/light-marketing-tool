@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Logo from '@/components/shared/Logo';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import Card from '@/components/shared/Card';
+import '@/components/shared/card.css';
 import { useAuth } from '../hooks/useAuth';
 
+// Shadcn <Button>/<Input>/<Label> ingeruild voor plain HTML + dezelfde
+// Tailwind-classes die de Shadcn-varianten intern gebruikten. Tailwind blijft
+// de styling-lingua; alleen de components/ui/-wrappers zijn weg (zie
+// tool-wide-ux-cleanup plan UC1). Formulier zit nu in shared <Card>.
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -37,9 +40,8 @@ export default function Login() {
 
   return (
     <main className="grid min-h-screen grid-cols-1 lg:grid-cols-[1.05fr_1fr]">
-      {/* Brand panel */}
+      {/* Brand panel — Tailwind-heavy voor gradient-glow. Blijft ongewijzigd. */}
       <section className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-12 text-white lg:flex">
-        {/* subtle brand glow */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-primary/25 blur-3xl"
@@ -76,57 +78,72 @@ export default function Login() {
         </div>
       </section>
 
-      {/* Form panel */}
+      {/* Form panel — shared Card i.p.v. handmatige rounded-xl+shadow.
+          Emphasized geeft de primary-red accent-lijn bovenaan (logo-notch DNA). */}
       <section className="flex items-center justify-center bg-grey-50 px-4 py-12">
-        <form
-          onSubmit={handleSubmit}
-          className="w-full max-w-sm rounded-xl border border-border bg-card p-8 shadow-[0_10px_40px_-12px_rgba(31,33,35,0.18)]"
-        >
-          <div className="mb-8 flex justify-center lg:hidden">
-            <Logo variant="default" className="h-14 w-auto" />
-          </div>
+        <div className="w-full max-w-sm">
+          <Card tone="emphasized" padding="lg" className="shadow-[0_10px_40px_-12px_rgba(31,33,35,0.18)]">
+            <form onSubmit={handleSubmit}>
+              <div className="mb-8 flex justify-center lg:hidden">
+                <Logo variant="default" className="h-14 w-auto" />
+              </div>
 
-          <h1 className="font-display text-3xl font-bold tracking-tight">Inloggen</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">Log in om verder te gaan.</p>
+              <h1 className="font-display text-3xl font-bold tracking-tight">Inloggen</h1>
+              <p className="mt-1.5 text-sm text-muted-foreground">Log in om verder te gaan.</p>
 
-          <div className="mt-8 grid gap-5">
-            <div className="grid gap-2">
-              <Label htmlFor="email">E-mailadres</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                autoComplete="email"
-                placeholder="naam@lightpersoneelsdiensten.nl"
-                required
-              />
-            </div>
+              <div className="mt-8 grid gap-5">
+                <div className="grid gap-2">
+                  <label htmlFor="email" className="text-sm font-display font-bold">
+                    E-mailadres
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    autoComplete="email"
+                    placeholder="naam@lightpersoneelsdiensten.nl"
+                    required
+                    className="border-input flex h-10 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px] md:text-sm"
+                  />
+                </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="password">Wachtwoord</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete="current-password"
-                placeholder="••••••••"
-                required
-              />
-            </div>
+                <div className="grid gap-2">
+                  <label htmlFor="password" className="text-sm font-display font-bold">
+                    Wachtwoord
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    required
+                    className="border-input flex h-10 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px] md:text-sm"
+                  />
+                </div>
 
-            {error ? (
-              <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-                {error}
-              </p>
-            ) : null}
+                {error ? (
+                  <p
+                    role="alert"
+                    className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+                  >
+                    {error}
+                  </p>
+                ) : null}
 
-            <Button type="submit" className="mt-2 h-11 w-full text-base" disabled={isSubmitting || isInitializing}>
-              {isSubmitting ? 'Bezig met inloggen...' : 'Inloggen'}
-            </Button>
-          </div>
-        </form>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || isInitializing}
+                  className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-5 py-2 text-base font-display font-extrabold text-primary-foreground shadow-xs outline-none transition-all hover:bg-brand-red-600 active:bg-brand-red-700 focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Bezig met inloggen...' : 'Inloggen'}
+                </button>
+              </div>
+            </form>
+          </Card>
+        </div>
       </section>
     </main>
   );

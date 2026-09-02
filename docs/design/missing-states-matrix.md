@@ -16,20 +16,22 @@ criterium. Als een state N/A is, expliciet motiveren waarom.
 
 ---
 
-## `<Card>` (PR 1a)
+## `<Card>` (PR 1a) — ✅ IMPLEMENTED
 
-| State | Verplicht? | Visueel patroon | Acceptance criterium |
-|-------|-----------|-----------------|----------------------|
-| Default | Ja | Wit background, `--color-border`, `--radius-md`, `--shadow-xs`, padding via `padding` prop (sm=12px / md=16px / lg=24px) | Rendert zonder crash met alleen children |
-| Emphasized | Ja | Extra `border-top: 3px solid var(--color-primary)` (echo van logo-notch DNA) | `<Card tone="emphasized">` toont accent-lijn |
-| With header | Ja | `<CardHeader title="..." action={optional} />` = flex row, title font-display, action right-aligned | Header + body scheiding zichtbaar |
-| With footer | Ja | `<CardFooter>` = flex row met border-top scheiding | Bijv. voor "Opslaan"-knop in Publicatiepatronen-form |
-| Loading | Ja | `<Card.Loading />` compound = skeleton met dashed border + `Laden...` tekst | Vervangt huidige `<p>Dashboard wordt geladen...</p>` |
-| Empty | Ja | `<Card.Empty message="Geen data" action={optional} />` = gecentreerd, muted kleur | Bijv. voor lege approval-queue op Dashboard |
-| Overflow (body) | Ja | Body scrollt intern als max-height gezet; header + footer sticky | Bijv. long lists |
-| Mobile (<640px) | Ja | Padding valt terug naar sm ongeacht prop | Voorkomt te veel witruimte op klein scherm |
+| State | Verplicht? | Sign-off | Visueel patroon | Acceptance criterium |
+|-------|-----------|----------|-----------------|----------------------|
+| Default | Ja | ✅ | Wit background, `--color-border`, `--radius-md`, `--shadow-xs`, padding via `padding` prop (sm=12px / md=20px / lg=24px) | Rendert zonder crash met alleen children |
+| Emphasized | Ja | ✅ | Extra `border-top: 3px solid var(--color-primary)` (echo van logo-notch DNA) | `<Card tone="emphasized">` toont accent-lijn |
+| With header | Ja | ✅ | `<CardHeader title="..." action={optional} />` = flex row, title font-display, action right-aligned | Header + body scheiding zichtbaar |
+| With footer | Ja | ✅ | `<CardFooter>` = flex row met border-top scheiding | Bijv. voor "Opslaan"-knop in Publicatiepatronen-form |
+| Loading | Ja | ✅ | `<CardLoading />` = skeleton met dashed border + `Laden...` tekst, `role="status"` | Vervangt huidige `<p>Dashboard wordt geladen...</p>` |
+| Empty | Ja | ✅ | `<CardEmpty message="Geen data" action={optional} />` = gecentreerd, muted kleur | Bijv. voor lege approval-queue op Dashboard |
+| Overflow (body) | Ja | ✅ | `<Card scrollable>` — body scrollt intern; header + footer flex-shrink:0 | Bijv. long lists |
+| Mobile (<640px) | Ja | ✅ | Padding valt terug naar sm ongeacht prop (media-query in card.css) | Voorkomt te veel witruimte op klein scherm |
 
 **N/A**: error-state (errors horen in `<Toast>` of `<FormMessage>`, niet in Card zelf).
+
+**Ge-adopteerd in**: Login (PR 1a). Volgt in PR 1a-adoptie: Dashboard, MerkInstellingen, Gebruikers, Publicatiepatronen.
 
 ---
 
