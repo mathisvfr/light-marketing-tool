@@ -1,12 +1,7 @@
-const ROLE_BADGE = {
-  owner: { background: 'var(--light-red-100)', color: 'var(--light-red-700)', label: 'Owner' },
-  recruiter: { background: '#e0f2fe', color: '#075985', label: 'Recruiter' },
-  viewer: { background: '#f1f5f9', color: '#334155', label: 'Viewer' },
-};
+import RoleBadge from '../shared/RoleBadge';
+import '../shared/status-strip.css';
 
 export default function Header({ pageTitle, userName, role, onLogout }) {
-  const badge = ROLE_BADGE[role] || { background: '#f1f5f9', color: '#334155', label: role || 'onbekend' };
-
   return (
     <header
       className="app-header"
@@ -28,21 +23,9 @@ export default function Header({ pageTitle, userName, role, onLogout }) {
       <div className="app-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}>
         <div style={{ textAlign: 'right' }}>
           <strong style={{ display: 'block' }}>{userName}</strong>
-          <span
-            style={{
-              display: 'inline-block',
-              marginTop: '.15rem',
-              padding: '.2rem .55rem',
-              borderRadius: 999,
-              background: badge.background,
-              color: badge.color,
-              fontSize: '.75rem',
-              textTransform: 'capitalize',
-              fontWeight: 600,
-            }}
-          >
-            {badge.label}
-          </span>
+          <div style={{ marginTop: '.15rem' }}>
+            <RoleBadge role={role} />
+          </div>
         </div>
 
         <button

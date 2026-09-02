@@ -1,30 +1,56 @@
-// Gedeelde status-pill voor draft-statussen. Icon + tekst i.p.v. alleen kleur
-// zodat kleurenblinden en screen-readers dezelfde info krijgen.
-const STATUS_META = {
-  draft: { label: 'Concept', icon: '○', tone: 'neutral' },
-  pending_approval: { label: 'Ingediend', icon: '◑', tone: 'attention' },
-  approved: { label: 'Goedgekeurd', icon: '✓', tone: 'success' },
-  actief: { label: 'Actief', icon: '●', tone: 'live' },
-  published: { label: 'Gepubliceerd', icon: '●', tone: 'live' },
-  expired: { label: 'Verlopen', icon: '◌', tone: 'muted' },
-  rejected: { label: 'Afgewezen', icon: '✕', tone: 'danger' },
+import useStatusMeta from '../../hooks/useStatusMeta';
+
+// Draft-lifecycle pill. Voor kanaal-status gebruik <ChannelStatus>, voor
+// gebruikers-rollen <RoleBadge>. Alle drie delen dezelfde CSS-base
+// (.pill-base + .pill-tone-*).
+//
+// Meta (label + tone) komt van /api/meta/statuses via useStatusMeta. Bij
+// loading of unknown status vallen we terug op FALLBACK_META zodat de UI
+// nooit leeg blijft — hoogstens verouderde labels tijdens de eerste render.
+
+const FALLBACK_META = {
+  draft:            { label: 'Concept',     tone: 'neutral' },
+  pending_approval: { label: 'Ingediend',   tone: 'attention' },
+  approved:         { label: 'Goedgekeurd', tone: 'success' },
+  actief:           { label: 'Actief',      tone: 'live' },
+  published:        { label: 'Gepubliceerd', tone: 'live' },
+  expired:          { label: 'Verlopen',    tone: 'muted' },
+  rejected:         { label: 'Afgewezen',   tone: 'danger' },
+};
+
+// Icoontjes blijven in de component (zijn puur UI, hoeven niet uit de
+// backend). Non-color-only per a11y-baseline.
+const LIFECYCLE_ICONS = {
+  draft: '○',
+  pending_approval: '◑',
+  approved: '✓',
+  actief: '●',
+  published: '●',
+  expired: '◌',
+  rejected: '✕',
 };
 
 export default function StatusBadge({ status, className = '' }) {
-  const meta = STATUS_META[status] || { label: status, icon: '', tone: 'neutral' };
+  const { data } = useStatusMeta();
+  const serverMeta = data?.lifecycle?.[status];
+  const meta = serverMeta || FALLBACK_META[status] || { label: status, tone: 'neutral' };
+  const icon = LIFECYCLE_ICONS[status] || '';
+
   return (
     <span
-      className={`status-badge status-badge-${meta.tone} ${className}`.trim()}
+      className={`pill-base pill-tone-${meta.tone} ${className}`.trim()}
       aria-label={`Status: ${meta.label}`}
     >
-      <span className="status-badge-icon" aria-hidden="true">
-        {meta.icon}
-      </span>
+      {icon ? (
+        <span className="pill-base-icon" aria-hidden="true">
+          {icon}
+        </span>
+      ) : null}
       {meta.label}
     </span>
   );
 }
 
 export function getStatusLabel(status) {
-  return (STATUS_META[status] || { label: status }).label;
+  return (FALLBACK_META[status] || { label: status }).label;
 }

@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import StatusBadge from '../components/shared/StatusBadge';
+import ChannelStatus from '../components/shared/ChannelStatus';
+import '../components/shared/status-strip.css';
 import './gepubliceerd.css';
 
 function formatDate(value) {
@@ -55,25 +58,8 @@ function getTypeClass(type) {
   return type === 'marketing-post' ? 'published-badge type-marketing' : 'published-badge type-vacature';
 }
 
-function getStatusDotClass(status) {
-  if (status === 'success') {
-    return 'channel-dot success';
-  }
-
-  if (status === 'failed') {
-    return 'channel-dot failed';
-  }
-
-  if (status === 'pending') {
-    return 'channel-dot pending';
-  }
-
-  if (status === 'scheduled') {
-    return 'channel-dot pending';
-  }
-
-  return 'channel-dot unknown';
-}
+// getStatusDotClass verwijderd — vervangen door <ChannelStatus compact>
+// die de tone uit /api/meta/statuses haalt via useStatusMeta.
 
 // Convert a UTC ISO instant to a datetime-local value in Europe/Amsterdam
 // (YYYY-MM-DDTHH:MM). Used as the default value in the reschedule modal so
@@ -209,7 +195,7 @@ export default function Gepubliceerd() {
                         <td>{item.title}</td>
                         <td>
                           <span className="channel-status-item">
-                            <span className={getStatusDotClass(channel.status)} />
+                            <ChannelStatus status={channel.status} compact />
                             {channel.channel}
                           </span>
                         </td>
@@ -311,7 +297,7 @@ export default function Gepubliceerd() {
                         ) : (
                           item.channels.map((channel) => (
                             <span key={`${item.id}-${channel.channel}`} className="channel-status-item">
-                              <span className={getStatusDotClass(channel.status)} />
+                              <ChannelStatus status={channel.status} compact />
                               {channel.channel} (
                               {channel.status === 'scheduled'
                                 ? `ingepland voor ${formatDateTime(channel.scheduledFor)}`
@@ -354,7 +340,7 @@ export default function Gepubliceerd() {
                   <tr key={item.id}>
                     <td>{item.title}</td>
                     <td>
-                      <span className="published-badge status-active">Actief</span>
+                      <StatusBadge status="actief" />
                     </td>
                     <td>{formatDate(item.updatedAt)}</td>
                     <td>{item.stats}</td>

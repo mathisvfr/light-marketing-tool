@@ -3,7 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import Card, { CardHeader } from '../components/shared/Card';
+import ChannelStatus from '../components/shared/ChannelStatus';
 import '../components/shared/card.css';
+import '../components/shared/status-strip.css';
 import './merk-instellingen.css';
 
 const PROVIDER_OPTIONS = [
@@ -41,17 +43,8 @@ function getCredentialState(provider) {
   return 'connected';
 }
 
-function getCredentialLabel(state) {
-  if (state === 'connected') {
-    return 'Verbonden';
-  }
-
-  if (state === 'expiring') {
-    return 'Verloopt binnenkort';
-  }
-
-  return 'Niet verbonden';
-}
+// getCredentialLabel is verwijderd — <ChannelStatus namespace="integrations">
+// haalt het label uit /api/meta/statuses.
 
 export default function MerkInstellingen() {
   const queryClient = useQueryClient();
@@ -236,16 +229,12 @@ export default function MerkInstellingen() {
           {PROVIDER_OPTIONS.map((provider) => {
             const row = providersByKey.get(provider.key);
             const state = getCredentialState(row);
-            const stateLabel = getCredentialLabel(state);
 
             return (
               <Card key={provider.key} padding="sm" className="integration-card">
                 <h4>{provider.label}</h4>
                 <p>
-                  Status:{' '}
-                  <span className={`integration-pill ${state}`}>
-                    {stateLabel}
-                  </span>
+                  Status: <ChannelStatus status={state} namespace="integrations" />
                 </p>
                 <p className="integration-hint">
                   Wordt beheerd via serverconfiguratie (.env).

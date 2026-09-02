@@ -5,25 +5,39 @@ import { Loader2, Sparkles } from 'lucide-react';
 
 import FormMessage from '@/components/shared/FormMessage';
 import StatusBadge from '@/components/shared/StatusBadge';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+import Card, { CardHeader, CardBody } from '@/components/shared/Card';
+import '@/components/shared/card.css';
+import '@/components/shared/status-strip.css';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+
+// Utility-class helper — vervangt cn(...) uit @/lib/utils.
+function cx(...parts) {
+  return parts.filter(Boolean).join(' ');
+}
+
+// Tailwind-classes voor form-controls (matched met Login-migratie zodat vormen
+// tool-breed identiek zijn).
+const INPUT_CLASS =
+  'border-input flex h-10 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px] md:text-sm';
+const TEXTAREA_CLASS =
+  'border-input flex w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px] md:text-sm';
+const LABEL_CLASS = 'text-sm font-display font-bold';
+const BUTTON_PRIMARY =
+  'inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-5 py-2 text-sm font-display font-extrabold text-primary-foreground shadow-xs outline-none transition-all hover:bg-brand-red-600 active:bg-brand-red-700 focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50';
+const BUTTON_OUTLINE =
+  'inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md border-2 border-primary bg-transparent px-5 py-2 text-sm font-display font-extrabold text-primary outline-none transition-all hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50';
+const BUTTON_SECONDARY =
+  'inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-grey-800 px-5 py-2 text-sm font-display font-extrabold text-white shadow-xs outline-none transition-all hover:bg-grey-900 focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50';
+const BUTTON_GHOST =
+  'inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3.5 py-2 text-sm font-display font-extrabold text-foreground outline-none transition-all hover:bg-grey-100 focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50';
+const BUTTON_GHOST_SM = BUTTON_GHOST;
+
+// Tab-trigger styling — matcht de gedeelde .preview-tabs button pattern via
+// Tailwind zodat SeoPaginas visueel aansluit bij Vacature/Marketing tabs.
+const TAB_TRIGGER =
+  'inline-flex h-9 items-center rounded-md border-1.5 border-border-strong bg-grey-50 px-3 py-1.5 text-sm font-display font-semibold transition-colors hover:border-light-red-300 hover:bg-light-red-50';
+const TAB_TRIGGER_ACTIVE = 'border-primary bg-primary text-primary-foreground font-bold';
 
 const DOELGROEP_OPTIONS = [
   { key: 'werkzoekenden', label: 'Werkzoekenden' },
@@ -283,52 +297,52 @@ export default function SeoPaginas() {
   return (
     <div className="grid gap-6">
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-lg">
-              {pageId ? 'SEO-pagina bewerken' : 'Nieuwe SEO-pagina'}
-            </CardTitle>
-            {pageId ? (
-              <Button variant="ghost" size="sm" onClick={resetEditor}>
+        <CardHeader
+          title={pageId ? 'SEO-pagina bewerken' : 'Nieuwe SEO-pagina'}
+          action={
+            pageId ? (
+              <button type="button" className={BUTTON_GHOST_SM} onClick={resetEditor}>
                 Nieuwe pagina
-              </Button>
-            ) : null}
-          </div>
-        </CardHeader>
-        <CardContent>
+              </button>
+            ) : null
+          }
+        />
+        <CardBody>
           <form className="grid gap-5" onSubmit={handleGenerate}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label htmlFor="sector">Sector</Label>
-                <Input
+                <label htmlFor="sector" className={LABEL_CLASS}>Sector</label>
+                <input
                   id="sector"
                   placeholder="bv. Productie, Logistiek, Pluimvee"
                   value={form.sector}
                   onChange={(event) => updateFormField('sector', event.target.value)}
                   required
+                  className={INPUT_CLASS}
                 />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="locatie">Locatie</Label>
-                <Input
+                <label htmlFor="locatie" className={LABEL_CLASS}>Locatie</label>
+                <input
                   id="locatie"
                   value={form.locatie}
                   onChange={(event) => updateFormField('locatie', event.target.value)}
                   required
+                  className={INPUT_CLASS}
                 />
               </div>
             </div>
 
             <div className="grid gap-2">
-              <Label>Doelgroep</Label>
+              <span className={LABEL_CLASS}>Doelgroep</span>
               <div className="inline-flex w-fit rounded-md border border-border p-1">
                 {DOELGROEP_OPTIONS.map((option) => (
                   <button
                     key={option.key}
                     type="button"
                     onClick={() => updateFormField('doelgroep', option.key)}
-                    className={cn(
+                    className={cx(
                       'rounded-sm px-4 py-1.5 text-sm font-display font-bold transition-colors',
                       form.doelgroep === option.key
                         ? 'bg-primary text-primary-foreground'
@@ -342,188 +356,196 @@ export default function SeoPaginas() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="keywords">Zoekwoorden (optioneel)</Label>
-              <Input
+              <label htmlFor="keywords" className={LABEL_CLASS}>Zoekwoorden (optioneel)</label>
+              <input
                 id="keywords"
                 placeholder="komma-gescheiden, bv. uitzendbureau, productiewerk"
                 value={form.keywords}
                 onChange={(event) => updateFormField('keywords', event.target.value)}
+                className={INPUT_CLASS}
               />
             </div>
 
             <FormMessage variant="error">{error}</FormMessage>
 
             <div className="flex justify-end">
-              <Button type="submit" disabled={isBusy}>
+              <button type="submit" disabled={isBusy} className={BUTTON_PRIMARY}>
                 {isGenerating ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
                   <Sparkles className="size-4" />
                 )}
                 {pageId ? 'Opnieuw genereren' : 'Pagina aanmaken & genereren'}
-              </Button>
+              </button>
             </div>
           </form>
-        </CardContent>
+        </CardBody>
       </Card>
 
       {isGenerating ? (
         <Card>
-          <CardContent className="flex items-center gap-3 py-8 text-muted-foreground">
-            <Loader2 className="size-5 animate-spin text-primary" />
-            SEO-pagina wordt gegenereerd...
-          </CardContent>
+          <CardBody>
+            <div className="flex items-center gap-3 py-8 text-muted-foreground">
+              <Loader2 className="size-5 animate-spin text-primary" />
+              SEO-pagina wordt gegenereerd...
+            </div>
+          </CardBody>
         </Card>
       ) : null}
 
       {pageId && hasContent && !isGenerating ? (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Voorbeeld en bewerken</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="flex-wrap">
-                {PREVIEW_TABS.map((tab) => (
-                  <TabsTrigger key={tab.key} value={tab.key}>
-                    {tab.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+          <CardHeader title="Voorbeeld en bewerken" />
+          <CardBody>
+            <div className="grid gap-4">
+              {/* Tabs — plain button-group; matcht .preview-tabs pattern via Tailwind. */}
+              <div className="flex flex-wrap gap-2" role="tablist">
+                {PREVIEW_TABS.map((tab) => {
+                  const isActive = activeTab === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => setActiveTab(tab.key)}
+                      className={cx(TAB_TRIGGER, isActive && TAB_TRIGGER_ACTIVE)}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
 
-            {activeTab === 'bodyHtml' ? (
-              <Textarea
-                className="min-h-72 font-mono text-sm"
-                value={content.bodyHtml}
-                onChange={(event) =>
-                  setContent((prev) => ({ ...prev, bodyHtml: event.target.value }))
-                }
-              />
-            ) : (
-              <Textarea
-                className={cn(
-                  'font-mono text-sm',
-                  activeTab === 'metaDescription' ? 'min-h-24' : 'min-h-16',
-                )}
-                value={content[activeTab] || ''}
-                onChange={(event) =>
-                  setContent((prev) => ({ ...prev, [activeTab]: event.target.value }))
-                }
-              />
-            )}
+              {activeTab === 'bodyHtml' ? (
+                <textarea
+                  className={cx(TEXTAREA_CLASS, 'min-h-72 font-mono text-sm')}
+                  value={content.bodyHtml}
+                  onChange={(event) =>
+                    setContent((prev) => ({ ...prev, bodyHtml: event.target.value }))
+                  }
+                />
+              ) : (
+                <textarea
+                  className={cx(
+                    TEXTAREA_CLASS,
+                    'font-mono text-sm',
+                    activeTab === 'metaDescription' ? 'min-h-24' : 'min-h-16',
+                  )}
+                  value={content[activeTab] || ''}
+                  onChange={(event) =>
+                    setContent((prev) => ({ ...prev, [activeTab]: event.target.value }))
+                  }
+                />
+              )}
 
-            <FormMessage variant="success">{success}</FormMessage>
+              <FormMessage variant="success">{success}</FormMessage>
 
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button variant="outline" onClick={handleSave} disabled={isBusy}>
-                Opslaan als concept
-              </Button>
+              <div className="flex flex-wrap justify-end gap-2">
+                <button type="button" onClick={handleSave} disabled={isBusy} className={BUTTON_OUTLINE}>
+                  Opslaan als concept
+                </button>
 
-              {role === 'recruiter' ? (
-                <Button variant="secondary" onClick={handleSubmit} disabled={isBusy}>
-                  Indienen ter goedkeuring
-                </Button>
-              ) : null}
+                {role === 'recruiter' ? (
+                  <button type="button" onClick={handleSubmit} disabled={isBusy} className={BUTTON_SECONDARY}>
+                    Indienen ter goedkeuring
+                  </button>
+                ) : null}
 
-              {role === 'owner' ? (
-                <Button onClick={handlePublish} disabled={isBusy}>
-                  Goedkeuren en publiceren
-                </Button>
-              ) : null}
+                {role === 'owner' ? (
+                  <button type="button" onClick={handlePublish} disabled={isBusy} className={BUTTON_PRIMARY}>
+                    Goedkeuren en publiceren
+                  </button>
+                ) : null}
+              </div>
             </div>
-          </CardContent>
+          </CardBody>
         </Card>
       ) : null}
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">SEO-pagina&apos;s</CardTitle>
-        </CardHeader>
-        <CardContent className="py-2">
+        <CardHeader title="SEO-pagina's" />
+        <CardBody>
           {listQuery.isLoading ? (
-            <Skeleton className="h-32" />
+            <div className="card-loading">
+              <div className="card-loading-skeleton">Laden...</div>
+            </div>
           ) : listQuery.isError ? (
             <FormMessage variant="error">Kon SEO-pagina&apos;s niet laden.</FormMessage>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Slug</TableHead>
-                  <TableHead>Sector</TableHead>
-                  <TableHead>Locatie</TableHead>
-                  <TableHead>Doelgroep</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Aangemaakt</TableHead>
-                  <TableHead>Acties</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pages.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-muted-foreground">
-                      Nog geen SEO-pagina&apos;s.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  pages.map((page) => {
-                    const isOwner = role === 'owner';
-                    const isOwnDraft = role === 'recruiter' && page.createdBy === user?.id;
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-muted-foreground border-b border-border">
+                    <th className="py-2 pr-3 font-display font-semibold">Slug</th>
+                    <th className="py-2 pr-3 font-display font-semibold">Sector</th>
+                    <th className="py-2 pr-3 font-display font-semibold">Locatie</th>
+                    <th className="py-2 pr-3 font-display font-semibold">Doelgroep</th>
+                    <th className="py-2 pr-3 font-display font-semibold">Status</th>
+                    <th className="py-2 pr-3 font-display font-semibold">Aangemaakt</th>
+                    <th className="py-2 pr-3 font-display font-semibold">Acties</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pages.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-4 text-muted-foreground">
+                        Nog geen SEO-pagina&apos;s.
+                      </td>
+                    </tr>
+                  ) : (
+                    pages.map((page) => {
+                      const isOwner = role === 'owner';
+                      const isOwnDraft = role === 'recruiter' && page.createdBy === user?.id;
 
-                    return (
-                      <TableRow key={page.id}>
-                        <TableCell className="font-mono text-xs whitespace-normal">
-                          /{page.slug}
-                        </TableCell>
-                        <TableCell className="font-medium">{page.sector}</TableCell>
-                        <TableCell>{page.locatie}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {doelgroepLabel(page.doelgroep)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge status={page.status} />
-                        </TableCell>
-                        <TableCell>{formatDate(page.createdAt)}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleEdit(page.id)}
-                            >
-                              Bewerken
-                            </Button>
-                            {isOwner && page.status === 'pending_approval' ? (
-                              <Button
-                                size="sm"
-                                onClick={() => handleApprove(page.id)}
-                                disabled={approveMutation.isPending}
-                              >
-                                Goedkeuren
-                              </Button>
-                            ) : null}
-                            {isOwner || isOwnDraft ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleDelete(page.id)}
-                                disabled={deleteMutation.isPending}
-                              >
-                                Verwijderen
-                              </Button>
-                            ) : null}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
+                      return (
+                        <tr key={page.id} className="border-b border-border/60 align-top">
+                          <td className="py-2 pr-3 font-mono text-xs whitespace-normal">/{page.slug}</td>
+                          <td className="py-2 pr-3 font-medium">{page.sector}</td>
+                          <td className="py-2 pr-3">{page.locatie}</td>
+                          <td className="py-2 pr-3">
+                            <span className="pill-base pill-tone-muted">{doelgroepLabel(page.doelgroep)}</span>
+                          </td>
+                          <td className="py-2 pr-3">
+                            <StatusBadge status={page.status} />
+                          </td>
+                          <td className="py-2 pr-3">{formatDate(page.createdAt)}</td>
+                          <td className="py-2 pr-3">
+                            <div className="flex flex-wrap gap-2">
+                              <button type="button" onClick={() => handleEdit(page.id)} className={BUTTON_GHOST_SM}>
+                                Bewerken
+                              </button>
+                              {isOwner && page.status === 'pending_approval' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleApprove(page.id)}
+                                  disabled={approveMutation.isPending}
+                                  className={BUTTON_PRIMARY}
+                                >
+                                  Goedkeuren
+                                </button>
+                              ) : null}
+                              {isOwner || isOwnDraft ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDelete(page.id)}
+                                  disabled={deleteMutation.isPending}
+                                  className={BUTTON_OUTLINE}
+                                >
+                                  Verwijderen
+                                </button>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
-        </CardContent>
+        </CardBody>
       </Card>
     </div>
   );
