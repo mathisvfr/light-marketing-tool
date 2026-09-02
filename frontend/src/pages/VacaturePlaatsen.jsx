@@ -72,6 +72,9 @@ export default function VacaturePlaatsen() {
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [steeringNotes, setSteeringNotes] = useState('');
+  const [documentText, setDocumentText] = useState('');
+  const [documentFilename, setDocumentFilename] = useState('');
+  const [documentUploading, setDocumentUploading] = useState(false);
 
   const existingDraftQuery = useQuery({
     queryKey: ['draft-detail-vacature', draftIdParam],
@@ -229,6 +232,45 @@ export default function VacaturePlaatsen() {
     }
   }
 
+  async function handleDocumentUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setError('');
+    setSuccess('');
+    setDocumentUploading(true);
+
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Bestand kon niet worden gelezen.'));
+        reader.readAsDataURL(file);
+      });
+
+      const result = await api('/uploads/extract-text', {
+        method: 'POST',
+        body: JSON.stringify({ dataUrl, filename: file.name }),
+      });
+
+      setDocumentText(result?.text || '');
+      setDocumentFilename(result?.filename || file.name);
+      setSuccess('Document ingelezen. Tekst wordt meegenomen bij het genereren.');
+    } catch (err) {
+      setError(err.message || 'Uitlezen van document is mislukt.');
+    } finally {
+      setDocumentUploading(false);
+      event.target.value = '';
+    }
+  }
+
+  function clearDocument() {
+    setDocumentText('');
+    setDocumentFilename('');
+  }
+
   async function handleGenerate(event) {
     if (event && typeof event.preventDefault === 'function') {
       event.preventDefault();
@@ -236,8 +278,14 @@ export default function VacaturePlaatsen() {
     setError('');
     setSuccess('');
 
-    if (form.korteOmschrijving.length > 400) {
-      setError('Korte omschrijving mag maximaal 400 tekens bevatten.');
+    if (form.korteOmschrijving.length > 2000) {
+      setError('Korte omschrijving mag maximaal 2000 tekens bevatten.');
+      return;
+    }
+
+    const hasDocument = Boolean(documentText.trim());
+    if (!form.korteOmschrijving.trim() && !hasDocument) {
+      setError('Vul een korte omschrijving in of upload een document.');
       return;
     }
 
@@ -249,14 +297,17 @@ export default function VacaturePlaatsen() {
     setIsGenerating(true);
 
     const steeringText = steeringNotes.trim();
-    const generationForm = steeringText
-      ? {
-          ...form,
-          korteOmschrijving: [form.korteOmschrijving, `Extra sturing: ${steeringText}`]
-            .filter((chunk) => chunk && String(chunk).trim())
-            .join('\n\n'),
-        }
-      : form;
+    const docText = documentText.trim();
+    const combinedChunks = [
+      form.korteOmschrijving,
+      docText ? `Klantbriefing / notitie (${documentFilename || 'document'}):\n${docText}` : '',
+      steeringText ? `Extra sturing: ${steeringText}` : '',
+    ].filter((chunk) => chunk && String(chunk).trim());
+
+    const generationForm =
+      combinedChunks.length > 1
+        ? { ...form, korteOmschrijving: combinedChunks.join('\n\n') }
+        : form;
 
     try {
       let targetDraftId = draftId;
@@ -427,16 +478,57 @@ export default function VacaturePlaatsen() {
         </div>
 
         <label className="vacature-field">
-          Korte omschrijving
+          Korte omschrijving {documentText ? <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>(optioneel — document geüpload)</span> : null}
           <textarea
             value={form.korteOmschrijving}
             onChange={(event) => updateField('korteOmschrijving', event.target.value)}
-            maxLength={400}
-            rows={4}
-            required
+            maxLength={2000}
+            rows={6}
+            required={!documentText}
           />
-          <small>{form.korteOmschrijving.length}/400 tekens</small>
+          <small>{form.korteOmschrijving.length}/2000 tekens</small>
         </label>
+
+        <div className="vacature-field">
+          <span>Klantbriefing of notitie (Word/PDF, optioneel)</span>
+          {!documentText ? (
+            <>
+              <input
+                type="file"
+                accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,application/pdf"
+                onChange={handleDocumentUpload}
+                disabled={isBusy || documentUploading}
+              />
+              <small>
+                {documentUploading
+                  ? 'Document wordt ingelezen...'
+                  : 'Upload een .docx of .pdf. De tekst wordt bij de briefing gevoegd voor Claude.'}
+              </small>
+            </>
+          ) : (
+            <div className="vacature-doc-block">
+              <div className="vacature-doc-meta">
+                <strong>{documentFilename || 'Document'}</strong>
+                <span>{documentText.length} tekens ingelezen</span>
+                <button
+                  type="button"
+                  className="vacature-remove-image"
+                  onClick={clearDocument}
+                  disabled={isBusy}
+                >
+                  Document verwijderen
+                </button>
+              </div>
+              <textarea
+                value={documentText}
+                onChange={(event) => setDocumentText(event.target.value)}
+                rows={8}
+                disabled={isBusy}
+              />
+              <small>Je kunt de tekst hieronder aanpassen of inkorten voor je genereert.</small>
+            </div>
+          )}
+        </div>
 
         <div className="vacature-field">
           <span>Visualisatie</span>

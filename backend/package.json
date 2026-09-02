@@ -25,6 +25,8 @@
     "express-rate-limit": "^7.4.1",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.3",
+    "mammoth": "^1.12.2",
+    "pdf-parse": "^2.4.5",
     "react": "^19.2.8",
     "satori": "^0.29.0"
   },
