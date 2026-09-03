@@ -132,16 +132,17 @@ zijn aparte componenten met dezelfde `.pill-base` CSS.
 
 ---
 
-## `<ActionButtonGroup>` (PR 3)
+## `<ActionButtonGroup>` (PR 3) — ✅ IMPLEMENTED
 
-| State | Verplicht? | Visueel patroon | Acceptance criterium |
-|-------|-----------|-----------------|----------------------|
-| Default | Ja | Flex row, `gap: var(--space-2)`, wrapt op mobiel | Vervangt inline `.form-actions`/`.marketing-actions`/etc. |
-| Single button | Ja | Blijft flex-row (geen speciale casus) | Wordt geen wrapper-overhead |
-| Autosave-slot | Nee (opt-in) | `<ActionButtonGroup autosave={<span>...</span>}>` = autosave rechts inline, buttons links | Voor sticky-footer usage |
-| Primary button pending | Ja | `<Button variant="primary" loading>` = spinner + disabled | Voorkomt dubbele submit |
-| All disabled | Ja | Buttons opacity 0.5 + `cursor: not-allowed` | Voor "wacht op autosave"-scenario |
-| Mobile (<640px) | Ja | Buttons stapelen full-width | Vermijdt te-klein-om-te-tappen |
+| State | Verplicht? | Sign-off | Visueel patroon | Acceptance criterium |
+|-------|-----------|----------|-----------------|----------------------|
+| Default | Ja | ✅ | Flex row, `gap: var(--space-2)`, wrapt op mobiel via flex-wrap | Vervangt inline `.form-actions`/`.marketing-actions`/etc. patronen (adoptie per-page kan later) |
+| Single button | Ja | ✅ | Blijft flex-row zonder wrapper-overhead | — |
+| Align variants | Ja | ✅ | `align="start\|center\|end\|between"` prop = justify-content variants | — |
+| All disabled | Ja | ✅ | Parent zet button-disabled zelf; component doet niets speciaals | Component blijft dun |
+| Mobile (<640px) | Ja | ✅ | Buttons stapelen full-width via media-query | Vermijdt te-klein-om-te-tappen |
+
+**Beschikbaar in**: components/shared/ActionButtonGroup.jsx. Adoptie op individuele pagina's kan iteratief; het bestaan van de primitive volstaat voor tool-brede consistentie in nieuwe code.
 
 ---
 

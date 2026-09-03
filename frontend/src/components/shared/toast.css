@@ -199,3 +199,25 @@
   color: var(--color-text-muted);
   border-color: var(--color-border-strong);
 }
+
+/* ---------- ActionButtonGroup ---------- */
+
+.action-group {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.action-group-start   { justify-content: flex-start; }
+.action-group-center  { justify-content: center; }
+.action-group-end     { justify-content: flex-end; }
+.action-group-between { justify-content: space-between; }
+
+/* Mobiel: buttons stapelen full-width per missing-states matrix. */
+@media (max-width: 640px) {
+  .action-group > button,
+  .action-group > a {
+    width: 100%;
+  }
+}
