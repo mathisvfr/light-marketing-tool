@@ -15,13 +15,8 @@ import {
   YAxis,
 } from 'recharts';
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import Card, { CardHeader, CardBody, CardLoading } from '../shared/Card';
+import '../shared/card.css';
 import { api } from '../../lib/api';
 
 /** Brand palette (hex so it renders inside SVG, where CSS vars don't resolve). */
@@ -60,10 +55,8 @@ const AXIS_PROPS = {
 function ChartCard({ title, isEmpty, children }) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
+      <CardHeader title={title} />
+      <CardBody>
         {isEmpty ? (
           <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">
             Nog geen gegevens beschikbaar.
@@ -75,7 +68,7 @@ function ChartCard({ title, isEmpty, children }) {
             </ResponsiveContainer>
           </div>
         )}
-      </CardContent>
+      </CardBody>
     </Card>
   );
 }
@@ -90,7 +83,9 @@ export default function DashboardCharts() {
     return (
       <div className="grid gap-6 lg:grid-cols-2">
         {[0, 1, 2, 3].map((index) => (
-          <Skeleton key={index} className="h-72" />
+          <Card key={index}>
+            <CardLoading />
+          </Card>
         ))}
       </div>
     );
@@ -99,9 +94,11 @@ export default function DashboardCharts() {
   if (analyticsQuery.isError) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-muted-foreground">
-          Kon statistieken niet laden.
-        </CardContent>
+        <CardBody>
+          <p className="py-8 text-center text-muted-foreground">
+            Kon statistieken niet laden.
+          </p>
+        </CardBody>
       </Card>
     );
   }

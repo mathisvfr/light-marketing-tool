@@ -1,17 +1,14 @@
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+// Content type-pill: vacature (red) vs marketing-post (muted grey). Deelt
+// pill-base CSS met StatusBadge/ChannelStatus/RoleBadge zodat de tool één
+// visuele pill-taal spreekt.
 
-/**
- * Content type badge: vacature (red) vs marketing-post (grey).
- */
-export default function TypeBadge({ type, className }) {
+export default function TypeBadge({ type, className = '' }) {
   const isMarketing = type === 'marketing-post' || type === 'marketing';
+  const tone = isMarketing ? 'muted' : 'danger';
+  const label = isMarketing ? 'Marketing' : 'Vacature';
   return (
-    <Badge
-      variant={isMarketing ? 'secondary' : 'default'}
-      className={cn(className)}
-    >
-      {isMarketing ? 'Marketing' : 'Vacature'}
-    </Badge>
+    <span className={`pill-base pill-tone-${tone} ${className}`.trim()}>
+      {label}
+    </span>
   );
 }
