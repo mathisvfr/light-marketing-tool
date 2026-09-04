@@ -13,6 +13,7 @@ import Gepubliceerd from './pages/Gepubliceerd';
 import Kalender from './pages/Kalender';
 import Login from './pages/Login';
 import MarketingPost from './pages/MarketingPost';
+import BlogAanmaken from './pages/BlogAanmaken';
 import MerkInstellingen from './pages/MerkInstellingen';
 import Publicatiepatronen from './pages/Publicatiepatronen';
 import VacaturePlaatsen from './pages/VacaturePlaatsen';
@@ -56,6 +57,7 @@ function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/vacature-plaatsen" element={<VacaturePlaatsen />} />
               <Route path="/marketing-post" element={<MarketingPost />} />
+              <Route path="/blog-aanmaken" element={<BlogAanmaken />} />
               <Route path="/content-wachtrij" element={<ContentWachtrij />} />
               <Route path="/gepubliceerd" element={<Gepubliceerd />} />
               <Route path="/kalender" element={<Kalender />} />

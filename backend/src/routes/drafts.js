@@ -75,12 +75,13 @@ function canEditDraft(user, draft) {
   return draft.created_by === user.id;
 }
 
-function normalizeDraftType(type) {
-  if (type === 'marketing-post') {
-    return 'marketing-post';
-  }
+const VALID_DRAFT_TYPES = ['vacature', 'marketing-post', 'blog'];
 
-  return 'vacature';
+function normalizeDraftType(type) {
+  if (VALID_DRAFT_TYPES.includes(type)) {
+    return type;
+  }
+  throw new Error(`Ongeldig content-type: "${type}". Gebruik: ${VALID_DRAFT_TYPES.join(', ')}`);
 }
 
 function normalizeTranslations(value) {
@@ -132,6 +133,8 @@ function formatDraftForResponse(draft) {
     linkedin_post: draft.linkedin_post,
     instagram_caption: draft.instagram_caption,
     image_path: draft.image_path,
+    blog_titel: draft.blog_titel || null,
+    blog_html: draft.blog_html || null,
     criticus_passed: draft.criticus_passed,
     criticus_notes: draft.criticus_notes,
     generation_history: Array.isArray(draft.generation_history) ? draft.generation_history : [],
@@ -204,7 +207,7 @@ router.get('/:id', async (req, res, next) => {
     const { data, error } = await supabase
       .from('drafts')
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, created_by, generation_history'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, created_by, generation_history, blog_titel, blog_html'
       )
       .eq('id', draftId)
       .maybeSingle();
@@ -348,7 +351,7 @@ router.post('/:id/restore-version', async (req, res, next) => {
     const { data: draft, error: draftError } = await supabase
       .from('drafts')
       .select(
-        'id, type, form_data, created_by, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, generation_history'
+        'id, type, form_data, created_by, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, generation_history, blog_titel, blog_html'
       )
       .eq('id', draftId)
       .maybeSingle();
@@ -419,7 +422,7 @@ router.post('/:id/restore-version', async (req, res, next) => {
       .update(updatePayload)
       .eq('id', draft.id)
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, generation_history'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, generation_history, blog_titel, blog_html'
       )
       .single();
 
@@ -479,34 +482,78 @@ router.post('/:id/generate', async (req, res, next) => {
     const generated = await generate(draft.type, draft.form_data);
 
     // Save generated content immediately (criticus_passed = null signals "pending")
-    const updatePayload =
-      draft.type === 'marketing-post'
-        ? {
-            linkedin_post: generated.linkedin_post || draft.linkedin_post || null,
-            social_nl: generated.facebook_post || draft.social_nl || null,
-            instagram_caption: generated.instagram_caption || draft.instagram_caption || null,
-            image_path: draft.image_path || null,
-            omschrijving_nl: null,
-            functie_eisen: null,
-            wat_wij_bieden: null,
-            translations: {},
-            criticus_passed: null,
-            criticus_notes: null,
-            updated_at: new Date().toISOString(),
-          }
-        : {
-            omschrijving_nl: generated.omschrijving_nl || draft.omschrijving_nl || null,
-            functie_eisen: generated.functie_eisen || draft.functie_eisen || null,
-            wat_wij_bieden: generated.wat_wij_bieden || draft.wat_wij_bieden || null,
-            social_nl: generated.social_nl || draft.social_nl || null,
-            // Vertalingen worden hieronder async gegenereerd; reset naar leeg
-            // zodat oude vertalingen niet blijven hangen na een regeneratie.
-            translations: {},
-            linkedin_post: null,
-            criticus_passed: null,
-            criticus_notes: null,
-            updated_at: new Date().toISOString(),
-          };
+    let updatePayload;
+    if (draft.type === 'marketing-post') {
+      updatePayload = {
+        linkedin_post: generated.linkedin_post || draft.linkedin_post || null,
+        social_nl: generated.facebook_post || draft.social_nl || null,
+        instagram_caption: generated.instagram_caption || draft.instagram_caption || null,
+        image_path: draft.image_path || null,
+        omschrijving_nl: null,
+        functie_eisen: null,
+        wat_wij_bieden: null,
+        translations: {},
+        criticus_passed: null,
+        criticus_notes: null,
+        updated_at: new Date().toISOString(),
+      };
+    } else if (draft.type === 'blog') {
+      // Blog: store structured fields in blog_titel/blog_html columns,
+      // metadata in form_data. Author derived from created_by user.
+      const formData = { ...(draft.form_data || {}) };
+      formData.teaser = generated.teaser || formData.teaser || '';
+      formData.lead = generated.lead || formData.lead || '';
+      formData.meta_description = generated.meta_description || formData.meta_description || '';
+      formData.leestijd = generated.leestijd || formData.leestijd || '';
+      // Stable slug: generate once, never change (protects published URLs)
+      if (!formData.slug) {
+        const slugBase = (generated.blog_titel || formData.onderwerp || 'blog')
+          .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        formData.slug = `${slugBase}-${draft.id.substring(0, 8)}`;
+      }
+      // Store author from the user who created the draft
+      if (draft.created_by && !formData.author) {
+        const { data: authorUser } = await supabase
+          .from('users')
+          .select('name, role')
+          .eq('id', draft.created_by)
+          .single();
+        if (authorUser) {
+          formData.author = authorUser.name;
+          formData.authorRole = authorUser.role === 'owner' ? 'Directie' : 'Redactie';
+        }
+      }
+      updatePayload = {
+        blog_titel: generated.blog_titel || draft.blog_titel || null,
+        blog_html: generated.blog_html || draft.blog_html || null,
+        form_data: formData,
+        omschrijving_nl: null,
+        functie_eisen: null,
+        wat_wij_bieden: null,
+        social_nl: null,
+        linkedin_post: null,
+        instagram_caption: null,
+        translations: {},
+        criticus_passed: null,
+        criticus_notes: null,
+        updated_at: new Date().toISOString(),
+      };
+    } else {
+      // Vacature (default)
+      updatePayload = {
+        omschrijving_nl: generated.omschrijving_nl || draft.omschrijving_nl || null,
+        functie_eisen: generated.functie_eisen || draft.functie_eisen || null,
+        wat_wij_bieden: generated.wat_wij_bieden || draft.wat_wij_bieden || null,
+        social_nl: generated.social_nl || draft.social_nl || null,
+        // Vertalingen worden hieronder async gegenereerd; reset naar leeg
+        // zodat oude vertalingen niet blijven hangen na een regeneratie.
+        translations: {},
+        linkedin_post: null,
+        criticus_passed: null,
+        criticus_notes: null,
+        updated_at: new Date().toISOString(),
+      };
+    }
 
     // Version history: snapshot the CURRENT generated fields (before we
     // overwrite them). Image_path is excluded — it lives on its own column
@@ -542,7 +589,7 @@ router.post('/:id/generate', async (req, res, next) => {
       .update(updatePayload)
       .eq('id', draft.id)
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, generation_history'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes, generation_history, blog_titel, blog_html'
       )
       .single();
 
@@ -562,6 +609,13 @@ router.post('/:id/generate', async (req, res, next) => {
     let renderInfo = null;
     if (!draft.image_path && (draft.type === 'marketing-post' || draft.type === 'vacature')) {
       renderInfo = resolveRenderTemplate(draft.type, draft.form_data, generated);
+      backgroundTasks.push(renderSocialImage(renderInfo.name, renderInfo.fields));
+    } else if (!draft.image_path && draft.type === 'blog') {
+      renderInfo = {
+        name: 'blog-header',
+        fields: { title: generated.blog_titel || draft.form_data?.onderwerp || 'Blog', category: draft.form_data?.categorie || 'Bedrijfsnieuws' },
+        altText: generated.blog_titel || 'Blog header',
+      };
       backgroundTasks.push(renderSocialImage(renderInfo.name, renderInfo.fields));
     }
 

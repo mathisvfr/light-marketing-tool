@@ -24,11 +24,15 @@ function formatDate(value) {
 }
 
 function getTypeBadgeClass(type) {
-  return type === 'marketing-post' ? 'queue-badge type-marketing' : 'queue-badge type-vacature';
+  if (type === 'marketing-post') return 'queue-badge type-marketing';
+  if (type === 'blog') return 'queue-badge type-blog';
+  return 'queue-badge type-vacature';
 }
 
 function getTypeLabel(type) {
-  return type === 'marketing-post' ? 'Marketing' : 'Vacature';
+  if (type === 'marketing-post') return 'Marketing';
+  if (type === 'blog') return 'Blog';
+  return 'Vacature';
 }
 
 // Legacy wachtrij-specifieke helpers zijn vervangen door de shared StatusBadge
@@ -330,6 +334,10 @@ export default function ContentWachtrij() {
   function handleEdit(draft) {
     if (draft.type === 'marketing-post') {
       navigate(`/marketing-post?draftId=${draft.id}`);
+      return;
+    }
+    if (draft.type === 'blog') {
+      navigate(`/blog-aanmaken?draftId=${draft.id}`);
       return;
     }
 

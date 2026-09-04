@@ -63,6 +63,11 @@
   color: #991b1b;
 }
 
+.type-blog {
+  background: #f0fdf4;
+  color: #166534;
+}
+
 .status-draft {
   background: #f1f5f9;
   color: #334155;

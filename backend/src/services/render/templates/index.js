@@ -12,6 +12,8 @@ const templates = {
   'vacancy-li':       { fn: require('./vacancy'),         ...PLATFORM_SIZES.linkedin },
   'photo-feature-fb': { fn: require('./photo-feature'),   ...PLATFORM_SIZES.facebook },
   'photo-feature-li': { fn: require('./photo-feature'),   ...PLATFORM_SIZES.linkedin },
+  // Blog header: 1200x630 (Facebook/OG size, works as og:image)
+  'blog-header':      { fn: require('./blog-header'),     ...PLATFORM_SIZES.facebook },
 };
 
 module.exports = templates;

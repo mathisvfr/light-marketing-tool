@@ -143,7 +143,7 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
 
     const { data: draft, error: draftError } = await supabase
       .from('drafts')
-      .select('id, status, form_data')
+      .select('id, type, status, form_data')
       .eq('id', draftId)
       .maybeSingle();
 
@@ -155,7 +155,11 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
       return res.status(404).json({ error: 'Concept niet gevonden.' });
     }
 
+    // Blogs publish to website by default (no kanalen selection in the form).
     const channels = Array.isArray(draft.form_data?.kanalen) ? draft.form_data.kanalen : [];
+    if (channels.length === 0 && draft.type === 'blog') {
+      channels.push('website');
+    }
 
     const credentialMapping = {
       linkedin: 'buffer',

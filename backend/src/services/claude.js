@@ -418,8 +418,8 @@ function buildSystemBlocks(brandKnowledge, brandContext, templatePrompt) {
 }
 
 async function generate(type, formData) {
-  const promptName =
-    type === 'marketing-post' ? 'marketing-post' : type === 'seo-page' ? 'seo-page' : 'vacature';
+  const promptMap = { 'marketing-post': 'marketing-post', 'seo-page': 'seo-page', 'blog': 'blog' };
+  const promptName = promptMap[type] || 'vacature';
   const [brandKnowledge, brandContext, templatePrompt] = await Promise.all([
     loadBrandKnowledge(),
     loadBrandContext(),

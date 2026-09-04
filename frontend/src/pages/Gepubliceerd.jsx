@@ -34,11 +34,15 @@ function renderMetrics(metrics) {
 }
 
 function getTypeLabel(type) {
-  return type === 'marketing-post' ? 'Marketing' : 'Vacature';
+  if (type === 'marketing-post') return 'Marketing';
+  if (type === 'blog') return 'Blog';
+  return 'Vacature';
 }
 
 function getTypeClass(type) {
-  return type === 'marketing-post' ? 'published-badge type-marketing' : 'published-badge type-vacature';
+  if (type === 'marketing-post') return 'published-badge type-marketing';
+  if (type === 'blog') return 'published-badge type-blog';
+  return 'published-badge type-vacature';
 }
 
 // getStatusDotClass verwijderd — vervangen door <ChannelStatus compact>

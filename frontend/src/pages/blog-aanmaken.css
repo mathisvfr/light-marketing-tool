@@ -1,0 +1,98 @@
+.blog-layout {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.blog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.blog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.blog-field input,
+.blog-field textarea,
+.blog-field select {
+  font-weight: 400;
+  font-size: 0.9375rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--grey-200, #e0e2e4);
+  border-radius: 6px;
+  background: var(--white, #fff);
+}
+
+.blog-field textarea:focus,
+.blog-field input:focus,
+.blog-field select:focus {
+  outline: 2px solid var(--red, #be1e2d);
+  outline-offset: -1px;
+  border-color: var(--red, #be1e2d);
+}
+
+.blog-html-editor {
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.char-count {
+  font-size: 0.75rem;
+  color: var(--grey-500, #787c7e);
+  text-align: right;
+}
+
+.blog-preview {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.blog-preview-heading {
+  font-size: 1.25rem;
+  font-weight: 700;
+  border-bottom: 2px solid var(--grey-200, #e0e2e4);
+  padding-bottom: 0.5rem;
+}
+
+.criticus-result {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.criticus-result.pass {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.criticus-result.fail {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.blog-image-preview {
+  max-width: 100%;
+}
+
+.blog-image-preview img {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--grey-200, #e0e2e4);
+}
+
+.blog-image-preview h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
