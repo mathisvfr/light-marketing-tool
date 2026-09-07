@@ -25,3 +25,13 @@
     respond 404
   }
 }
+
+# Publieke website (Astro, far-flare container op port 4321)
+lightpersoneelsdiensten.nl {
+  encode zstd gzip
+  reverse_proxy far-flare:4321
+}
+
+www.lightpersoneelsdiensten.nl {
+  redir https://lightpersoneelsdiensten.nl{uri} permanent
+}
