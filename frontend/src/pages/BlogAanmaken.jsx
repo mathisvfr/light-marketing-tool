@@ -7,7 +7,6 @@ import useImagePath from '../hooks/useImagePath';
 import useCriticus from '../hooks/useCriticus';
 import { api } from '../lib/api';
 import GenerationProgress from '../components/shared/GenerationProgress';
-import StatusBadge from '../components/shared/StatusBadge';
 import StatusStrip from '../components/shared/StatusStrip';
 import StickyFooter from '../components/shared/StickyFooter';
 import FormMessage from '../components/shared/FormMessage';

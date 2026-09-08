@@ -51,6 +51,10 @@ export default function StatusBadge({ status, className = '' }) {
   );
 }
 
+// getStatusLabel co-lives with StatusBadge on purpose — one source of truth
+// for the fallback labels. Fast-refresh will do a full reload when this file
+// changes, which is fine for a leaf component.
+// eslint-disable-next-line react-refresh/only-export-components
 export function getStatusLabel(status) {
   return (FALLBACK_META[status] || { label: status }).label;
 }

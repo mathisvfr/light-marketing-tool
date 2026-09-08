@@ -228,37 +228,6 @@ export default function MarketingPost() {
     }
   }
 
-  async function handleUploadOverride(event) {
-    const file = event.target.files?.[0];
-    if (!file || !effectiveDraftId) {
-      return;
-    }
-
-    setError('');
-    setSuccess('');
-
-    try {
-      const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error('Afbeelding kon niet worden gelezen.'));
-        reader.readAsDataURL(file);
-      });
-
-      const uploaded = await api(`/drafts/${effectiveDraftId}/image-override`, {
-        method: 'POST',
-        body: JSON.stringify({ dataUrl }),
-      });
-
-      setImagePathOverride(uploaded?.draft?.image_path || '');
-      setSuccess('Afbeelding succesvol overschreven.');
-    } catch (err) {
-      setError(err.message || 'Uploaden van afbeelding is mislukt.');
-    } finally {
-      event.target.value = '';
-    }
-  }
-
   async function handleGenerate(event) {
     if (event && typeof event.preventDefault === 'function') {
       event.preventDefault();
@@ -824,11 +793,14 @@ function PatternPickerBlock({ form, scheduleAt, setScheduleAt, resolveDueAt, for
     queryFn: () => api('/patterns'),
   });
 
-  const kanalen = Array.isArray(form.kanalen) ? form.kanalen : [];
   const matchingPatterns = useMemo(() => {
+    // form.kanalen may be undefined during hydration — guard here so the dep
+    // stays as `form.kanalen` (referentially stable in state) instead of a
+    // fresh array literal every render.
+    const kanalen = Array.isArray(form.kanalen) ? form.kanalen : [];
     const all = patternsQuery.data?.patterns || [];
     return all.filter((p) => p.isActive && kanalen.includes(p.channel));
-  }, [patternsQuery.data, kanalen]);
+  }, [patternsQuery.data, form.kanalen]);
 
   async function applyPattern(patternId) {
     setSelectedPattern(patternId);

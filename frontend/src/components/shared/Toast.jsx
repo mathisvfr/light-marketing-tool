@@ -99,11 +99,14 @@ export function ToastProvider({ children }) {
     [removeToast]
   );
 
-  // Cleanup alle timers op unmount.
+  // Cleanup alle timers op unmount. Capture the ref-current at effect-run
+  // time so the cleanup closes over the same Map instance we scheduled on
+  // (react-hooks/exhaustive-deps: timersRef.current may have moved by cleanup).
   useEffect(() => {
+    const timers = timersRef.current;
     return () => {
-      for (const t of timersRef.current.values()) clearTimeout(t);
-      timersRef.current.clear();
+      for (const t of timers.values()) clearTimeout(t);
+      timers.clear();
     };
   }, []);
 
@@ -138,6 +141,8 @@ export function ToastProvider({ children }) {
   );
 }
 
+// useToast co-lives with ToastProvider on purpose — one file per concept.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useToast() {
   const ctx = useContext(ToastContext);
   if (!ctx) {

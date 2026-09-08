@@ -250,7 +250,12 @@ export default function VacaturePlaatsen() {
     existingDraftQuery.refetch();
   }
 
-  const selectedLangs = Array.isArray(form.talen) ? form.talen : [];
+  // Wrap in useMemo so the reference is stable when form.talen is unchanged —
+  // otherwise every render minted a fresh array and blew the tabs memo.
+  const selectedLangs = useMemo(
+    () => (Array.isArray(form.talen) ? form.talen : []),
+    [form.talen]
+  );
   const tabs = useMemo(() => createLangTabs(content, selectedLangs), [content, selectedLangs]);
 
   const saveMutation = useMutation({
