@@ -1,0 +1,19 @@
+# Files a fresh `git worktree add` needs from the primary checkout.
+#
+# git worktree does NOT copy gitignored files. When you spin up a new worktree
+# in `../light-marketing-tool.worktrees/<slug>` (or Claude Code auto-creates
+# one under `.claude/worktrees/`), you need to symlink or copy each entry
+# below from the primary checkout at
+# C:\Users\mvdv2\repos\light-marketing-tool.
+#
+# LIVE PROD CREDENTIALS: never listed here. `backend/.env` typically holds a
+# Supabase service key with full DB access — if it's still your prod key,
+# do NOT symlink it into worktrees. Create a scrubbed `backend/.env.staging`
+# (staging Supabase project, no prod service_role) and list that here instead.
+# Same for the frontend if it ever grows env files with prod endpoints.
+#
+# Nothing tracked yet — add scrubbed staging env files as you create them.
+# Uncomment the examples below when a scrubbed .env.staging exists:
+#
+# backend/.env.staging
+# frontend/.env.staging

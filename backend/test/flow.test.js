@@ -31,6 +31,16 @@ let client;
 before(async () => {
   const configured = setup({ integrations: integrationsMock, publishGateway: publishGatewayMock });
   store = configured.store;
+
+  // Feed is public by default; index.js only wires requireFeedAuth when both
+  // FEEDS_BASIC_AUTH_USERNAME and FEEDS_BASIC_AUTH_PASSWORD are set. The root
+  // .env may have them for staging/prod — clear here so the /feeds/jobs.xml
+  // assertion stays unauthenticated. Must run AFTER setup() because
+  // index.js reloads .env with override: true at module load. Same pattern as
+  // harness.js:144 for JWT_SECRET.
+  delete process.env.FEEDS_BASIC_AUTH_USERNAME;
+  delete process.env.FEEDS_BASIC_AUTH_PASSWORD;
+
   const started = await startServer(configured.app);
   server = started.server;
   client = makeClient(started.baseUrl);

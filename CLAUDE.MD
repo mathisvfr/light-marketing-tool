@@ -561,21 +561,76 @@ naar LinkedIn/Facebook/Instagram; blog- en SEO-publicatie naar de nieuwe eigen
 website volgt zodra die site + koppeling gereed is (stub-adapter aanwezig), met
 per-kanaal statusindicatie.
 
-## Skill routing
+---
 
-When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
+## Verified commands (2026-09-08)
 
-Key routing rules:
-- Product ideas/brainstorming → invoke /office-hours
-- Strategy/scope → invoke /plan-ceo-review
-- Architecture → invoke /plan-eng-review
-- Design system/plan review → invoke /design-consultation or /plan-design-review
-- Full review pipeline → invoke /autoplan
-- Bugs/errors → invoke /investigate
-- QA/testing site behavior → invoke /qa or /qa-only
-- Code review/diff check → invoke /review
-- Visual polish → invoke /design-review
-- Ship/deploy/PR → invoke /ship or /land-and-deploy
-- Save progress → invoke /context-save
-- Resume context → invoke /context-restore
-- Author a backlog-ready spec/issue → invoke /spec
+JavaScript project — no typecheck step. All commands run from the repo root
+unless otherwise noted.
+
+- **Backend tests:** `cd backend && npm test` — Node's built-in test runner
+  (`node --test`) over `backend/test/*.test.js` (12 files at time of writing).
+  Baseline: 2 pre-existing failures — see `TASK_LEDGER.md` row 1. Green gate
+  requires that row closed.
+- **Frontend lint:** `cd frontend && npm run lint` — ESLint 10 flat config.
+  Baseline: 10 errors + 3 warnings — see `TASK_LEDGER.md` row 2. Green gate
+  requires that row closed.
+- **Frontend build:** `cd frontend && npm run build` — Vite 8 production build.
+  Baseline: green (built in ~640ms on 2026-09-08).
+
+No frontend test runner. No CI workflow yet (`.github/workflows/` absent);
+adding CI is out of scope until rows 1 and 2 are green.
+
+## Parallel work
+
+Multiple Claude Code sessions and `Agent(isolation: "worktree")` subagents can
+run against this repo concurrently. To avoid clobbering each other:
+
+- **Claim before you edit.** Every task appends a row to `TASK_LEDGER.md` with
+  `Status: in-progress` and lists the specific files it will edit. No agent
+  edits a file that appears in another agent's live in-progress row. Close the
+  row (`done`, `abandoned`, or `blocked`) when you stop.
+- **Worktree location:**
+  - Long-lived, human-driven worktrees live in
+    `../light-marketing-tool.worktrees/<slug>` (matches existing pattern from
+    `git worktree list`). Gitignored via `*.worktrees/`.
+  - Ephemeral subagent worktrees land in `.claude/worktrees/<slug>` (Claude
+    Code auto-manages, auto-cleans if the subagent makes no changes).
+    Gitignored via `.claude/worktrees/`.
+- **Spinning up a new worktree:** `git worktree add ../light-marketing-tool.worktrees/<slug> <branch>`.
+  Then symlink or copy every path in `.worktreeinclude` into the new worktree
+  before running backend or frontend. `git worktree` does not copy gitignored
+  files, so a fresh worktree has no `.env` until you place one.
+- **Before starting new work:** run `git worktree list` and skim
+  `TASK_LEDGER.md` for stale in-progress rows. If a row looks abandoned,
+  either close it or ask its owner.
+
+## Working autonomously
+
+For unattended runs on this repo:
+
+```
+claude -p "<task>" --max-turns 30
+```
+
+- **Mandatory exit condition:** `--max-turns N` (numeric cap) is required.
+  Pick N by task size: small refactor 15–20, feature work 30–40. For
+  time-based caps wrap in a shell timeout, e.g.
+  `timeout 45m claude -p "<task>" --max-turns 40`.
+- **Multi-step interactive goals:** inside a live session use
+  `/goal <objective>` — the goal persists across turns and gives the model
+  a stop-when-done signal.
+- **Verification-driven done gate:** the goal is complete when
+  `cd backend && npm test` exits 0 **and** `cd frontend && npm run lint`
+  exits 0 **and** `cd frontend && npm run build` exits 0. Currently gated
+  by `TASK_LEDGER.md` rows 1 and 2 — until those close, "no new failures
+  beyond the documented baseline (2 backend, 10 frontend lint)" is the
+  honest gate.
+- **Continuous background loops:** the ECC `loop-operator` agent plus
+  `/loop-start` / `/loop-status` are the intended entry. Opt-in per run;
+  not a repo default.
+- **Hooks note:** ECC's user-scope hooks (Stop: session summary, cost tracker,
+  pattern extraction; PreCompact; SessionStart) already cover the normal
+  telemetry surface. No repo-level Stop hook is layered on top — it would
+  double-fire without adding signal. Use per-task `/goal` + explicit exit
+  conditions instead.

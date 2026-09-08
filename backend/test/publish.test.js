@@ -32,11 +32,14 @@ let client;
 const cookies = {};
 
 before(async () => {
-  // Ensure env-based credentials from a root .env do not mask the disconnected case.
-  delete process.env.BUFFER_API_KEY;
-
   const configured = setup({ integrations: integrationsMock, publishGateway: publishGatewayMock });
   store = configured.store;
+
+  // Ensure env-based credentials from the root .env do not mask the
+  // disconnected case. Must run AFTER setup(): setup() loads the app, which
+  // calls dotenv.config({ override: true }) at module load and repopulates
+  // process.env from disk. Same pattern as harness.js:144 for JWT_SECRET.
+  delete process.env.BUFFER_API_KEY;
 
   store.drafts.push({
     id: APPROVED_DRAFT_ID,
