@@ -1,10 +1,9 @@
 # Files a fresh `git worktree add` needs from the primary checkout.
 #
 # git worktree does NOT copy gitignored files. When you spin up a new worktree
-# in `../light-marketing-tool.worktrees/<slug>` (or Claude Code auto-creates
-# one under `.claude/worktrees/`), you need to symlink or copy each entry
-# below from the primary checkout at
-# C:\Users\mvdv2\repos\light-marketing-tool.
+# in `../<repo>.worktrees/<slug>` (or Claude Code auto-creates one under
+# `.claude/worktrees/`), you need to symlink or copy each entry below from
+# the primary checkout of this repo.
 #
 # LIVE PROD CREDENTIALS: never listed here. `backend/.env` typically holds a
 # Supabase service key with full DB access — if it's still your prod key,
