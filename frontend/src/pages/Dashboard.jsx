@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import StatusBadge from '../components/shared/StatusBadge';
 import ChannelStatus from '../components/shared/ChannelStatus';
-import Card, { CardHeader, CardBody } from '../components/shared/Card';
+import Card, { CardHeader } from '../components/shared/Card';
 import '../components/shared/status-strip.css';
 import '../components/shared/card.css';
 import './dashboard.css';

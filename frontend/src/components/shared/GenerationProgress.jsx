@@ -17,6 +17,12 @@ export default function GenerationProgress({ active, criticusPending }) {
 
   useEffect(() => {
     if (!active) {
+      // Reset local progress state when generation toggles off. The
+      // "no set-state in effect" rule flags this, but here the state IS
+      // derived from the `active` prop toggle — the alternative (compute
+      // phase from active + a ref) is more contortion than payoff for a
+      // 2-step animation.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPhaseIndex(0);
       setDots('');
       return undefined;

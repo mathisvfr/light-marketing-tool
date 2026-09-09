@@ -7,7 +7,7 @@ function extractHashtags(text) {
   const trimmed = String(text).trim();
   const lines = trimmed.split(/\n+/);
   const lastLine = lines[lines.length - 1] || '';
-  const isHashtagLine = /^(\s*#\w[\w\-]*(\s+#\w[\w\-]*)*\s*)$/.test(lastLine);
+  const isHashtagLine = /^(\s*#\w[\w-]*(\s+#\w[\w-]*)*\s*)$/.test(lastLine);
   if (!isHashtagLine) {
     return { body: trimmed, hashtags: [] };
   }

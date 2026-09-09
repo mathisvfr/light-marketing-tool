@@ -21,3 +21,9 @@ npm-debug.log*
 # OS / editor
 .DS_Store
 Thumbs.db
+
+# Worktrees
+# .claude/worktrees/ — Claude Code Agent(isolation: "worktree") staging dir
+# *.worktrees/       — sibling-dir convention (light-marketing-tool.worktrees/)
+.claude/worktrees/
+*.worktrees/
