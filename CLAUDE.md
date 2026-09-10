@@ -626,11 +626,25 @@ claude -p "<task>" --max-turns 30
   by `TASK_LEDGER.md` rows 1 and 2 — until those close, "no new failures
   beyond the documented baseline (2 backend, 10 frontend lint)" is the
   honest gate.
-- **Continuous background loops:** the ECC `loop-operator` agent plus
-  `/loop-start` / `/loop-status` are the intended entry. Opt-in per run;
-  not a repo default.
-- **Hooks note:** ECC's user-scope hooks (Stop: session summary, cost tracker,
-  pattern extraction; PreCompact; SessionStart) already cover the normal
-  telemetry surface. No repo-level Stop hook is layered on top — it would
-  double-fire without adding signal. Use per-task `/goal` + explicit exit
-  conditions instead.
+- **Continuous background loops:** use gstack `/loop` to run a skill on a
+  recurring interval. Opt-in per run; not a repo default.
+
+## Skill routing (gstack)
+
+gstack is installed globally (`~/.claude/skills/gstack`). When a request
+matches a skill, invoke it via the Skill tool. Key routing rules:
+
+- Product ideas / brainstorming → `/office-hours`
+- Strategy / scope → `/plan-ceo-review`
+- Architecture → `/plan-eng-review`
+- Design system / plan review → `/design-consultation` or `/plan-design-review`
+- Full review pipeline → `/autoplan`
+- Bugs / errors → `/investigate`
+- QA / testing site behavior → `/qa` or `/qa-only`
+- Code review / diff check → `/review`
+- Visual polish → `/design-review`
+- Ship / deploy / PR → `/ship` or `/land-and-deploy`
+- Save progress → `/context-save`
+- Resume context → `/context-restore`
+- Author a backlog-ready spec/issue → `/spec`
+- Safety guardrails → `/careful` or `/guard`
