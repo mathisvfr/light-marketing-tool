@@ -144,12 +144,12 @@ async function callAnthropic(systemBlocks, formData) {
   });
 
   if (!response.ok) {
-    const errorBody = await response.text();
-    if (errorBody) {
-      throw new Error(`Anthropic API gaf een fout tijdens genereren: ${errorBody}`);
-    }
+    // Log the full error server-side for debugging, but never expose
+    // API error details (rate limit info, key status, etc.) to the client.
+    const errorBody = await response.text().catch(() => '');
+    console.error(`[claude] Anthropic API error (${response.status}):`, errorBody);
 
-    throw new Error('Anthropic API gaf een fout tijdens genereren.');
+    throw new Error('AI-provider gaf een fout tijdens genereren. Probeer het later opnieuw.');
   }
 
   const json = await response.json();
@@ -246,11 +246,8 @@ async function callGreenPt(systemPrompt, payload) {
       throw new Error('GreenPT rate limit bereikt. Probeer over enkele seconden opnieuw.');
     }
 
-    if (errorBody) {
-      throw new Error(`GreenPT API gaf een fout tijdens genereren: ${errorBody}`);
-    }
-
-    throw new Error('GreenPT API gaf een fout tijdens genereren.');
+    console.error(`[claude] GreenPT API error (${response.status}):`, errorBody);
+    throw new Error('AI-provider gaf een fout tijdens genereren. Probeer het later opnieuw.');
   }
 
   return response.json();

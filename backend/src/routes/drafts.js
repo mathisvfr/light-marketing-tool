@@ -1,10 +1,39 @@
 const express = require('express');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const sanitizeHtml = require('sanitize-html');
 const { supabase } = require('../db/client');
 const { generate, criticus, translateVacature, SUPPORTED_TRANSLATION_LANGS } = require('../services/claude');
 const { renderSocialImage, saveUploadedImageDataUrl } = require('../services/render');
 const { notifyAfterCommit } = require('../services/notifications');
+
+// Whitelist of safe HTML tags for blog content. Strips scripts, iframes,
+// event handlers, and anything not explicitly listed.
+const BLOG_SANITIZE_OPTIONS = {
+  allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'figure', 'figcaption',
+    'br', 'hr', 'span', 'del', 'ins', 'sub', 'sup',
+  ]),
+  allowedAttributes: {
+    a: ['href', 'title', 'target', 'rel'],
+    img: ['src', 'alt', 'title', 'width', 'height'],
+    span: ['class'],
+    td: ['colspan', 'rowspan'],
+    th: ['colspan', 'rowspan'],
+  },
+  allowedSchemes: ['http', 'https', 'mailto'],
+  // Force rel="noopener noreferrer" on links with target
+  transformTags: {
+    a: sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer' }),
+  },
+};
+
+function sanitizeBlogHtml(html) {
+  if (!html || typeof html !== 'string') {
+    return null;
+  }
+  return sanitizeHtml(html, BLOG_SANITIZE_OPTIONS);
+}
 
 const router = express.Router();
 
@@ -525,7 +554,7 @@ router.post('/:id/generate', async (req, res, next) => {
       }
       updatePayload = {
         blog_titel: generated.blog_titel || draft.blog_titel || null,
-        blog_html: generated.blog_html || draft.blog_html || null,
+        blog_html: sanitizeBlogHtml(generated.blog_html || draft.blog_html) || null,
         form_data: formData,
         omschrijving_nl: null,
         functie_eisen: null,

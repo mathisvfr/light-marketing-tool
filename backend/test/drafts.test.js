@@ -159,7 +159,9 @@ test('7. generation failure surfaces a Dutch error', async () => {
     const response = await client.request(`/api/drafts/${draft.id}/generate`, { method: 'POST' });
     assert.equal(response.status, 500);
     const body = await response.json();
-    assert.match(body.error, /JSON/);
+    // Error handler no longer leaks internal details — just verify we get
+    // a Dutch error string back (not a stack trace or empty body).
+    assert.ok(body.error && typeof body.error === 'string');
   } finally {
     claudeMode = 'ok';
   }

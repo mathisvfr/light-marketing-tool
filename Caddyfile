@@ -1,6 +1,15 @@
 {$DOMAIN} {
   encode zstd gzip
 
+  # Security headers (supplement Helmet on the backend)
+  header {
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+  }
+
   @api path /api/*
   reverse_proxy @api backend:3001
 
@@ -16,6 +25,11 @@
 {$FEED_DOMAIN} {
   encode zstd gzip
 
+  header {
+    X-Content-Type-Options "nosniff"
+    Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+  }
+
   # Feed-subdomein serveert uitsluitend de XML-feed; al het andere is 404.
   handle /feeds/* {
     reverse_proxy backend:3001
@@ -29,6 +43,15 @@
 # Publieke website (Astro, far-flare container op port 4321)
 lightpersoneelsdiensten.nl {
   encode zstd gzip
+
+  header {
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+  }
+
   reverse_proxy far-flare:4321
 }
 

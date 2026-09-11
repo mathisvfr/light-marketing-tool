@@ -4,6 +4,15 @@ require('dotenv').config({
   override: true,
 });
 
+// Fail fast on missing critical secrets — better a clear startup error than
+// cryptic runtime failures (e.g. jwt.verify with undefined secret).
+const REQUIRED_ENV = ['JWT_SECRET', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
+for (const key of REQUIRED_ENV) {
+  if (!process.env[key]) {
+    throw new Error(`Ontbrekende omgevingsvariabele: ${key}. Controleer .env.`);
+  }
+}
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -85,7 +94,25 @@ function requireFeedAuth(req, res, next) {
   return next();
 }
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false, // allow loading cross-origin images in social previews
+  })
+);
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
@@ -94,7 +121,19 @@ app.use(
 );
 app.use(express.json({ limit: '15mb' }));
 app.use(cookieParser());
-app.use('/uploads', express.static(path.resolve(__dirname, '..', 'uploads')));
+// Serve uploaded images with security hardening:
+// - Only allow known image extensions (prevents HTML/script execution)
+// - nosniff prevents MIME-type guessing
+// - Long cache since filenames contain UUIDs (content-addressable)
+app.use('/uploads', (req, res, next) => {
+  const ext = path.extname(req.path).toLowerCase();
+  if (!['.png', '.jpg', '.jpeg', '.webp'].includes(ext)) {
+    return res.status(403).json({ error: 'Bestandstype niet toegestaan.' });
+  }
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  return next();
+}, express.static(path.resolve(__dirname, '..', 'uploads')));
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -104,22 +143,70 @@ const loginLimiter = rateLimit({
   message: { error: 'Te veel inlogpogingen. Probeer het later opnieuw.' },
 });
 
+// General API limiter: 100 requests per minute per IP
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Te veel verzoeken. Probeer het even later opnieuw.' },
+});
+
+// AI generation is expensive — 5 requests per minute per IP
+const generateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Te veel generatieverzoeken. Wacht even voordat je opnieuw genereert.' },
+});
+
+// Publish limiter: 10 requests per minute per IP
+const publishLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Te veel publicatieverzoeken. Probeer het even later opnieuw.' },
+});
+
+// Upload limiter: 20 requests per minute per IP
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Te veel uploads. Probeer het even later opnieuw.' },
+});
+
+// Feed limiter: 30 requests per minute per IP (Jobit polls periodically,
+// but there's no reason for hundreds of requests per minute)
+const feedLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Te veel feed-verzoeken.',
+});
+
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.use('/feeds', requireFeedAuth, feedsRoutes);
+app.use('/feeds', feedLimiter, requireFeedAuth, feedsRoutes);
 
 app.use('/api/auth/login', loginLimiter);
+app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', requireAuth, dashboardRoutes);
+app.use('/api/drafts/:id/generate', requireAuth, generateLimiter);
 app.use('/api/drafts', requireAuth, draftsRoutes);
-app.use('/api/publish', requireAuth, publishRoutes);
+app.use('/api/publish', requireAuth, publishLimiter, publishRoutes);
 app.use('/api/brand', requireAuth, brandRoutes);
 app.use('/api/integrations', requireAuth, integrationsRoutes);
 app.use('/api/users', requireAuth, usersRoutes);
 app.use('/api/media', requireAuth, mediaRoutes);
-app.use('/api/uploads', requireAuth, uploadsRoutes);
+app.use('/api/uploads', requireAuth, uploadLimiter, uploadsRoutes);
 app.use('/api/patterns', requireAuth, patternsRoutes);
 app.use('/api/meta', requireAuth, metaRoutes);
 app.use('/api/publications', requireAuth, publicationsRoutes);
