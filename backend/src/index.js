@@ -111,6 +111,11 @@ app.use(
       },
     },
     crossOriginEmbedderPolicy: false, // allow loading cross-origin images in social previews
+    // Caddy already sets these — disable Helmet duplicates to keep response headers clean
+    strictTransportSecurity: false,
+    xFrameOptions: false,
+    xContentTypeOptions: false,
+    referrerPolicy: false,
   })
 );
 app.use(
