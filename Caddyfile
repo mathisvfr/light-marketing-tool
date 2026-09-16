@@ -58,3 +58,15 @@ lightpersoneelsdiensten.nl {
 www.lightpersoneelsdiensten.nl {
   redir https://lightpersoneelsdiensten.nl{uri} permanent
 }
+
+# Umami analytics dashboard + tracking script
+analytics.lightpersoneelsdiensten.nl {
+  encode zstd gzip
+
+  header {
+    X-Content-Type-Options "nosniff"
+    Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+  }
+
+  reverse_proxy umami:3000
+}

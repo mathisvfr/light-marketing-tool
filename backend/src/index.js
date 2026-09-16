@@ -32,10 +32,12 @@ const uploadsRoutes = require('./routes/uploads');
 const patternsRoutes = require('./routes/patterns');
 const metaRoutes = require('./routes/meta');
 const publicationsRoutes = require('./routes/publications');
+const rapportageRoutes = require('./routes/rapportage');
 const { requireAuth } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/errorHandler');
 const { startCleanupSchedule } = require('./services/cleanup');
 const bufferSync = require('./services/bufferSync');
+const metricsCron = require('./services/metrics');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -215,6 +217,7 @@ app.use('/api/uploads', requireAuth, uploadLimiter, uploadsRoutes);
 app.use('/api/patterns', requireAuth, patternsRoutes);
 app.use('/api/meta', requireAuth, metaRoutes);
 app.use('/api/publications', requireAuth, publicationsRoutes);
+app.use('/api/rapportage', requireAuth, rapportageRoutes);
 
 app.use(errorHandler);
 
@@ -235,6 +238,9 @@ if (require.main === module) {
   // Reconcile Buffer post statuses + engagement metrics every 15 min.
   // No-op in tests. Non-fatal if Buffer isn't reachable — errors are logged.
   bufferSync.startCron();
+
+  // Nightly metrics snapshots at 03:00 Amsterdam time (DB counts + Buffer engagement).
+  metricsCron.startCron();
 }
 
 module.exports = app;

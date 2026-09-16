@@ -25,6 +25,29 @@ services:
       - "80"
     restart: unless-stopped
 
+  umami-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD}
+    volumes:
+      - umami_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    restart: unless-stopped
+
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    depends_on:
+      - umami-db
+    environment:
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@umami-db:5432/umami
+      TRACKER_SCRIPT_NAME: script.js
+    expose:
+      - "3000"
+    restart: unless-stopped
+
   caddy:
     image: caddy:2.8-alpine
     depends_on:
@@ -44,3 +67,4 @@ services:
 volumes:
   caddy_data:
   caddy_config:
+  umami_data:
