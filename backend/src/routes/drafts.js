@@ -194,6 +194,9 @@ router.get('/', async (req, res, next) => {
 
     if (statusFilter !== 'all') {
       query = query.eq('status', statusFilter);
+    } else {
+      // Default: only queue-relevant statuses; published/actief/expired belong in Gepubliceerd
+      query = query.in('status', ['draft', 'pending_approval', 'approved', 'rejected']);
     }
 
     if (typeFilter !== 'all') {

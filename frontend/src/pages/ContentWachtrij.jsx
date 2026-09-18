@@ -378,9 +378,6 @@ export default function ContentWachtrij() {
             <option value="draft">Draft</option>
             <option value="pending_approval">Wacht op goedkeuring</option>
             <option value="approved">Goedgekeurd</option>
-            <option value="actief">Actief</option>
-            <option value="published">Gepubliceerd</option>
-            <option value="expired">Verlopen</option>
             <option value="rejected">Afgewezen</option>
           </select>
         </label>
