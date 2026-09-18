@@ -96,6 +96,11 @@ router.get('/', async (_req, res, next) => {
 
     for (const publication of publications) {
       const existing = byDraftId.get(publication.draft_id) || [];
+      // Keep only the latest row per channel (publications are ordered DESC).
+      // Retries create new rows; without dedup the UI shows duplicate badges.
+      const alreadyHasChannel = existing.some((e) => e.channel === publication.channel);
+      if (alreadyHasChannel) continue;
+
       existing.push({
         id: publication.id,
         channel: publication.channel,
