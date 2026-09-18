@@ -20,11 +20,19 @@ function getEnvMetadata() {
 async function getBufferCredential() {
   const credential = await getCredential('buffer');
 
+  const envMeta = getEnvMetadata();
+  const dbMeta = credential?.metadata || {};
+
   return {
     access_token: credential?.access_token || process.env.BUFFER_API_KEY || null,
     metadata: {
-      ...getEnvMetadata(),
-      ...(credential?.metadata || {}),
+      ...envMeta,
+      ...dbMeta,
+      // Deep-merge channelIds so DB values don't erase env vars
+      channelIds: {
+        ...envMeta.channelIds,
+        ...(dbMeta.channelIds || {}),
+      },
     },
   };
 }
@@ -156,9 +164,18 @@ async function createPost({ accessToken, channelId, text, imageUrl, dueAt }) {
     };
   }
 
+  const postId = result?.post?.id || null;
+  if (!postId) {
+    return {
+      status: 'failed',
+      externalId: null,
+      error: 'Buffer gaf geen post-ID terug — het bericht is waarschijnlijk niet aangemaakt.',
+    };
+  }
+
   return {
     status: 'success',
-    externalId: result?.post?.id || null,
+    externalId: postId,
     error: null,
   };
 }
