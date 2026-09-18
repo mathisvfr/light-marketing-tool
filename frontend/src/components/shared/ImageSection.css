@@ -20,30 +20,37 @@
   border: 1px solid #fecaca;
 }
 
-/* Selected image preview */
+/* Selected image preview -- prominent */
 .is-selected {
   display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 10px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  flex-direction: column;
+  gap: 8px;
   border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
 }
 
 .is-selected-img {
-  width: 120px;
-  height: 80px;
+  width: 100%;
+  max-height: 280px;
   object-fit: cover;
-  border-radius: 6px;
-  flex-shrink: 0;
+  display: block;
 }
 
-.is-selected-info {
+.is-selected-actions {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.is-selected-btns {
+  display: flex;
   gap: 6px;
-  min-width: 0;
+  flex-shrink: 0;
 }
 
 .is-attribution {
@@ -56,6 +63,7 @@
   text-decoration: underline;
 }
 
+.is-change-btn,
 .is-remove-btn {
   background: none;
   border: 1px solid #d1d5db;
@@ -64,7 +72,11 @@
   font-size: 0.8rem;
   cursor: pointer;
   color: #6b7280;
-  align-self: flex-start;
+}
+
+.is-change-btn:hover:not(:disabled) {
+  border-color: #0b1b32;
+  color: #0b1b32;
 }
 
 .is-remove-btn:hover:not(:disabled) {

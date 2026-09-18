@@ -12,7 +12,8 @@ const TABS = [
   { key: 'generate', label: 'Genereer' },
 ];
 
-export default function ImageSection({ imagePath, onSelect, suggestedTerms, disabled }) {
+// mode: 'full' (all tabs) or 'unsplash-only' (just Unsplash search, for blogs)
+export default function ImageSection({ imagePath, onSelect, suggestedTerms, disabled, mode = 'full' }) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
   const debounceRef = useRef(null);
@@ -189,7 +190,11 @@ export default function ImageSection({ imagePath, onSelect, suggestedTerms, disa
   }
 
   const isBusy = disabled || uploadMutation.isPending || generateMutation.isPending;
-  const visibleTabs = unsplashAvailable ? TABS : TABS.filter((t) => t.key !== 'unsplash');
+  const allTabs = unsplashAvailable ? TABS : TABS.filter((t) => t.key !== 'unsplash');
+  const visibleTabs = mode === 'unsplash-only'
+    ? allTabs.filter((t) => t.key === 'unsplash')
+    : allTabs;
+  const [pickerOpen, setPickerOpen] = useState(!imagePath);
 
   // Check if current image is from Unsplash (for attribution display)
   const isUnsplashImage = imagePath && imagePath.includes('images.unsplash.com');
@@ -200,45 +205,58 @@ export default function ImageSection({ imagePath, onSelect, suggestedTerms, disa
 
       {localError ? <p className="is-error">{localError}</p> : null}
 
-      {/* Selected image preview */}
+      {/* Selected image preview -- prominent */}
       {imagePath ? (
         <div className="is-selected">
           <img src={imagePath} alt="Geselecteerde afbeelding" className="is-selected-img" />
-          <div className="is-selected-info">
+          <div className="is-selected-actions">
             {selectedAttribution || isUnsplashImage ? (
               <UnsplashAttribution attribution={selectedAttribution} />
             ) : null}
-            <button
-              type="button"
-              className="is-remove-btn"
-              onClick={() => {
-                setSelectedAttribution(null);
-                onSelect('');
-              }}
-              disabled={isBusy}
-            >
-              Verwijderen
-            </button>
+            <div className="is-selected-btns">
+              <button
+                type="button"
+                className="is-change-btn"
+                onClick={() => setPickerOpen((v) => !v)}
+                disabled={isBusy}
+              >
+                {pickerOpen ? 'Picker sluiten' : 'Andere afbeelding'}
+              </button>
+              <button
+                type="button"
+                className="is-remove-btn"
+                onClick={() => {
+                  setSelectedAttribution(null);
+                  onSelect('');
+                  setPickerOpen(true);
+                }}
+                disabled={isBusy}
+              >
+                Verwijderen
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
 
-      {/* Tabs */}
-      <div className="is-tabs">
-        {visibleTabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            className={`is-tab${activeTab === tab.key ? ' active' : ''}`}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* Tabs -- collapsible when image is selected, hidden when only 1 tab */}
+      {(pickerOpen || !imagePath) && visibleTabs.length > 1 ? (
+        <div className="is-tabs">
+          {visibleTabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              className={`is-tab${activeTab === tab.key ? ' active' : ''}`}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
-      {/* Unsplash tab */}
-      {activeTab === 'unsplash' && unsplashAvailable ? (
+      {/* Unsplash tab -- always visible in unsplash-only mode */}
+      {(pickerOpen || !imagePath) && (activeTab === 'unsplash' || mode === 'unsplash-only') && unsplashAvailable ? (
         <div className="is-panel">
           {suggestedTerms?.length > 0 ? (
             <div className="is-chips">
@@ -274,7 +292,7 @@ export default function ImageSection({ imagePath, onSelect, suggestedTerms, disa
 
           {isSearching && unsplashResults.length === 0 ? (
             <p className="is-loading">Zoeken...</p>
-          ) : unsplashResults.length === 0 && searchQuery ? (
+          ) : unsplashResults.length === 0 && searchQuery && !localError ? (
             <p className="is-empty">Geen foto's gevonden. Probeer andere zoektermen.</p>
           ) : (
             <>
@@ -310,8 +328,8 @@ export default function ImageSection({ imagePath, onSelect, suggestedTerms, disa
         </div>
       ) : null}
 
-      {/* Library tab */}
-      {activeTab === 'library' ? (
+      {/* Library tab (full mode only) */}
+      {mode === 'full' && (pickerOpen || !imagePath) && activeTab === 'library' ? (
         <div className="is-panel">
           <input
             type="search"
@@ -348,8 +366,8 @@ export default function ImageSection({ imagePath, onSelect, suggestedTerms, disa
         </div>
       ) : null}
 
-      {/* Upload tab */}
-      {activeTab === 'upload' ? (
+      {/* Upload tab (full mode only) */}
+      {mode === 'full' && (pickerOpen || !imagePath) && activeTab === 'upload' ? (
         <div className="is-panel">
           <div
             className="is-dropzone"
@@ -385,8 +403,8 @@ export default function ImageSection({ imagePath, onSelect, suggestedTerms, disa
         </div>
       ) : null}
 
-      {/* Generate tab */}
-      {activeTab === 'generate' ? (
+      {/* Generate tab (full mode only) */}
+      {mode === 'full' && (pickerOpen || !imagePath) && activeTab === 'generate' ? (
         <div className="is-panel">
           <form className="is-generate-form" onSubmit={handleGenerate}>
             <label>

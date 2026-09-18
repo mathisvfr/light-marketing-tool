@@ -368,6 +368,7 @@ export default function BlogAanmaken() {
             onSelect={(path) => setImagePathOverride(path)}
             suggestedTerms={suggestedTerms}
             disabled={isBusy}
+            mode="unsplash-only"
           />
 
           <StickyFooter>
