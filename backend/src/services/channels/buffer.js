@@ -112,10 +112,20 @@ async function createPost({ accessToken, channelId, channel, text, imageUrl, due
     ? `mode: customScheduled\n          dueAt: ${JSON.stringify(scheduledIso)}`
     : 'mode: addToQueue';
 
-  // Facebook and Instagram require a post type (post, story, or reel).
-  // LinkedIn does not use this field.
-  const needsType = channel === 'facebook' || channel === 'instagram';
-  const typeBlock = needsType ? 'type: post' : '';
+  // Facebook and Instagram require metadata with type (post/story/reel).
+  // Instagram also requires shouldShareToFeed. LinkedIn needs no metadata.
+  let metadataBlock = '';
+  if (channel === 'facebook') {
+    metadataBlock = `
+          metadata: {
+            facebook: { type: post }
+          }`;
+  } else if (channel === 'instagram') {
+    metadataBlock = `
+          metadata: {
+            instagram: { type: post, shouldShareToFeed: true }
+          }`;
+  }
 
   const query = `
     mutation CreateBufferPost {
@@ -124,8 +134,7 @@ async function createPost({ accessToken, channelId, channel, text, imageUrl, due
           text: ${JSON.stringify(text)}
           channelId: ${JSON.stringify(channelId)}
           schedulingType: automatic
-          ${modeBlock}
-          ${typeBlock}${assetBlock}
+          ${modeBlock}${metadataBlock}${assetBlock}
         }
       ) {
         __typename
