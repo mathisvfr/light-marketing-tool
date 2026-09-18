@@ -518,7 +518,13 @@ router.post('/:id/generate', async (req, res, next) => {
     // Save generated content immediately (criticus_passed = null signals "pending")
     let updatePayload;
     if (draft.type === 'marketing-post') {
+      // Persist AI-suggested image search terms in form_data for the frontend
+      const formData = { ...(draft.form_data || {}) };
+      if (Array.isArray(generated.image_search_terms) && generated.image_search_terms.length > 0) {
+        formData.image_search_terms = generated.image_search_terms;
+      }
       updatePayload = {
+        form_data: formData,
         linkedin_post: generated.linkedin_post || draft.linkedin_post || null,
         social_nl: generated.facebook_post || draft.social_nl || null,
         instagram_caption: generated.instagram_caption || draft.instagram_caption || null,
@@ -539,6 +545,9 @@ router.post('/:id/generate', async (req, res, next) => {
       formData.lead = generated.lead || formData.lead || '';
       formData.meta_description = generated.meta_description || formData.meta_description || '';
       formData.leestijd = generated.leestijd || formData.leestijd || '';
+      if (Array.isArray(generated.image_search_terms) && generated.image_search_terms.length > 0) {
+        formData.image_search_terms = generated.image_search_terms;
+      }
       // Stable slug: generate once, never change (protects published URLs)
       if (!formData.slug) {
         const slugBase = (generated.blog_titel || formData.onderwerp || 'blog')

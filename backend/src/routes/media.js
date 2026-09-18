@@ -3,6 +3,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { supabase } = require('../db/client');
 const { saveDataUrlToLibrary, renderSvgToLibrary } = require('../services/render');
+const unsplash = require('../services/unsplash');
 
 const router = express.Router();
 
@@ -25,10 +26,10 @@ router.get('/', async (req, res, next) => {
 
     let query = supabase
       .from('media_library')
-      .select('id, filename, path, alt_text, tags, source, created_by, created_at, file_size, mime_type')
+      .select('id, filename, path, alt_text, tags, source, created_by, created_at, file_size, mime_type, unsplash_photo_id, unsplash_photographer, unsplash_photographer_url')
       .order('created_at', { ascending: false });
 
-    if (source === 'upload' || source === 'generated') {
+    if (source === 'upload' || source === 'generated' || source === 'unsplash') {
       query = query.eq('source', source);
     }
 
@@ -145,6 +146,65 @@ router.post('/generate', requireWriteRole, async (req, res, next) => {
     if (error) throw error;
 
     return res.status(201).json({ item });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// POST /api/media/unsplash-select — Unsplash-foto selecteren en opslaan in library
+router.post('/unsplash-select', requireWriteRole, async (req, res, next) => {
+  try {
+    const unsplashPhotoId = String(req.body?.unsplashPhotoId || '').trim();
+    const url = String(req.body?.url || '').trim();
+    const altText = String(req.body?.altText || '').trim().slice(0, 255);
+    const photographer = String(req.body?.photographer || '').trim();
+    const photographerUrl = String(req.body?.photographerUrl || '').trim();
+    const downloadLocation = String(req.body?.downloadLocation || '').trim();
+
+    if (!unsplashPhotoId || !url) {
+      return res.status(400).json({ error: 'Unsplash foto-ID en URL zijn verplicht.' });
+    }
+    if (!photographer || !photographerUrl) {
+      return res.status(400).json({ error: 'Fotograaf-informatie is verplicht voor attributie.' });
+    }
+
+    // Dedup: als dezelfde foto al in de library staat, retourneer die
+    const { data: existing, error: findError } = await supabase
+      .from('media_library')
+      .select('id, filename, path, alt_text, tags, source, created_by, created_at, file_size, mime_type, unsplash_photo_id, unsplash_photographer, unsplash_photographer_url')
+      .eq('unsplash_photo_id', unsplashPhotoId)
+      .maybeSingle();
+
+    if (findError) throw findError;
+    if (existing) {
+      return res.status(200).json({ item: existing, reused: true });
+    }
+
+    // Nieuwe entry aanmaken
+    const { data: item, error: insertError } = await supabase
+      .from('media_library')
+      .insert({
+        filename: `unsplash-${unsplashPhotoId}.jpg`,
+        path: url,
+        alt_text: altText || null,
+        tags: [],
+        source: 'unsplash',
+        created_by: req.user.id,
+        unsplash_photo_id: unsplashPhotoId,
+        unsplash_photographer: photographer,
+        unsplash_photographer_url: photographerUrl,
+      })
+      .select('id, filename, path, alt_text, tags, source, created_by, created_at, file_size, mime_type, unsplash_photo_id, unsplash_photographer, unsplash_photographer_url')
+      .single();
+
+    if (insertError) throw insertError;
+
+    // Download tracking (fire-and-forget, Unsplash TOS)
+    if (downloadLocation) {
+      unsplash.trackDownload(downloadLocation).catch(() => {});
+    }
+
+    return res.status(201).json({ item, reused: false });
   } catch (err) {
     return next(err);
   }

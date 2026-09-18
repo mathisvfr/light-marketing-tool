@@ -19,6 +19,7 @@ Regels:
    - lead: openingsparagraaf, 1-2 zinnen, wordt prominent getoond op de detailpagina
    - meta_description: SEO meta-description (max 160 tekens)
    - leestijd: geschatte leestijd als string (bijv. "4 min")
+   - image_search_terms: array van 3-5 Engelse zoektermen voor een header-stockfoto op Unsplash. Visueel en concreet, gericht op het blogtopic. Eerste term is de meest specifieke. Voorbeeld: ["warehouse logistics Netherlands", "temporary workers", "staffing agency office"].
 3. Schrijf in een no-nonsense, Rotterdamse toon. Direct, helder, geen wollig taalgebruik.
 4. Houd claims feitelijk. Verzin geen statistieken, certificeringen of resultaten.
 5. Alleen SNA mag als certificering genoemd worden, en alleen wanneer relevant.
