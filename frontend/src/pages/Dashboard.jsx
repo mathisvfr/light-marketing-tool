@@ -4,20 +4,11 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import StatusBadge from '../components/shared/StatusBadge';
 import ChannelStatus from '../components/shared/ChannelStatus';
-import Card, { CardHeader } from '../components/shared/Card';
 import '../components/shared/status-strip.css';
-import '../components/shared/card.css';
 import './dashboard.css';
 
-const CHANNEL_LABELS = {
-  buffer: 'Buffer (LinkedIn/Facebook/Instagram)',
-};
-
 function formatDate(dateValue) {
-  if (!dateValue) {
-    return 'Onbekend';
-  }
-
+  if (!dateValue) return 'Onbekend';
   return new Intl.DateTimeFormat('nl-NL', {
     day: '2-digit',
     month: '2-digit',
@@ -25,19 +16,32 @@ function formatDate(dateValue) {
   }).format(new Date(dateValue));
 }
 
-// Kanaal- en integratielabels komen nu uit <ChannelStatus namespace="integrations">;
-// de losse getStatusDotClass/getChannelStatusLabel-helpers zijn weg.
+function formatRelative(dateValue) {
+  if (!dateValue) return '';
+  const diff = Date.now() - new Date(dateValue).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Zojuist';
+  if (mins < 60) return `${mins} min geleden`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}u geleden`;
+  const days = Math.floor(hours / 24);
+  return `${days}d geleden`;
+}
 
-function getFeedHealthLabel(itemsWithIssues) {
-  if (itemsWithIssues === 0) {
-    return 'In orde';
-  }
+const CHANNEL_LABELS = {
+  buffer: 'Buffer',
+};
 
-  if (itemsWithIssues < 5) {
-    return 'Aandacht nodig';
-  }
-
+function getFeedHealthLabel(count) {
+  if (count === 0) return 'Alles in orde';
+  if (count < 5) return 'Aandacht nodig';
   return 'Actie nodig';
+}
+
+function getFeedHealthTone(count) {
+  if (count === 0) return 'success';
+  if (count < 5) return 'warning';
+  return 'error';
 }
 
 export default function Dashboard() {
@@ -51,31 +55,23 @@ export default function Dashboard() {
 
   const approveMutation = useMutation({
     mutationFn: (id) => api(`/dashboard/queue/${id}/approve`, { method: 'POST' }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] }),
   });
 
   const rejectMutation = useMutation({
     mutationFn: (id) => api(`/dashboard/queue/${id}/reject`, { method: 'POST' }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] }),
   });
 
   if (summaryQuery.isLoading) {
-    return <p>Dashboard wordt geladen...</p>;
+    return <div className="dash"><p className="dash-loading">Dashboard wordt geladen...</p></div>;
   }
 
   if (summaryQuery.isError) {
-    return <p>Kon dashboardgegevens niet laden.</p>;
+    return <div className="dash"><p className="dash-error">Kon dashboardgegevens niet laden.</p></div>;
   }
 
-  const counts = summaryQuery.data?.counts || {
-    pendingApproval: 0,
-    publishedThisWeek: 0,
-    activeVacatures: 0,
-  };
+  const counts = summaryQuery.data?.counts || { pendingApproval: 0, publishedThisWeek: 0, activeVacatures: 0 };
   const teamCounts = summaryQuery.data?.teamCounts || null;
   const viewScope = summaryQuery.data?.viewScope || 'team';
   const approvalQueue = summaryQuery.data?.approvalQueue || [];
@@ -84,102 +80,105 @@ export default function Dashboard() {
   const feedHealth = summaryQuery.data?.feedHealth || null;
   const feedIssueCount = feedHealth?.itemsWithIssues || 0;
 
-  // Dashboard "Jouw" affordance (Design review): personal cards prefix "Jouw"
-  // so recruiters know they're seeing their own metrics; owner sees personal
-  // strip PLUS a "Team totaal" section beneath — no toggle.
-  const cardsPrefix = viewScope === 'personal' ? 'Jouw' : '';
-  const label = (base) => (cardsPrefix ? `${cardsPrefix} ${base.toLowerCase()}` : base);
-
-  // Per-user onboarded flag: set once when the user creates their first draft
-  // (backend auto-sets on POST /drafts). Existing users are backfilled to their
-  // created_at at migration time so they never see the checklist. The old
-  // "empty pipeline" proxy was fragile — deleting a draft resurrected it.
   const isEmptyDashboard = role !== 'viewer' && !user?.onboarded_at;
+  const prefix = viewScope === 'personal' ? 'Jouw ' : '';
 
   return (
-    <div className="dashboard-grid">
-      {isEmptyDashboard ? (
-        <Card tone="emphasized" padding="lg" className="dashboard-onboarding-card">
-          <h3>Welkom bij Light Marketing. Aan de slag.</h3>
-          <p className="dashboard-meta">
-            Nog geen content in de tool. Deze drie stappen brengen je naar je eerste post.
-          </p>
-          <ol className="dashboard-onboarding-list">
-            <li>
-              <Link to="/vacature-plaatsen">Maak je eerste vacature</Link>
-              <p className="dashboard-meta">Sandra publiceert vacatures via de XML feed naar Multiposter.</p>
-            </li>
-            <li>
-              <Link to="/marketing-post">Maak je eerste marketingpost</Link>
-              <p className="dashboard-meta">Liza publiceert brand content via Buffer naar LinkedIn/Facebook/Instagram.</p>
-            </li>
-            {role === 'owner' ? (
-              <li>
-                <Link to="/merk-instellingen">Controleer je merkinstellingen</Link>
-                <p className="dashboard-meta">Bepaalt hoe de AI schrijft. Doe dit één keer voordat je publiceert.</p>
-              </li>
-            ) : null}
-          </ol>
-        </Card>
-      ) : null}
-
-      <section className="dashboard-cards">
-        <Card padding="sm">
-          <h3>{label('Wacht op goedkeuring')}</h3>
-          <p className="dashboard-count">{counts.pendingApproval}</p>
-        </Card>
-        <Card padding="sm">
-          <h3>{label('Gepubliceerd deze week')}</h3>
-          <p className="dashboard-count">{counts.publishedThisWeek}</p>
-        </Card>
-        <Card padding="sm">
-          <h3>{label('Actieve vacatures')}</h3>
-          <p className="dashboard-count">{counts.activeVacatures}</p>
-        </Card>
-        {role === 'owner' ? (
-          <Card padding="sm">
-            <h3>Feed gezondheid</h3>
-            <p className="dashboard-count">{feedHealth?.totalItems || 0}</p>
-            <p className="dashboard-meta">
-              Items met issues: {feedIssueCount} · {getFeedHealthLabel(feedIssueCount)}
-            </p>
-            <p className="dashboard-meta">Laatste check: {formatDate(feedHealth?.generatedAt)}</p>
-          </Card>
-        ) : null}
-      </section>
-
-      {teamCounts ? (
-        <section className="dashboard-section">
-          <h3>Team totaal</h3>
-          <div className="dashboard-cards">
-            <Card padding="sm" className="dashboard-card-secondary">
-              <h4>Wacht op goedkeuring</h4>
-              <p className="dashboard-count">{teamCounts.pendingApproval}</p>
-            </Card>
-            <Card padding="sm" className="dashboard-card-secondary">
-              <h4>Gepubliceerd deze week</h4>
-              <p className="dashboard-count">{teamCounts.publishedThisWeek}</p>
-            </Card>
-            <Card padding="sm" className="dashboard-card-secondary">
-              <h4>Actieve vacatures</h4>
-              <p className="dashboard-count">{teamCounts.activeVacatures}</p>
-            </Card>
+    <div className="dash">
+      {/* Onboarding card */}
+      {isEmptyDashboard && (
+        <section className="dash-welcome">
+          <h2>Welkom bij Light Marketing</h2>
+          <p>Nog geen content in de tool. Begin met een van deze stappen:</p>
+          <div className="dash-welcome-actions">
+            <Link to="/vacature-plaatsen" className="dash-welcome-btn">
+              <span className="dash-welcome-icon">📋</span>
+              <span>
+                <strong>Eerste vacature</strong>
+                <small>Publiceer via de XML feed naar Multiposter</small>
+              </span>
+            </Link>
+            <Link to="/marketing-post" className="dash-welcome-btn">
+              <span className="dash-welcome-icon">📣</span>
+              <span>
+                <strong>Eerste marketingpost</strong>
+                <small>Publiceer via Buffer naar social media</small>
+              </span>
+            </Link>
+            {role === 'owner' && (
+              <Link to="/merk-instellingen" className="dash-welcome-btn">
+                <span className="dash-welcome-icon">⚙️</span>
+                <span>
+                  <strong>Merkinstellingen</strong>
+                  <small>Bepaalt hoe de AI schrijft</small>
+                </span>
+              </Link>
+            )}
           </div>
         </section>
-      ) : null}
+      )}
 
-      <section className="dashboard-panels">
-        {role === 'owner' || role === 'recruiter' ? (
-          <Card>
-            <CardHeader title="Openstaande concepten" />
+      {/* Metric cards */}
+      <section className="dash-metrics">
+        <div className="dash-metric">
+          <span className="dash-metric-label">{prefix}Wacht op goedkeuring</span>
+          <span className="dash-metric-value">{counts.pendingApproval}</span>
+          {counts.pendingApproval > 0 && (
+            <Link to="/content-wachtrij" className="dash-metric-link">Bekijk wachtrij →</Link>
+          )}
+        </div>
+        <div className="dash-metric">
+          <span className="dash-metric-label">{prefix}Gepubliceerd deze week</span>
+          <span className="dash-metric-value">{counts.publishedThisWeek}</span>
+          {counts.publishedThisWeek > 0 && (
+            <Link to="/gepubliceerd" className="dash-metric-link">Bekijk →</Link>
+          )}
+        </div>
+        <div className="dash-metric">
+          <span className="dash-metric-label">{prefix}Actieve vacatures</span>
+          <span className="dash-metric-value">{counts.activeVacatures}</span>
+        </div>
+        {role === 'owner' && feedHealth && (
+          <div className={`dash-metric dash-metric-${getFeedHealthTone(feedIssueCount)}`}>
+            <span className="dash-metric-label">Feed gezondheid</span>
+            <span className="dash-metric-value">{feedHealth.totalItems || 0}</span>
+            <span className="dash-metric-sub">{getFeedHealthLabel(feedIssueCount)}</span>
+          </div>
+        )}
+      </section>
+
+      {/* Team totals (owner sees both personal + team) */}
+      {teamCounts && (
+        <section className="dash-team">
+          <h3 className="dash-section-title">Team totaal</h3>
+          <div className="dash-team-row">
+            <div className="dash-team-stat">
+              <span className="dash-team-num">{teamCounts.pendingApproval}</span>
+              <span className="dash-team-label">wacht op goedkeuring</span>
+            </div>
+            <div className="dash-team-stat">
+              <span className="dash-team-num">{teamCounts.publishedThisWeek}</span>
+              <span className="dash-team-label">gepubliceerd deze week</span>
+            </div>
+            <div className="dash-team-stat">
+              <span className="dash-team-num">{teamCounts.activeVacatures}</span>
+              <span className="dash-team-label">actieve vacatures</span>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Two-column panels */}
+      <div className="dash-panels">
+        {/* Approval queue */}
+        {(role === 'owner' || role === 'recruiter') && (
+          <section className="dash-panel">
+            <h3 className="dash-panel-title">Openstaande concepten</h3>
             {approvalQueue.length === 0 ? (
-              <p>Geen concepten in wachtrij.</p>
+              <p className="dash-panel-empty">Geen concepten in wachtrij.</p>
             ) : (
-              <ul className="dashboard-list">
+              <div className="dash-queue">
                 {approvalQueue.map((item) => {
-                  // Row rendering branches on status: pending_approval rows keep
-                  // the owner's approve/reject shortcut; draft rows just link to
-                  // their edit page so the author can finish them.
                   const editPath =
                     item.type === 'marketing-post'
                       ? `/marketing-post?draftId=${item.id}`
@@ -188,16 +187,20 @@ export default function Dashboard() {
                       : `/vacature-plaatsen?draftId=${item.id}`;
 
                   return (
-                    <li key={item.id}>
-                      <strong>{item.title}</strong>
-                      <p className="dashboard-meta">
-                        {item.type} · {item.creatorName} · {formatDate(item.createdAt)} · <StatusBadge status={item.status} />
-                      </p>
-                      <div className="dashboard-actions">
+                    <div key={item.id} className="dash-queue-item">
+                      <div className="dash-queue-info">
+                        <span className="dash-queue-title">{item.title}</span>
+                        <span className="dash-queue-meta">
+                          {item.type === 'marketing-post' ? 'Marketing' : item.type === 'blog' ? 'Blog' : 'Vacature'}
+                          {' · '}{item.creatorName}{' · '}<StatusBadge status={item.status} />
+                        </span>
+                      </div>
+                      <div className="dash-queue-actions">
                         {item.status === 'pending_approval' && role === 'owner' ? (
                           <>
                             <button
                               type="button"
+                              className="dash-btn primary"
                               disabled={approveMutation.isPending || rejectMutation.isPending}
                               onClick={() => approveMutation.mutate(item.id)}
                             >
@@ -205,6 +208,7 @@ export default function Dashboard() {
                             </button>
                             <button
                               type="button"
+                              className="dash-btn ghost"
                               disabled={approveMutation.isPending || rejectMutation.isPending}
                               onClick={() => rejectMutation.mutate(item.id)}
                             >
@@ -212,56 +216,57 @@ export default function Dashboard() {
                             </button>
                           </>
                         ) : (
-                          <Link to={editPath}>Bewerken</Link>
+                          <Link to={editPath} className="dash-btn outline">Bewerken</Link>
                         )}
                       </div>
-                    </li>
+                    </div>
                   );
                 })}
-              </ul>
+              </div>
             )}
-          </Card>
-        ) : null}
-
-        <Card>
-          <CardHeader title="Recente activiteit" />
-          {recentActivity.length === 0 ? (
-            <p>Geen recente wijzigingen.</p>
-          ) : (
-            <ul className="dashboard-list">
-              {recentActivity.map((item) => (
-                <li key={item.id}>
-                  <strong>{item.title}</strong>
-                  <p className="dashboard-meta">
-                    {item.type} · <StatusBadge status={item.status} /> · {formatDate(item.updatedAt)}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </section>
-
-      <Card>
-        <CardHeader title="Kanaalstatus" />
-        {channelHealth.length === 0 ? (
-          <p>Nog geen kanaalstatus beschikbaar.</p>
-        ) : (
-          <ul className="dashboard-list">
-            {channelHealth.map((item) => (
-              <li key={item.channel}>
-                <strong>
-                  <ChannelStatus status={item.status} namespace="integrations" compact />{' '}
-                  {CHANNEL_LABELS[item.channel] || item.channel}
-                </strong>
-                <p className="dashboard-meta">
-                  Laatste status: <ChannelStatus status={item.status} namespace="integrations" /> · {formatDate(item.updatedAt)}
-                </p>
-              </li>
-            ))}
-          </ul>
+          </section>
         )}
-      </Card>
+
+        {/* Recent activity */}
+        <section className="dash-panel">
+          <h3 className="dash-panel-title">Recente activiteit</h3>
+          {recentActivity.length === 0 ? (
+            <p className="dash-panel-empty">Geen recente wijzigingen.</p>
+          ) : (
+            <div className="dash-activity">
+              {recentActivity.map((item) => (
+                <div key={item.id} className="dash-activity-item">
+                  <div className="dash-activity-dot" />
+                  <div>
+                    <span className="dash-activity-title">{item.title}</span>
+                    <span className="dash-activity-meta">
+                      <StatusBadge status={item.status} /> · {formatRelative(item.updatedAt)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* Channel health */}
+      <section className="dash-channels">
+        <h3 className="dash-section-title">Kanaalstatus</h3>
+        {channelHealth.length === 0 ? (
+          <p className="dash-panel-empty">Nog geen kanaalstatus beschikbaar.</p>
+        ) : (
+          <div className="dash-channel-list">
+            {channelHealth.map((item) => (
+              <div key={item.channel} className="dash-channel-item">
+                <ChannelStatus status={item.status} namespace="integrations" compact />
+                <span className="dash-channel-name">{CHANNEL_LABELS[item.channel] || item.channel}</span>
+                <span className="dash-channel-updated">{formatDate(item.updatedAt)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
