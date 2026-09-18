@@ -9,7 +9,12 @@ COPY prompts ./prompts
 
 # Run as non-root user for security
 RUN mkdir -p /app/uploads && chown -R node:node /app
-USER node
+
+# su-exec for dropping privileges in entrypoint; entrypoint runs as root
+# briefly to fix volume ownership, then drops to node.
+RUN apk add --no-cache su-exec
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 3001
-CMD ["npm", "start"]
+ENTRYPOINT ["/app/entrypoint.sh"]
