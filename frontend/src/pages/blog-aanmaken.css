@@ -1,13 +1,16 @@
 .blog-layout {
   max-width: 820px;
   margin: 0 auto;
-  padding: 1.5rem;
 }
 
 .blog-form {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  background: #fff;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 1.25rem;
 }
 
 .blog-field {
@@ -15,26 +18,28 @@
   flex-direction: column;
   gap: 0.25rem;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
+  color: var(--color-text, #1e293b);
 }
 
 .blog-field input,
 .blog-field textarea,
 .blog-field select {
   font-weight: 400;
-  font-size: 0.9375rem;
-  padding: 0.5rem 0.625rem;
-  border: 1px solid var(--grey-200, #e0e2e4);
-  border-radius: 6px;
-  background: var(--white, #fff);
+  font-size: 0.92rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-sm, 6px);
+  background: #fff;
+  transition: border-color var(--dur-fast, 0.15s) var(--ease-out, ease-out);
 }
 
 .blog-field textarea:focus,
 .blog-field input:focus,
 .blog-field select:focus {
-  outline: 2px solid var(--red, #be1e2d);
-  outline-offset: -1px;
-  border-color: var(--red, #be1e2d);
+  outline: none;
+  border-color: var(--color-primary, #d32f2f);
+  box-shadow: 0 0 0 3px var(--color-focus-ring, rgba(211, 47, 47, 0.12));
 }
 
 .blog-html-editor {
@@ -44,35 +49,36 @@
 }
 
 .char-count {
-  font-size: 0.75rem;
-  color: var(--grey-500, #787c7e);
+  font-size: 0.72rem;
+  color: var(--color-text-muted, #64748b);
   text-align: right;
 }
 
 .blog-preview {
-  margin-top: 2rem;
+  margin-top: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
 .blog-preview-heading {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 700;
-  border-bottom: 2px solid var(--grey-200, #e0e2e4);
+  border-bottom: 2px solid var(--color-border, #e2e8f0);
   padding-bottom: 0.5rem;
+  color: var(--color-text, #1e293b);
 }
 
 .criticus-result {
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm, 8px);
+  font-size: 0.85rem;
 }
 
 .criticus-result.pass {
-  background: #ecfdf5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
 }
 
 .criticus-result.fail {
@@ -87,12 +93,13 @@
 
 .blog-image-preview img {
   max-width: 100%;
-  border-radius: 8px;
-  border: 1px solid var(--grey-200, #e0e2e4);
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--color-border, #e2e8f0);
 }
 
 .blog-image-preview h3 {
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
+  color: var(--color-text-muted, #64748b);
 }

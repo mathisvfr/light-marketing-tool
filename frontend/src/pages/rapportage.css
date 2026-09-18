@@ -1,5 +1,6 @@
 .rapportage-grid {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 1.5rem;
 }
 
@@ -12,12 +13,19 @@
 
 .rapportage-controls select {
   padding: 0.4rem 0.75rem;
-  border: 1.5px solid var(--grey-300);
-  border-radius: 8px;
+  border: 1.5px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-sm, 6px);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   background: #fff;
   cursor: pointer;
+  transition: border-color var(--dur-fast, 0.15s);
+}
+
+.rapportage-controls select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring, rgba(211, 47, 47, 0.12));
 }
 
 .rapportage-controls button {
@@ -25,27 +33,27 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.4rem 0.85rem;
-  border: 1.5px solid var(--grey-300);
-  border-radius: 8px;
+  border: 1.5px solid var(--color-border, #e2e8f0);
+  border-radius: 7px;
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   background: #fff;
   cursor: pointer;
-  color: var(--color-text-muted);
-  transition: border-color 0.15s, background 0.15s;
+  color: var(--color-text-muted, #64748b);
+  transition: border-color var(--dur-fast, 0.15s), background var(--dur-fast, 0.15s);
 }
 
 .rapportage-controls button:hover {
   border-color: var(--color-primary);
-  background: var(--grey-100);
+  background: #f8fafc;
 }
 
-/* Section dividers */
 .rapportage-section {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.875rem;
   padding-top: 0.5rem;
-  border-top: 2px solid var(--grey-200, #e2e8f0);
+  border-top: 2px solid var(--color-border, #e2e8f0);
 }
 
 .rapportage-section:first-of-type {
@@ -55,18 +63,17 @@
 
 .rapportage-section-title {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: var(--color-text, #1e293b);
 }
 
 .rapportage-section-desc {
   margin: -0.5rem 0 0;
   font-size: 0.85rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-muted, #64748b);
 }
 
-/* Tile grid */
 .rapportage-tiles {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -77,58 +84,57 @@
   margin: 0.5rem 0 0;
   font-size: 1.8rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: var(--color-text, #1e293b);
 }
 
 .rapportage-tile-label {
   margin: 0;
-  color: var(--color-text-muted);
-  font-size: 0.95rem;
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.88rem;
 }
 
-/* Chart grid */
 .rapportage-charts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.875rem;
 }
 
-/* Stale data chip */
 .rapportage-stale-chip {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   padding: 0.25rem 0.6rem;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  background: var(--light-red-50, #fff1f2);
-  color: var(--light-red, #be1e2d);
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.78rem;
+  background: var(--light-red-50, #fef2f2);
+  color: var(--color-primary, #d32f2f);
   border: 1px solid var(--light-red-300, #fecaca);
 }
 
-/* Expand/collapse button */
 .rapportage-expand-btn {
   display: inline-flex;
   align-items: center;
   padding: 0.3rem 0.7rem;
-  border: 1.5px solid var(--grey-300);
-  border-radius: 6px;
+  border: 1.5px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-sm, 6px);
   font: inherit;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   background: #fff;
   cursor: pointer;
-  color: var(--color-text-muted);
-  transition: border-color 0.15s, background 0.15s;
+  color: var(--color-text-muted, #64748b);
+  transition: border-color var(--dur-fast, 0.15s), background var(--dur-fast, 0.15s);
 }
 
 .rapportage-expand-btn:hover {
   border-color: var(--color-primary);
-  background: var(--grey-100);
+  background: #f8fafc;
 }
 
-/* Data tables */
 .rapportage-table-wrap {
   overflow-x: auto;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+  background: #fff;
 }
 
 .rapportage-table {
@@ -139,15 +145,30 @@
 
 .rapportage-table th,
 .rapportage-table td {
-  padding: 0.4rem 0.6rem;
+  padding: 0.45rem 0.65rem;
   text-align: left;
-  border-bottom: 1px solid var(--grey-200, #e2e8f0);
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+}
+
+.rapportage-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.rapportage-table tbody tr {
+  transition: background var(--dur-fast, 0.15s);
+}
+
+.rapportage-table tbody tr:hover {
+  background: #fafbfc;
 }
 
 .rapportage-table th {
-  color: var(--color-text-muted);
+  color: var(--color-text-muted, #64748b);
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  background: #f8fafc;
 }
 
 @media (max-width: 980px) {
