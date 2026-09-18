@@ -155,7 +155,7 @@ export default function MarketingPost() {
   }
 
   const saveMutation = useMutation({
-    mutationFn: (status) =>
+    mutationFn: () =>
       api(`/drafts/${effectiveDraftId}`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -165,7 +165,6 @@ export default function MarketingPost() {
           image_path: imagePath || null,
           criticus_passed: criticusPassed,
           criticus_notes: criticusNotes,
-          status,
         }),
       }),
   });
@@ -339,7 +338,7 @@ export default function MarketingPost() {
     setSuccess('');
 
     try {
-      await saveMutation.mutateAsync('draft');
+      await saveMutation.mutateAsync();
       setSuccess('Concept opgeslagen.');
     } catch (err) {
       setError(err.message || 'Opslaan is mislukt.');
@@ -351,7 +350,7 @@ export default function MarketingPost() {
     setSuccess('');
 
     try {
-      await saveMutation.mutateAsync('draft');
+      await saveMutation.mutateAsync();
       await submitForApprovalMutation.mutateAsync();
       setSuccess('Concept ingediend ter goedkeuring.');
     } catch (err) {
@@ -380,7 +379,7 @@ export default function MarketingPost() {
     const scheduleMap = resolveScheduleMap();
 
     try {
-      await saveMutation.mutateAsync('draft');
+      await saveMutation.mutateAsync();
       await api(`/drafts/${effectiveDraftId}/approve`, { method: 'POST' });
     } catch (err) {
       setError(err.message || 'Goedkeuren is mislukt.');

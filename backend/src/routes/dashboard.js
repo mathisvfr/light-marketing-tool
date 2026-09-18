@@ -3,6 +3,7 @@ const { supabase } = require('../db/client');
 const { requireRole } = require('../middleware/auth');
 const { getJobsFeedStatus } = require('../services/feed');
 const { getAllCredentialStatuses } = require('../services/integrations');
+const { notifyAfterCommit } = require('../services/notifications');
 
 const router = express.Router();
 
@@ -229,24 +230,39 @@ router.post('/queue/:id/approve', requireRole('owner'), async (req, res, next) =
   try {
     const { id } = req.params;
 
-    const { data, error } = await supabase
+    // Fetch draft to determine type (vacatures → actief, others → approved)
+    const { data: draft, error: fetchError } = await supabase
+      .from('drafts')
+      .select('id, type, status, created_by, form_data')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+
+    if (!draft || !['draft', 'pending_approval'].includes(draft.status)) {
+      return res.status(404).json({ error: 'Concept niet gevonden of niet meer in wachtrij.' });
+    }
+
+    const nextStatus = draft.type === 'vacature' ? 'actief' : 'approved';
+
+    const { error } = await supabase
       .from('drafts')
       .update({
-        status: 'approved',
+        status: nextStatus,
         reviewed_by: req.user.id,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', id)
-      .eq('status', 'pending_approval')
-      .select('id')
-      .maybeSingle();
+      .eq('id', id);
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
-    if (!data) {
-      return res.status(404).json({ error: 'Concept niet gevonden of niet meer in wachtrij.' });
+    if (draft.created_by && draft.created_by !== req.user.id) {
+      notifyAfterCommit('draft.approved', {
+        draft_id: id,
+        actor_name: req.user.name || req.user.email || 'De eigenaar',
+        title: getDraftTitle(draft.form_data) || 'concept',
+        recipient_user_ids: [draft.created_by],
+      });
     }
 
     return res.status(200).json({ success: true });
@@ -258,25 +274,42 @@ router.post('/queue/:id/approve', requireRole('owner'), async (req, res, next) =
 router.post('/queue/:id/reject', requireRole('owner'), async (req, res, next) => {
   try {
     const { id } = req.params;
+    const comment = String(req.body?.comment || '').trim();
 
-    const { data, error } = await supabase
+    const { data: draft, error: fetchError } = await supabase
+      .from('drafts')
+      .select('id, status, created_by, form_data')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+
+    if (!draft || !['draft', 'pending_approval'].includes(draft.status)) {
+      return res.status(404).json({ error: 'Concept niet gevonden of niet meer in wachtrij.' });
+    }
+
+    const formData = { ...(draft.form_data || {}), review_comment: comment || null };
+
+    const { error } = await supabase
       .from('drafts')
       .update({
         status: 'rejected',
         reviewed_by: req.user.id,
+        form_data: formData,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', id)
-      .eq('status', 'pending_approval')
-      .select('id')
-      .maybeSingle();
+      .eq('id', id);
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
-    if (!data) {
-      return res.status(404).json({ error: 'Concept niet gevonden of niet meer in wachtrij.' });
+    if (draft.created_by && draft.created_by !== req.user.id) {
+      notifyAfterCommit('draft.rejected', {
+        draft_id: id,
+        actor_name: req.user.name || req.user.email || 'De eigenaar',
+        title: getDraftTitle(draft.form_data) || 'concept',
+        reason: comment,
+        recipient_user_ids: [draft.created_by],
+      });
     }
 
     return res.status(200).json({ success: true });

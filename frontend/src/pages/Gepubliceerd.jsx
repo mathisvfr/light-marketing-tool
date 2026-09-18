@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import StatusBadge from '../components/shared/StatusBadge';
@@ -282,7 +283,7 @@ export default function Gepubliceerd() {
                     <th>Titel</th>
                     <th>Status</th>
                     <th>Laatst bijgewerkt</th>
-                    {role === 'owner' ? <th>Actie</th> : null}
+                    <th>Acties</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -291,18 +292,23 @@ export default function Gepubliceerd() {
                       <td className="published-title-cell">{item.title}</td>
                       <td><StatusBadge status="actief" /></td>
                       <td>{formatDate(item.updatedAt)}</td>
-                      {role === 'owner' ? (
-                        <td>
-                          <button
-                            type="button"
-                            className="published-btn destructive"
-                            onClick={() => handleExpire(item.id)}
-                            disabled={expireMutation.isPending}
-                          >
-                            Vacature sluiten
-                          </button>
-                        </td>
-                      ) : null}
+                      <td>
+                        <div className="published-actions">
+                          <Link to={`/vacature-plaatsen?draftId=${item.id}`} className="published-btn">
+                            Bewerken
+                          </Link>
+                          {role === 'owner' && (
+                            <button
+                              type="button"
+                              className="published-btn destructive"
+                              onClick={() => handleExpire(item.id)}
+                              disabled={expireMutation.isPending}
+                            >
+                              Sluiten
+                            </button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -327,6 +333,7 @@ export default function Gepubliceerd() {
                     <th>Categorie</th>
                     <th>Status</th>
                     <th>Laatst bijgewerkt</th>
+                    <th>Actie</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -336,6 +343,11 @@ export default function Gepubliceerd() {
                       <td>{item.categorie || '-'}</td>
                       <td><StatusBadge status={item.status} /></td>
                       <td>{formatDate(item.updatedAt)}</td>
+                      <td>
+                        <Link to={`/blog-aanmaken?draftId=${item.id}`} className="published-btn">
+                          Bewerken
+                        </Link>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

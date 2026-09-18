@@ -548,20 +548,24 @@ export default function ContentWachtrij() {
                       <div className="queue-actions">
                         {isOwner ? (
                           <>
-                            <button
-                              type="button"
-                              disabled={isMutating}
-                              onClick={() => handleApprove(draft.id)}
-                            >
-                              Goedkeuren
-                            </button>
-                            <button
-                              type="button"
-                              disabled={isMutating}
-                              onClick={() => handleReject(draft.id)}
-                            >
-                              Afwijzen
-                            </button>
+                            {['draft', 'pending_approval'].includes(draft.status) && (
+                              <button
+                                type="button"
+                                disabled={isMutating}
+                                onClick={() => handleApprove(draft.id)}
+                              >
+                                Goedkeuren
+                              </button>
+                            )}
+                            {['draft', 'pending_approval'].includes(draft.status) && (
+                              <button
+                                type="button"
+                                disabled={isMutating}
+                                onClick={() => handleReject(draft.id)}
+                              >
+                                Afwijzen
+                              </button>
+                            )}
                             <button
                               type="button"
                               disabled={isMutating}

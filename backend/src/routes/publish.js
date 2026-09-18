@@ -481,6 +481,10 @@ router.post('/:id/expire', requireRole('owner'), async (req, res, next) => {
       return res.status(400).json({ error: 'Alleen vacatures kunnen worden gesloten.' });
     }
 
+    if (draft.status !== 'actief') {
+      return res.status(400).json({ error: 'Alleen actieve vacatures kunnen worden gesloten.' });
+    }
+
     const nowIso = new Date().toISOString();
 
     const { data: publicationRows, error: publicationReadError } = await supabase

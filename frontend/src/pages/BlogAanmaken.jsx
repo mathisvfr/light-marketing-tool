@@ -98,7 +98,7 @@ export default function BlogAanmaken() {
   }, [criticusPassed, imagePath, effectiveDraftId, isGenerating, draftIdParam]);
 
   const saveMutation = useMutation({
-    mutationFn: (status) =>
+    mutationFn: () =>
       api(`/drafts/${effectiveDraftId}`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -112,7 +112,6 @@ export default function BlogAanmaken() {
           image_path: imagePath || null,
           criticus_passed: criticusPassed,
           criticus_notes: criticusNotes,
-          status,
         }),
       }),
   });
@@ -224,7 +223,7 @@ export default function BlogAanmaken() {
   async function handleSaveDraft() {
     setError(''); setSuccess('');
     try {
-      await saveMutation.mutateAsync('draft');
+      await saveMutation.mutateAsync();
       setSuccess('Concept opgeslagen.');
     } catch (err) {
       setError(err.message || 'Opslaan is mislukt.');
@@ -234,7 +233,7 @@ export default function BlogAanmaken() {
   async function handleSubmitForApproval() {
     setError(''); setSuccess('');
     try {
-      await saveMutation.mutateAsync('draft');
+      await saveMutation.mutateAsync();
       await submitForApprovalMutation.mutateAsync();
       setSuccess('Blogartikel ingediend ter goedkeuring.');
     } catch (err) {
@@ -245,7 +244,7 @@ export default function BlogAanmaken() {
   async function handleApproveAndPublish() {
     setError(''); setSuccess('');
     try {
-      await saveMutation.mutateAsync('draft');
+      await saveMutation.mutateAsync();
       await api(`/drafts/${effectiveDraftId}/approve`, { method: 'POST' });
     } catch (err) {
       setError(err.message || 'Goedkeuren is mislukt.');
@@ -286,6 +285,12 @@ export default function BlogAanmaken() {
   return (
     <div className="blog-layout">
       {loadedDraft && <StatusStrip status={draftStatus} type="blog" />}
+
+      {loadedDraft?.status === 'published' && (
+        <div className="criticus-result pass">
+          <strong>Je bewerkt een gepubliceerd blogartikel.</strong> Wijzigingen worden opgeslagen zonder de status te wijzigen.
+        </div>
+      )}
 
       <form className="blog-form" onSubmit={handleGenerate}>
         {draftId && autosaveLabel ? (

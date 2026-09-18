@@ -811,9 +811,13 @@ router.put('/:id', async (req, res, next) => {
       linkedin_post: req.body?.linkedin_post || null,
       instagram_caption: req.body?.instagram_caption || null,
       image_path: req.body?.image_path || null,
+      blog_titel: req.body?.blog_titel || null,
+      blog_html: req.body?.blog_html || null,
       criticus_passed: typeof req.body?.criticus_passed === 'boolean' ? req.body.criticus_passed : null,
       criticus_notes: req.body?.criticus_notes || null,
-      status: req.body?.status || 'draft',
+      // Status is NEVER set from the client — preserve current DB status.
+      // Status changes only through dedicated routes: /approve, /submit, /reject, /expire.
+      status: draft.status,
       updated_at: new Date().toISOString(),
     };
 
@@ -822,7 +826,7 @@ router.put('/:id', async (req, res, next) => {
       .update(payload)
       .eq('id', draft.id)
       .select(
-        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
+        'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, blog_titel, blog_html, criticus_passed, criticus_notes'
       )
       .single();
 
@@ -846,7 +850,7 @@ router.post('/:id/submit', async (req, res, next) => {
 
     const { data: draft, error: draftError } = await supabase
       .from('drafts')
-      .select('id, created_by')
+      .select('id, created_by, status')
       .eq('id', draftId)
       .maybeSingle();
 
@@ -860,6 +864,10 @@ router.post('/:id/submit', async (req, res, next) => {
 
     if (!canEditDraft(req.user, draft)) {
       return res.status(403).json({ error: 'Je mag dit concept niet aanpassen.' });
+    }
+
+    if (!['draft', 'rejected'].includes(draft.status)) {
+      return res.status(400).json({ error: 'Alleen concepten of afgewezen items kunnen ingediend worden.' });
     }
 
     const { data: updatedDraft, error: updateError } = await supabase
@@ -1294,6 +1302,10 @@ router.post('/:id/approve', async (req, res, next) => {
       return res.status(404).json({ error: 'Concept niet gevonden.' });
     }
 
+    if (!['draft', 'pending_approval'].includes(currentDraft.status)) {
+      return res.status(400).json({ error: 'Alleen concepten of items in de wachtrij kunnen goedgekeurd worden.' });
+    }
+
     if (currentDraft.type === 'vacature') {
       // Sollicitatie-URL is de enige weg voor kandidaten om te reageren via de
       // feed. Zonder geldige URL komt niemand ergens; blokkeer daarom activering.
@@ -1366,7 +1378,7 @@ router.post('/:id/reject', async (req, res, next) => {
 
     const { data: currentDraft, error: currentDraftError } = await supabase
       .from('drafts')
-      .select('id, form_data, created_by')
+      .select('id, form_data, created_by, status')
       .eq('id', draftId)
       .maybeSingle();
 
@@ -1376,6 +1388,10 @@ router.post('/:id/reject', async (req, res, next) => {
 
     if (!currentDraft) {
       return res.status(404).json({ error: 'Concept niet gevonden.' });
+    }
+
+    if (!['draft', 'pending_approval'].includes(currentDraft.status)) {
+      return res.status(400).json({ error: 'Alleen concepten of items in de wachtrij kunnen afgewezen worden.' });
     }
 
     const formData = {
