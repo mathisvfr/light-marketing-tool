@@ -92,15 +92,7 @@ async function callBuffer(query, accessToken) {
   return payload?.data || {};
 }
 
-async function createPost({ accessToken, channelId, text, imageUrl, dueAt }) {
-  // VERIFY: Buffer's GraphQL createPost input shape and whether it accepts
-  // GraphQL *variables* (e.g. `mutation($input: PostCreateInput!) { createPost(input: $input) }`).
-  // Buffer's public GraphQL schema and the exact input type name are not documented
-  // in this repo, so we cannot safely switch to variables without guessing the type.
-  // Until confirmed against the live Buffer API docs, we interpolate JSON.stringify'd
-  // values. JSON.stringify produces valid GraphQL string literals (GraphQL string
-  // syntax matches JSON), which prevents string-break/injection for text/urls, but
-  // variables would still be cleaner. Check: https://buffer.com (API) / Buffer support.
+async function createPost({ accessToken, channelId, channel, text, imageUrl, dueAt }) {
   const assetBlock = imageUrl
     ? `
           assets: [
@@ -120,6 +112,11 @@ async function createPost({ accessToken, channelId, text, imageUrl, dueAt }) {
     ? `mode: customScheduled\n          dueAt: ${JSON.stringify(scheduledIso)}`
     : 'mode: addToQueue';
 
+  // Facebook and Instagram require a post type (post, story, or reel).
+  // LinkedIn does not use this field.
+  const needsType = channel === 'facebook' || channel === 'instagram';
+  const typeBlock = needsType ? 'type: post' : '';
+
   const query = `
     mutation CreateBufferPost {
       createPost(
@@ -127,7 +124,8 @@ async function createPost({ accessToken, channelId, text, imageUrl, dueAt }) {
           text: ${JSON.stringify(text)}
           channelId: ${JSON.stringify(channelId)}
           schedulingType: automatic
-          ${modeBlock}${assetBlock}
+          ${modeBlock}
+          ${typeBlock}${assetBlock}
         }
       ) {
         __typename
@@ -138,6 +136,9 @@ async function createPost({ accessToken, channelId, text, imageUrl, dueAt }) {
           }
         }
         ... on MutationError {
+          message
+        }
+        ... on InvalidInputError {
           message
         }
       }
@@ -159,7 +160,7 @@ async function createPost({ accessToken, channelId, text, imageUrl, dueAt }) {
     };
   }
 
-  if (result.__typename === 'MutationError') {
+  if (result.__typename === 'MutationError' || result.__typename === 'InvalidInputError') {
     return {
       status: 'failed',
       externalId: null,
@@ -221,6 +222,7 @@ async function publishSingle(channel, draft) {
     return await createPost({
       accessToken: credential.access_token,
       channelId,
+      channel,
       text,
       imageUrl,
       dueAt: draft.scheduledFor || null,
