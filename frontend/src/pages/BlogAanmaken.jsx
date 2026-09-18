@@ -197,11 +197,21 @@ export default function BlogAanmaken() {
         teaser: generated?.draft?.form_data?.teaser || '',
         lead: generated?.draft?.form_data?.lead || '',
       });
-      setImagePathOverride(generated?.draft?.image_path || '');
-      setCriticusOverride({
-        passed: typeof generated?.draft?.criticus_passed === 'boolean' ? generated.draft.criticus_passed : null,
-        notes: generated?.draft?.criticus_notes || '',
-      });
+      // Only override with actual values; leave undefined so polling picks up
+      // background results (criticus + image render run async after generate).
+      if (generated?.draft?.image_path) {
+        setImagePathOverride(generated.draft.image_path);
+      } else {
+        setImagePathOverride(undefined);
+      }
+      if (typeof generated?.draft?.criticus_passed === 'boolean') {
+        setCriticusOverride({
+          passed: generated.draft.criticus_passed,
+          notes: generated.draft.criticus_notes || '',
+        });
+      } else {
+        setCriticusOverride({ passed: undefined, notes: undefined });
+      }
       setSuccess('Blogartikel succesvol gegenereerd.');
     } catch (err) {
       setError(err.message || 'Genereren is mislukt.');

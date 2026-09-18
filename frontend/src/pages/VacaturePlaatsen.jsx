@@ -472,13 +472,14 @@ export default function VacaturePlaatsen() {
       };
 
       setContentEdits(nextContent);
-      setCriticusOverride({
-        passed:
-          typeof generated?.draft?.criticus_passed === 'boolean'
-            ? generated.draft.criticus_passed
-            : null,
-        notes: generated?.draft?.criticus_notes || '',
-      });
+      if (typeof generated?.draft?.criticus_passed === 'boolean') {
+        setCriticusOverride({
+          passed: generated.draft.criticus_passed,
+          notes: generated.draft.criticus_notes || '',
+        });
+      } else {
+        setCriticusOverride({ passed: undefined, notes: undefined });
+      }
       setActiveLangTab('nl');
       setSuccess('Concept succesvol gegenereerd.');
       setSteeringNotes('');

@@ -306,14 +306,19 @@ export default function MarketingPost() {
         social_nl: generated?.draft?.social_nl || '',
         instagram_caption: generated?.draft?.instagram_caption || '',
       });
-      setImagePathOverride(generated?.draft?.image_path || '');
-      setCriticusOverride({
-        passed:
-          typeof generated?.draft?.criticus_passed === 'boolean'
-            ? generated.draft.criticus_passed
-            : null,
-        notes: generated?.draft?.criticus_notes || '',
-      });
+      if (generated?.draft?.image_path) {
+        setImagePathOverride(generated.draft.image_path);
+      } else {
+        setImagePathOverride(undefined);
+      }
+      if (typeof generated?.draft?.criticus_passed === 'boolean') {
+        setCriticusOverride({
+          passed: generated.draft.criticus_passed,
+          notes: generated.draft.criticus_notes || '',
+        });
+      } else {
+        setCriticusOverride({ passed: undefined, notes: undefined });
+      }
       const channelToTab = { linkedin: 'linkedin_post', facebook: 'social_nl', instagram: 'instagram_caption' };
       const firstTab = form.kanalen.map((k) => channelToTab[k]).find(Boolean) || 'linkedin_post';
       setActiveTab(firstTab);
