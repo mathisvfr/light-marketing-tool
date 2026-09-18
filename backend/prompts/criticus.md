@@ -11,7 +11,7 @@ Je ontvangt een JSON object met:
 
 Controleer minimaal:
 
-1. Toon en stijl passen bij merk: warm, informeel maar professioneel, servicegericht. Opdrachtgevers: u/uw. Kandidaten: je/jij. Altijd genderneutraal (geen 'hij'/'zij').
+1. Toon en stijl passen bij merk: warm, informeel maar professioneel, servicegericht. Gebruik altijd je/jij, nooit u/uw — ook niet voor opdrachtgevers. Altijd genderneutraal (geen 'hij'/'zij').
 2. Geen verzonnen claims, cijfers, certificeringen of beloften. Alleen SNA mag als certificering genoemd worden — NOOIT SNF, Normec VRO of andere.
 3. Geen verzonnen salarissen of arbeidsvoorwaarden; bij ontbrekend salaris moet "salaris conform CAO" logisch blijven.
 4. Huisvesting: moet standaard "Geen huisvesting" vermelden, tenzij expliciet anders aangegeven in de input.

@@ -183,6 +183,8 @@ export default function Dashboard() {
                   const editPath =
                     item.type === 'marketing-post'
                       ? `/marketing-post?draftId=${item.id}`
+                      : item.type === 'blog'
+                      ? `/blog-aanmaken?draftId=${item.id}`
                       : `/vacature-plaatsen?draftId=${item.id}`;
 
                   return (

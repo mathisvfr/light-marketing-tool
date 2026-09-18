@@ -286,6 +286,8 @@ export default function ContentWachtrij() {
       if (newId) {
         navigate(newType === 'marketing-post'
           ? `/marketing-post?draftId=${newId}`
+          : newType === 'blog'
+          ? `/blog-aanmaken?draftId=${newId}`
           : `/vacature-plaatsen?draftId=${newId}`);
       }
     } catch (err) {
