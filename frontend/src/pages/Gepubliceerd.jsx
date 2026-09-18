@@ -13,9 +13,6 @@ import '../components/shared/toast.css';
 import { formatDate, formatDateTime, isoToLocalInput } from '../lib/datetime';
 import './gepubliceerd.css';
 
-// Buffer's metrics array is normalized into a { name: value } object by the
-// sync service. Render a compact icon row: hearts/comments/reach. Any subset
-// of these may be missing depending on the channel and how new the post is.
 function renderMetrics(metrics) {
   if (!metrics || typeof metrics !== 'object') return null;
   const likes = metrics.likes ?? metrics.reactions ?? null;
@@ -33,28 +30,18 @@ function renderMetrics(metrics) {
   );
 }
 
-function getTypeLabel(type) {
-  if (type === 'marketing-post') return 'Marketing';
-  if (type === 'blog') return 'Blog';
-  return 'Vacature';
-}
-
-function getTypeClass(type) {
-  if (type === 'marketing-post') return 'published-badge type-marketing';
-  if (type === 'blog') return 'published-badge type-blog';
-  return 'published-badge type-vacature';
-}
-
-// getStatusDotClass verwijderd — vervangen door <ChannelStatus compact>
-// die de tone uit /api/meta/statuses haalt via useStatusMeta.
-//
-// isoToLocalInput + formatDate + formatDateTime verhuisd naar lib/datetime.js.
+const TABS = [
+  { key: 'marketing', label: 'Marketingposts' },
+  { key: 'vacatures', label: 'Vacatures' },
+  { key: 'blogs', label: 'Blogs' },
+];
 
 export default function Gepubliceerd() {
   const { role } = useAuth();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('marketing');
   const [error, setError] = useState('');
-  const [reschedTarget, setReschedTarget] = useState(null); // { publicationId, title, channel, currentIso }
+  const [reschedTarget, setReschedTarget] = useState(null);
   const [reschedValue, setReschedValue] = useState('');
   const [confirm, setConfirm] = useState(null);
 
@@ -148,63 +135,222 @@ export default function Gepubliceerd() {
   const marketingItems = publishedQuery.data?.marketingItems || [];
   const vacatureItems = publishedQuery.data?.vacatureItems || [];
   const scheduledItems = publishedQuery.data?.scheduledItems || [];
+  const blogItems = publishedQuery.data?.blogItems || [];
 
   return (
     <div className="published-layout">
-      {scheduledItems.length > 0 ? (
-        <section className="published-section">
-          <h3>Ingepland via Buffer</h3>
-          <div className="published-table-wrap">
-            <table className="published-table">
-              <thead>
-                <tr>
-                  <th>Titel</th>
-                  <th>Kanaal</th>
-                  <th>Ingepland voor</th>
-                  {role === 'owner' ? <th>Acties</th> : null}
-                </tr>
-              </thead>
-              <tbody>
-                {scheduledItems.flatMap((item) =>
-                  (item.channels || [])
-                    .filter((c) => c.status === 'scheduled')
-                    .map((channel) => (
-                      <tr key={`${item.id}-${channel.channel}`}>
-                        <td>{item.title}</td>
-                        <td>
-                          <span className="channel-status-item">
-                            <ChannelStatus status={channel.status} compact />
-                            {channel.channel}
-                          </span>
-                        </td>
-                        <td>{formatDateTime(channel.scheduledFor)}</td>
-                        {role === 'owner' ? (
-                          <td>
-                            <button
-                              type="button"
-                              onClick={() => openReschedule(channel, item.title)}
-                              disabled={rescheduleMutation.isPending || cancelMutation.isPending}
-                            >
-                              Plan wijzigen
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleCancel(channel, item.title)}
-                              disabled={rescheduleMutation.isPending || cancelMutation.isPending}
-                            >
-                              Annuleren
-                            </button>
-                          </td>
-                        ) : null}
-                      </tr>
-                    ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : null}
+      {/* Tab navigation */}
+      <nav className="published-tabs">
+        {TABS.map((tab) => {
+          const count =
+            tab.key === 'marketing' ? marketingItems.length + scheduledItems.length
+            : tab.key === 'vacatures' ? vacatureItems.length
+            : blogItems.length;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              className={`published-tab${activeTab === tab.key ? ' active' : ''}`}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.label}
+              {count > 0 ? <span className="published-tab-count">{count}</span> : null}
+            </button>
+          );
+        })}
+      </nav>
 
+      {/* Marketing tab */}
+      {activeTab === 'marketing' && (
+        <>
+          {scheduledItems.length > 0 && (
+            <section className="published-section">
+              <h3 className="published-section-title">Ingepland via Buffer</h3>
+              <div className="published-table-wrap">
+                <table className="published-table">
+                  <thead>
+                    <tr>
+                      <th>Titel</th>
+                      <th>Kanaal</th>
+                      <th>Ingepland voor</th>
+                      {role === 'owner' ? <th>Acties</th> : null}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {scheduledItems.flatMap((item) =>
+                      (item.channels || [])
+                        .filter((c) => c.status === 'scheduled')
+                        .map((channel) => (
+                          <tr key={`${item.id}-${channel.channel}`}>
+                            <td className="published-title-cell">{item.title}</td>
+                            <td>
+                              <span className="channel-status-item">
+                                <ChannelStatus status={channel.status} compact />
+                                {channel.channel}
+                              </span>
+                            </td>
+                            <td>{formatDateTime(channel.scheduledFor)}</td>
+                            {role === 'owner' ? (
+                              <td>
+                                <div className="published-actions">
+                                  <button
+                                    type="button"
+                                    className="published-btn"
+                                    onClick={() => openReschedule(channel, item.title)}
+                                    disabled={rescheduleMutation.isPending || cancelMutation.isPending}
+                                  >
+                                    Plan wijzigen
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="published-btn destructive"
+                                    onClick={() => handleCancel(channel, item.title)}
+                                    disabled={rescheduleMutation.isPending || cancelMutation.isPending}
+                                  >
+                                    Annuleren
+                                  </button>
+                                </div>
+                              </td>
+                            ) : null}
+                          </tr>
+                        ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          <section className="published-section">
+            <h3 className="published-section-title">Gepubliceerde posts</h3>
+            {marketingItems.length === 0 ? (
+              <p className="published-empty">Nog geen gepubliceerde marketingposts.</p>
+            ) : (
+              <div className="published-table-wrap">
+                <table className="published-table">
+                  <thead>
+                    <tr>
+                      <th>Titel</th>
+                      <th>Gepubliceerd op</th>
+                      <th>Kanaalstatus</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {marketingItems.map((item) => (
+                      <tr key={item.id}>
+                        <td className="published-title-cell">{item.title}</td>
+                        <td>{formatDate(item.publishedAt)}</td>
+                        <td>
+                          <div className="channel-status-list">
+                            {(item.channels || []).length === 0 ? (
+                              <span>-</span>
+                            ) : (
+                              item.channels.map((channel) => (
+                                <span key={`${item.id}-${channel.channel}`} className="channel-status-item">
+                                  <ChannelStatus status={channel.status} compact />
+                                  {channel.channel}
+                                  {channel.status === 'scheduled'
+                                    ? ` (ingepland ${formatDateTime(channel.scheduledFor)})`
+                                    : null}
+                                  {renderMetrics(channel.metrics)}
+                                </span>
+                              ))
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </>
+      )}
+
+      {/* Vacatures tab */}
+      {activeTab === 'vacatures' && (
+        <section className="published-section">
+          <h3 className="published-section-title">Actieve vacatures in de XML feed</h3>
+          {vacatureItems.length === 0 ? (
+            <p className="published-empty">Geen actieve vacatures.</p>
+          ) : (
+            <div className="published-table-wrap">
+              <table className="published-table">
+                <thead>
+                  <tr>
+                    <th>Titel</th>
+                    <th>Status</th>
+                    <th>Laatst bijgewerkt</th>
+                    {role === 'owner' ? <th>Actie</th> : null}
+                  </tr>
+                </thead>
+                <tbody>
+                  {vacatureItems.map((item) => (
+                    <tr key={item.id}>
+                      <td className="published-title-cell">{item.title}</td>
+                      <td><StatusBadge status="actief" /></td>
+                      <td>{formatDate(item.updatedAt)}</td>
+                      {role === 'owner' ? (
+                        <td>
+                          <button
+                            type="button"
+                            className="published-btn destructive"
+                            onClick={() => handleExpire(item.id)}
+                            disabled={expireMutation.isPending}
+                          >
+                            Vacature sluiten
+                          </button>
+                        </td>
+                      ) : null}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Blogs tab */}
+      {activeTab === 'blogs' && (
+        <section className="published-section">
+          <h3 className="published-section-title">Gepubliceerde blogs</h3>
+          {blogItems.length === 0 ? (
+            <p className="published-empty">Nog geen gepubliceerde blogartikelen.</p>
+          ) : (
+            <div className="published-table-wrap">
+              <table className="published-table">
+                <thead>
+                  <tr>
+                    <th>Titel</th>
+                    <th>Categorie</th>
+                    <th>Status</th>
+                    <th>Laatst bijgewerkt</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {blogItems.map((item) => (
+                    <tr key={item.id}>
+                      <td className="published-title-cell">{item.title}</td>
+                      <td>{item.categorie || '-'}</td>
+                      <td><StatusBadge status={item.status} /></td>
+                      <td>{formatDate(item.updatedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="published-note">
+            Blog-publicatie naar de website volgt zodra de nieuwe site live staat.
+          </p>
+        </section>
+      )}
+
+      <FormMessage variant="error">{error}</FormMessage>
+
+      {/* Reschedule modal */}
       <Modal
         open={Boolean(reschedTarget)}
         onOpenChange={(next) => { if (!next) setReschedTarget(null); }}
@@ -244,113 +390,6 @@ export default function Gepubliceerd() {
           </form>
         ) : null}
       </Modal>
-
-      <section className="published-section">
-        <h3>Marketingpublicaties (Type B)</h3>
-        <div className="published-table-wrap">
-          <table className="published-table">
-            <thead>
-              <tr>
-                <th>Titel</th>
-                <th>Type</th>
-                <th>Gepubliceerd op</th>
-                <th>Per-kanaal status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {marketingItems.length === 0 ? (
-                <tr>
-                  <td colSpan={4}>Nog geen gepubliceerde marketingposts.</td>
-                </tr>
-              ) : (
-                marketingItems.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.title}</td>
-                    <td>
-                      <span className={getTypeClass(item.type)}>{getTypeLabel(item.type)}</span>
-                    </td>
-                    <td>{formatDate(item.publishedAt)}</td>
-                    <td>
-                      <div className="channel-status-list">
-                        {(item.channels || []).length === 0 ? (
-                          <span>-</span>
-                        ) : (
-                          item.channels.map((channel) => (
-                            <span key={`${item.id}-${channel.channel}`} className="channel-status-item">
-                              <ChannelStatus status={channel.status} compact />
-                              {channel.channel} (
-                              {channel.status === 'scheduled'
-                                ? `ingepland voor ${formatDateTime(channel.scheduledFor)}`
-                                : channel.status}
-                              )
-                              {renderMetrics(channel.metrics)}
-                            </span>
-                          ))
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="published-section">
-        <h3>Actieve vacatures (Type A)</h3>
-        <div className="published-table-wrap">
-          <table className="published-table">
-            <thead>
-              <tr>
-                <th>Titel</th>
-                <th>Status</th>
-                <th>Laatst bijgewerkt</th>
-                <th>Stats</th>
-                <th>Actie</th>
-              </tr>
-            </thead>
-            <tbody>
-              {vacatureItems.length === 0 ? (
-                <tr>
-                  <td colSpan={5}>Geen actieve vacatures.</td>
-                </tr>
-              ) : (
-                vacatureItems.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.title}</td>
-                    <td>
-                      <StatusBadge status="actief" />
-                    </td>
-                    <td>{formatDate(item.updatedAt)}</td>
-                    <td>{item.stats}</td>
-                    <td>
-                      {role === 'owner' ? (
-                        <button
-                          type="button"
-                          className="published-expire-btn"
-                          onClick={() => handleExpire(item.id)}
-                          disabled={expireMutation.isPending}
-                        >
-                          Vacature sluiten
-                        </button>
-                      ) : (
-                        '-'
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <p className="published-note">
-        Stats voor Type A zijn nog een stub tot de Jobit/Multiposter-methode definitief is.
-      </p>
-
-      <FormMessage variant="error">{error}</FormMessage>
 
       <ConfirmDialog
         open={Boolean(confirm)}

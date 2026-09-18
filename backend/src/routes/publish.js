@@ -63,6 +63,18 @@ router.get('/', async (_req, res, next) => {
       throw activeVacaturesError;
     }
 
+    const { data: blogDrafts, error: blogError } = await supabase
+      .from('drafts')
+      .select('id, type, form_data, status, updated_at, blog_titel')
+      .eq('type', 'blog')
+      .in('status', ['published', 'approved'])
+      .order('updated_at', { ascending: false })
+      .limit(500);
+
+    if (blogError) {
+      throw blogError;
+    }
+
     const draftIds = (marketingDrafts || []).map((item) => item.id);
     let publications = [];
 
@@ -127,10 +139,19 @@ router.get('/', async (_req, res, next) => {
       stats: 'Nog niet beschikbaar',
     }));
 
+    const blogItems = (blogDrafts || []).map((draft) => ({
+      id: draft.id,
+      title: draft.blog_titel || getDraftTitle(draft.form_data),
+      status: draft.status,
+      updatedAt: draft.updated_at,
+      categorie: draft.form_data?.categorie || '',
+    }));
+
     return res.json({
       marketingItems,
       vacatureItems,
       scheduledItems,
+      blogItems,
     });
   } catch (error) {
     return next(error);

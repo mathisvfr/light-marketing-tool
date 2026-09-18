@@ -1,17 +1,84 @@
 .published-layout {
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
+/* ---- Tab navigation ---- */
+.published-tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0;
+}
+
+.published-tab {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #64748b;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.published-tab:hover {
+  color: #1e293b;
+}
+
+.published-tab.active {
+  color: var(--color-primary, #d32f2f);
+  border-bottom-color: var(--color-primary, #d32f2f);
+}
+
+.published-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.published-tab.active .published-tab-count {
+  background: var(--light-red-50, #fef2f2);
+  color: var(--color-primary, #d32f2f);
+}
+
+/* ---- Sections ---- */
 .published-section {
   display: grid;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
-.published-section h3 {
+.published-section-title {
   margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
 }
 
+.published-empty {
+  margin: 0;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.92rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+/* ---- Tables ---- */
 .published-table-wrap {
   overflow-x: auto;
   border: 1px solid #e2e8f0;
@@ -22,15 +89,19 @@
 .published-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 860px;
+  min-width: 600px;
 }
 
 .published-table th,
 .published-table td {
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
   border-bottom: 1px solid #e2e8f0;
-  padding: 0.7rem;
+  padding: 0.65rem 0.85rem;
+}
+
+.published-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .published-table thead th {
@@ -38,38 +109,16 @@
   color: #475569;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  font-size: 0.84rem;
-}
-
-.published-badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 0.16rem 0.55rem;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
-.type-vacature {
-  background: #e0f2fe;
-  color: #075985;
+.published-title-cell {
+  font-weight: 500;
+  color: #1e293b;
 }
 
-.type-marketing {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.type-blog {
-  background: #f0fdf4;
-  color: #166534;
-}
-
-.status-active {
-  background: #dcfce7;
-  color: #166534;
-}
-
+/* ---- Channel status pills ---- */
 .channel-status-list {
   display: flex;
   flex-wrap: wrap;
@@ -87,67 +136,65 @@
   background: #f8fafc;
 }
 
-.channel-dot {
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 50%;
-  display: inline-block;
+.channel-metrics {
+  display: inline-flex;
+  gap: 0.4rem;
+  margin-left: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #64748b);
 }
 
-.channel-dot.success {
-  background: #16a34a;
+/* ---- Buttons ---- */
+.published-actions {
+  display: flex;
+  gap: 0.4rem;
 }
 
-.channel-dot.failed {
-  background: #dc2626;
-}
-
-.channel-dot.pending {
-  background: #d97706;
-}
-
-.channel-dot.unknown {
-  background: #64748b;
-}
-
-.published-note {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #64748b;
-}
-
-.published-error {
-  color: #b91c1c;
-}
-
-.published-expire-btn {
+.published-btn {
   display: inline-flex;
   align-items: center;
   border-radius: 7px;
   padding: 0.35rem 0.65rem;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
   white-space: nowrap;
   background: #ffffff;
-  color: var(--light-red);
-  border: 1.5px solid var(--light-red-300);
+  color: #334155;
+  border: 1.5px solid #cbd5e1;
 }
 
-.published-expire-btn:hover:not(:disabled) {
-  background: var(--light-red-50);
-  border-color: var(--light-red);
+.published-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
 }
 
-.published-expire-btn:disabled {
+.published-btn.destructive {
+  color: var(--light-red, #d32f2f);
+  border-color: var(--light-red-300, #fca5a5);
+}
+
+.published-btn.destructive:hover:not(:disabled) {
+  background: var(--light-red-50, #fef2f2);
+  border-color: var(--light-red, #d32f2f);
+}
+
+.published-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
-/* Published-modal backdrop/container/actions worden nu geleverd door shared
-   <Modal>. Alleen de form-layout binnenin blijft page-specifiek. */
+/* ---- Note ---- */
+.published-note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* ---- Modal ---- */
 .published-modal-form {
   display: flex;
   flex-direction: column;
@@ -161,7 +208,7 @@
 
 .published-modal-meta {
   margin: 0;
-  color: var(--color-text-muted);
+  color: var(--color-text-muted, #64748b);
   font-size: 0.9rem;
 }
 
@@ -172,10 +219,36 @@
   font-size: 0.9rem;
 }
 
-.channel-metrics {
-  display: inline-flex;
-  gap: 0.4rem;
-  margin-left: 0.5rem;
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .published-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .published-tab {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .published-table {
+    min-width: 500px;
+  }
+
+  .published-table th,
+  .published-table td {
+    padding: 0.5rem 0.55rem;
+    font-size: 0.85rem;
+  }
+
+  .published-actions {
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .published-btn {
+    min-height: 44px;
+    width: 100%;
+    justify-content: center;
+  }
 }
