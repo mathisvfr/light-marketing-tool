@@ -508,7 +508,9 @@ router.post('/:id/generate', async (req, res, next) => {
       draft.form_data = updatedDraft.form_data;
     }
 
+    const t0 = Date.now();
     const generated = await generate(draft.type, draft.form_data);
+    console.log(`[timing] generate(${draft.type}) ${Date.now() - t0}ms`);
 
     // Save generated content immediately (criticus_passed = null signals "pending")
     let updatePayload;
@@ -630,26 +632,31 @@ router.post('/:id/generate', async (req, res, next) => {
     res.json({ draft: formatDraftForResponse(updatedDraft) });
 
     // Run criticus + image render in background (don't block the response)
+    const tBg = Date.now();
     const backgroundTasks = [
-      criticus({ type: draft.type, formData: draft.form_data, content: generated }),
+      criticus({ type: draft.type, formData: draft.form_data, content: generated })
+        .then((r) => { console.log(`[timing] criticus ${Date.now() - tBg}ms`); return r; }),
     ];
 
     // Skip Satori render entirely when the user attached their own image up front.
     let renderInfo = null;
     if (!draft.image_path && (draft.type === 'marketing-post' || draft.type === 'vacature')) {
       renderInfo = resolveRenderTemplate(draft.type, draft.form_data, generated);
-      backgroundTasks.push(renderSocialImage(renderInfo.name, renderInfo.fields));
+      backgroundTasks.push(renderSocialImage(renderInfo.name, renderInfo.fields)
+        .then((r) => { console.log(`[timing] render(${renderInfo.name}) ${Date.now() - tBg}ms`); return r; }));
     } else if (!draft.image_path && draft.type === 'blog') {
       renderInfo = {
         name: 'blog-header',
         fields: { title: generated.blog_titel || draft.form_data?.onderwerp || 'Blog', category: draft.form_data?.categorie || 'Bedrijfsnieuws' },
         altText: generated.blog_titel || 'Blog header',
       };
-      backgroundTasks.push(renderSocialImage(renderInfo.name, renderInfo.fields));
+      backgroundTasks.push(renderSocialImage(renderInfo.name, renderInfo.fields)
+        .then((r) => { console.log(`[timing] render(blog-header) ${Date.now() - tBg}ms`); return r; }));
     }
 
     Promise.allSettled(backgroundTasks)
       .then(async ([criticusSettled, renderSettled]) => {
+        console.log(`[timing] background total ${Date.now() - tBg}ms`);
         const bgUpdate = {
           updated_at: new Date().toISOString(),
         };
