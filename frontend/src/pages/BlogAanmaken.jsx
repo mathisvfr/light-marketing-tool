@@ -12,6 +12,7 @@ import StickyFooter from '../components/shared/StickyFooter';
 import FormMessage from '../components/shared/FormMessage';
 import '../components/shared/status-strip.css';
 import RichTextEditor from '../components/shared/RichTextEditor';
+import ImageSection from '../components/shared/ImageSection';
 import '../components/shared/toast.css';
 import './blog-aanmaken.css';
 
@@ -39,6 +40,7 @@ export default function BlogAanmaken() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [suggestedTerms, setSuggestedTerms] = useState([]);
 
   const existingDraftQuery = useQuery({
     queryKey: ['draft-detail-blog', draftIdParam],
@@ -132,31 +134,6 @@ export default function BlogAanmaken() {
     setFormEdits((prev) => ({ ...prev, [key]: value }));
   }
 
-  async function handleUploadOverride(event) {
-    const file = event.target.files?.[0];
-    if (!file || !effectiveDraftId) return;
-    setError('');
-    setSuccess('');
-    try {
-      const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error('Afbeelding kon niet worden gelezen.'));
-        reader.readAsDataURL(file);
-      });
-      const uploaded = await api(`/drafts/${effectiveDraftId}/image-override`, {
-        method: 'POST',
-        body: JSON.stringify({ dataUrl }),
-      });
-      setImagePathOverride(uploaded?.draft?.image_path || '');
-      setSuccess('Afbeelding succesvol overschreven.');
-    } catch (err) {
-      setError(err.message || 'Uploaden van afbeelding is mislukt.');
-    } finally {
-      event.target.value = '';
-    }
-  }
-
   async function handleGenerate(event) {
     if (event?.preventDefault) event.preventDefault();
     setError('');
@@ -212,6 +189,7 @@ export default function BlogAanmaken() {
       } else {
         setCriticusOverride({ passed: undefined, notes: undefined });
       }
+      setSuggestedTerms(generated?.draft?.form_data?.image_search_terms || []);
       setSuccess('Blogartikel succesvol gegenereerd.');
     } catch (err) {
       setError(err.message || 'Genereren is mislukt.');
@@ -385,17 +363,12 @@ export default function BlogAanmaken() {
             />
           </div>
 
-          {imagePath && (
-            <div className="blog-image-preview">
-              <h3>Header afbeelding</h3>
-              <img src={imagePath.startsWith('/') ? imagePath : `/${imagePath}`} alt="Blog header" />
-            </div>
-          )}
-
-          <label className="blog-field">
-            Afbeelding overschrijven
-            <input type="file" accept="image/*" onChange={handleUploadOverride} disabled={!effectiveDraftId} />
-          </label>
+          <ImageSection
+            imagePath={imagePath}
+            onSelect={(path) => setImagePathOverride(path)}
+            suggestedTerms={suggestedTerms}
+            disabled={isBusy}
+          />
 
           <StickyFooter>
             <button type="button" className="btn-secondary" onClick={handleSaveDraft} disabled={isBusy}>

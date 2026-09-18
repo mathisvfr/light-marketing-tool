@@ -5,9 +5,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useAutosaveDraft, formatSavedAt } from '../hooks/useAutosaveDraft';
 import useImagePath from '../hooks/useImagePath';
 import useCriticus from '../hooks/useCriticus';
-import { formatDateTime } from '../lib/datetime';
 import { api } from '../lib/api';
-import MediaPicker from '../components/shared/MediaPicker';
+import ImageSection from '../components/shared/ImageSection';
 import PlatformPreview from '../components/shared/PlatformPreview';
 import GenerationProgress from '../components/shared/GenerationProgress';
 import VersionHistoryPicker from '../components/shared/VersionHistoryPicker';
@@ -50,7 +49,7 @@ export default function MarketingPost() {
   const [draftId, setDraftId] = useState(draftIdParam);
   const [formEdits, setFormEdits] = useState({});
   const [contentEdits, setContentEdits] = useState({});
-  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
+  const [suggestedTerms, setSuggestedTerms] = useState([]);
   const [activeTab, setActiveTab] = useState('linkedin_post');
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -199,37 +198,6 @@ export default function MarketingPost() {
     });
   }
 
-  async function handlePreUpload(event) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    setError('');
-    setSuccess('');
-
-    try {
-      const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error('Afbeelding kon niet worden gelezen.'));
-        reader.readAsDataURL(file);
-      });
-
-      const uploaded = await api('/media/upload', {
-        method: 'POST',
-        body: JSON.stringify({ dataUrl, altText: file.name }),
-      });
-
-      setImagePathOverride(uploaded?.item?.path || '');
-      setSuccess('Afbeelding geüpload. Deze wordt gebruikt in plaats van een gegenereerde afbeelding.');
-    } catch (err) {
-      setError(err.message || 'Uploaden van afbeelding is mislukt.');
-    } finally {
-      event.target.value = '';
-    }
-  }
-
   async function handleGenerate(event) {
     if (event && typeof event.preventDefault === 'function') {
       event.preventDefault();
@@ -324,6 +292,7 @@ export default function MarketingPost() {
       const channelToTab = { linkedin: 'linkedin_post', facebook: 'social_nl', instagram: 'instagram_caption' };
       const firstTab = form.kanalen.map((k) => channelToTab[k]).find(Boolean) || 'linkedin_post';
       setActiveTab(firstTab);
+      setSuggestedTerms(generated?.draft?.form_data?.image_search_terms || []);
       setSuccess('Marketingconcept succesvol gegenereerd.');
       setSteeringNotes('');
     } catch (err) {
@@ -543,30 +512,12 @@ export default function MarketingPost() {
           </div>
         </div>
 
-        <label className="marketing-field">
-          Eigen afbeelding (optioneel)
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            onChange={handlePreUpload}
-            disabled={isBusy}
-          />
-          <small>Upload je eigen foto; laat leeg om automatisch een afbeelding te genereren.</small>
-        </label>
-
-        {imagePath ? (
-          <div className="marketing-image-block">
-            <img src={imagePath} alt="Geüploade afbeelding" className="marketing-preview-image" />
-            <button
-              type="button"
-              className="marketing-pick-image"
-              onClick={() => setImagePathOverride('')}
-              disabled={isBusy}
-            >
-              Afbeelding verwijderen
-            </button>
-          </div>
-        ) : null}
+        <ImageSection
+          imagePath={imagePath}
+          onSelect={(path) => setImagePathOverride(path)}
+          suggestedTerms={suggestedTerms}
+          disabled={isBusy}
+        />
 
         <div className="marketing-actions">
           <button type="submit" disabled={isBusy || brandQuery.isLoading}>
@@ -707,30 +658,6 @@ export default function MarketingPost() {
           >
             {copied ? 'Gekopieerd!' : 'Kopieer tekst'}
           </button>
-
-          <div className="marketing-image-block">
-            <p className="marketing-label">Afbeelding preview</p>
-            {imagePath ? (
-              <img src={imagePath} alt="Marketing preview" className="marketing-preview-image" />
-            ) : (
-              <p className="marketing-muted">Nog geen afbeelding geselecteerd.</p>
-            )}
-
-            <button
-              type="button"
-              className="marketing-pick-image"
-              onClick={() => setMediaPickerOpen(true)}
-              disabled={isBusy}
-            >
-              {imagePath ? 'Andere afbeelding kiezen' : 'Afbeelding kiezen uit bibliotheek'}
-            </button>
-          </div>
-
-          <MediaPicker
-            open={mediaPickerOpen}
-            onSelect={(path) => setImagePathOverride(path)}
-            onClose={() => setMediaPickerOpen(false)}
-          />
 
           {role === 'owner' ? (
             <ChannelScheduleBlock

@@ -15,6 +15,7 @@ Regels:
    - instagram_caption
    - image_headline
    - image_subline
+   - image_search_terms
 3. Genereer ALLEEN content voor de kanalen die in het veld `kanalen` staan. Laat keys voor niet-gekozen kanalen weg uit de JSON. `image_headline` en `image_subline` geef je ALTIJD mee (die worden op de afbeelding gezet). Pas de toon per kanaal aan:
    - linkedin_post: zakelijk, professioneel. Bij Opdrachtgevers gericht op HR/operations-managers; bij Kandidaten professioneel maar uitnodigend. Sluit ALTIJD af met 3-5 relevante hashtags (bijv. #logistiek #uitzendbureau #Rotterdam).
    - facebook_post: informeel, toegankelijk en activerend.
@@ -25,6 +26,7 @@ Regels:
 7. Voeg in instagram_caption altijd een duidelijke CTA toe.
 8. Gebruik NOOIT em-dashes (—) of en-dashes (–). Gebruik in plaats daarvan een komma, punt of het woord zelf.
 9. `image_headline`: een korte, pakkende kop voor op de afbeelding (max 5 woorden, geen leestekens aan het eind). `image_subline`: een korte ondersteunende regel (max 4 woorden). Dit is GEEN doelgroep-label; zet er dus nooit "Opdrachtgevers" of "Kandidaten" in.
+10. `image_search_terms`: een array van 3-5 Engelse zoektermen voor stockfoto's op Unsplash. Altijd in het Engels (Unsplash werkt het best in het Engels), visueel en concreet (niet abstract), gericht op het onderwerp van de post. De eerste term is de meest specifieke. Voorbeeld: ["warehouse workers Rotterdam", "logistics team working", "professional staffing"].
 
 Variatie en creativiteit:
 
