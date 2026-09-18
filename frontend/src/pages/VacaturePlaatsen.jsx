@@ -259,7 +259,7 @@ export default function VacaturePlaatsen() {
   const tabs = useMemo(() => createLangTabs(content, selectedLangs), [content, selectedLangs]);
 
   const saveMutation = useMutation({
-    mutationFn: (status) =>
+    mutationFn: () =>
       api(`/drafts/${effectiveDraftId}`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -271,7 +271,6 @@ export default function VacaturePlaatsen() {
           image_path: imagePath || null,
           criticus_passed: criticusPassed,
           criticus_notes: criticusNotes,
-          status,
         }),
       }),
   });
@@ -425,7 +424,7 @@ export default function VacaturePlaatsen() {
       if (!targetDraftId) {
         const created = await api('/drafts', {
           method: 'POST',
-          body: JSON.stringify({ formData: generationForm }),
+          body: JSON.stringify({ type: 'vacature', formData: generationForm }),
         });
 
         targetDraftId = created?.draft?.id;
@@ -495,7 +494,7 @@ export default function VacaturePlaatsen() {
     setSuccess('');
 
     try {
-      await saveMutation.mutateAsync('draft');
+      await saveMutation.mutateAsync();
       setSuccess('Concept opgeslagen.');
     } catch (err) {
       setError(err.message || 'Opslaan is mislukt.');
@@ -507,7 +506,7 @@ export default function VacaturePlaatsen() {
     setSuccess('');
 
     try {
-      await saveMutation.mutateAsync('draft');
+      await saveMutation.mutateAsync();
       await submitForApprovalMutation.mutateAsync();
       setSuccess('Concept ingediend ter goedkeuring.');
     } catch (err) {
@@ -520,7 +519,7 @@ export default function VacaturePlaatsen() {
     setSuccess('');
 
     try {
-      await saveMutation.mutateAsync('draft');
+      await saveMutation.mutateAsync();
       await api(`/drafts/${effectiveDraftId}/approve`, { method: 'POST' });
       setSuccess('Vacature is goedgekeurd en staat nu op actief (in feed).');
     } catch (err) {
@@ -820,6 +819,13 @@ export default function VacaturePlaatsen() {
             <h3>Voorbeeld en bewerken</h3>
             <StatusBadge status={loadedDraft?.status || 'draft'} />
           </div>
+
+          {loadedDraft?.status === 'actief' && (
+            <div className="criticus-box pass" style={{ marginBottom: 'var(--space-4)' }}>
+              <strong>Je bewerkt een actieve vacature.</strong>
+              <p>Wijzigingen zijn direct zichtbaar in de XML feed na opslaan.</p>
+            </div>
+          )}
 
           <StatusStrip
             rows={[

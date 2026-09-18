@@ -1,6 +1,7 @@
 function errorHandler(error, _req, res, _next) {
   // Always log the real error server-side for debugging.
   console.error('[error]', error?.message || error);
+  if (error?.stack) console.error(error.stack);
 
   // Never leak internal error details to the client — not even in dev.
   // Database errors, stack traces, and library messages stay server-side.
