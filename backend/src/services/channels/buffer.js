@@ -1,9 +1,8 @@
 const { getCredential } = require('../integrations');
 
-// Buffer's Publish API is GraphQL and lives on graph.buffer.com (api.buffer.com
-// is the legacy REST host and does not accept GraphQL). Override via env if
-// Buffer moves the endpoint.
-const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://graph.buffer.com';
+// Buffer's GraphQL API lives on api.buffer.com (graph.buffer.com redirects
+// there). Override via env if Buffer moves the endpoint.
+const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://api.buffer.com';
 
 function getEnvMetadata() {
   return {
@@ -148,6 +147,10 @@ async function createPost({ accessToken, channelId, text, imageUrl, dueAt }) {
   const data = await callBuffer(query, accessToken);
   const result = data?.createPost;
 
+  if (process.env.NODE_ENV !== 'production' || process.env.BUFFER_DEBUG) {
+    console.log('[Buffer createPost] channelId=%s response=%j', channelId, result);
+  }
+
   if (!result) {
     return {
       status: 'failed',
@@ -169,7 +172,7 @@ async function createPost({ accessToken, channelId, text, imageUrl, dueAt }) {
     return {
       status: 'failed',
       externalId: null,
-      error: 'Buffer gaf geen post-ID terug — het bericht is waarschijnlijk niet aangemaakt.',
+      error: `Buffer gaf geen post-ID terug (type: ${result.__typename || 'onbekend'}) — het bericht is waarschijnlijk niet aangemaakt.`,
     };
   }
 
