@@ -49,7 +49,8 @@ export default function MarketingPost() {
   const [draftId, setDraftId] = useState(draftIdParam);
   const [formEdits, setFormEdits] = useState({});
   const [contentEdits, setContentEdits] = useState({});
-  const [suggestedTerms, setSuggestedTerms] = useState([]);
+  const [unsplashSuggestions, setUnsplashSuggestions] = useState([]);
+  const [imageSearchTerms, setImageSearchTerms] = useState([]);
   const [activeTab, setActiveTab] = useState('linkedin_post');
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -292,7 +293,8 @@ export default function MarketingPost() {
       const channelToTab = { linkedin: 'linkedin_post', facebook: 'social_nl', instagram: 'instagram_caption' };
       const firstTab = form.kanalen.map((k) => channelToTab[k]).find(Boolean) || 'linkedin_post';
       setActiveTab(firstTab);
-      setSuggestedTerms(generated?.draft?.form_data?.image_search_terms || []);
+      setUnsplashSuggestions(generated?.unsplash_suggestions || []);
+      setImageSearchTerms(generated?.image_search_terms || []);
       setSuccess('Marketingconcept succesvol gegenereerd.');
       setSteeringNotes('');
     } catch (err) {
@@ -515,7 +517,8 @@ export default function MarketingPost() {
         <ImageSection
           imagePath={imagePath}
           onSelect={(path) => setImagePathOverride(path)}
-          suggestedTerms={suggestedTerms}
+          suggestions={unsplashSuggestions}
+          searchTerms={imageSearchTerms}
           disabled={isBusy}
         />
 

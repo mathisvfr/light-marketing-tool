@@ -40,7 +40,8 @@ export default function BlogAanmaken() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [suggestedTerms, setSuggestedTerms] = useState([]);
+  const [unsplashSuggestions, setUnsplashSuggestions] = useState([]);
+  const [imageSearchTerms, setImageSearchTerms] = useState([]);
 
   const existingDraftQuery = useQuery({
     queryKey: ['draft-detail-blog', draftIdParam],
@@ -189,7 +190,8 @@ export default function BlogAanmaken() {
       } else {
         setCriticusOverride({ passed: undefined, notes: undefined });
       }
-      setSuggestedTerms(generated?.draft?.form_data?.image_search_terms || []);
+      setUnsplashSuggestions(generated?.unsplash_suggestions || []);
+      setImageSearchTerms(generated?.image_search_terms || []);
       setSuccess('Blogartikel succesvol gegenereerd.');
     } catch (err) {
       setError(err.message || 'Genereren is mislukt.');
@@ -366,9 +368,9 @@ export default function BlogAanmaken() {
           <ImageSection
             imagePath={imagePath}
             onSelect={(path) => setImagePathOverride(path)}
-            suggestedTerms={suggestedTerms}
+            suggestions={unsplashSuggestions}
+            searchTerms={imageSearchTerms}
             disabled={isBusy}
-            mode="unsplash-only"
           />
 
           <StickyFooter>

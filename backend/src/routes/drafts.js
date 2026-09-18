@@ -6,6 +6,7 @@ const { supabase } = require('../db/client');
 const { generate, criticus, translateVacature, SUPPORTED_TRANSLATION_LANGS } = require('../services/claude');
 const { renderSocialImage, saveUploadedImageDataUrl } = require('../services/render');
 const { notifyAfterCommit } = require('../services/notifications');
+const unsplash = require('../services/unsplash');
 
 // Whitelist of safe HTML tags for blog content. Strips scripts, iframes,
 // event handlers, and anything not explicitly listed.
@@ -640,8 +641,24 @@ router.post('/:id/generate', async (req, res, next) => {
       throw updateError;
     }
 
-    // Respond immediately with generated content (criticus_passed = null)
-    res.json({ draft: formatDraftForResponse(updatedDraft) });
+    // Pre-fetch Unsplash results using the first AI-suggested search term.
+    // Fast (~200ms) and saves the frontend a round-trip.
+    let unsplashSuggestions = [];
+    const searchTerms = Array.isArray(generated.image_search_terms) ? generated.image_search_terms : [];
+    if (searchTerms.length > 0 && unsplash.isAvailable()) {
+      try {
+        const result = await unsplash.search(searchTerms[0], { orientation: 'landscape', perPage: 8 });
+        unsplashSuggestions = result.results || [];
+      } catch (_err) {
+        // Non-fatal: frontend can still search manually
+      }
+    }
+
+    res.json({
+      draft: formatDraftForResponse(updatedDraft),
+      unsplash_suggestions: unsplashSuggestions,
+      image_search_terms: searchTerms,
+    });
 
     // Run criticus + image render in background (don't block the response).
     // Each task writes its result to the DB independently so the frontend can
