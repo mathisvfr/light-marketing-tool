@@ -459,6 +459,99 @@ router.post('/bulk', requireRole('owner'), async (req, res, next) => {
   }
 });
 
+// Retry only the failed channels for an already-published draft.
+router.post('/:id/retry-failed', requireRole('owner'), async (req, res, next) => {
+  try {
+    const draftId = req.params.id;
+
+    const { data: draft, error: draftError } = await supabase
+      .from('drafts')
+      .select('id, type, status, omschrijving_nl, social_nl, linkedin_post, instagram_caption, image_path, form_data')
+      .eq('id', draftId)
+      .maybeSingle();
+
+    if (draftError) throw draftError;
+    if (!draft) return res.status(404).json({ error: 'Concept niet gevonden.' });
+
+    if (draft.type !== 'marketing-post') {
+      return res.status(400).json({ error: 'Opnieuw proberen is alleen beschikbaar voor marketingposts.' });
+    }
+
+    // Find the most recent publication per channel, keep only failed ones.
+    const { data: allPubs, error: pubError } = await supabase
+      .from('publications')
+      .select('id, channel, status, published_at')
+      .eq('draft_id', draftId)
+      .order('published_at', { ascending: false });
+
+    if (pubError) throw pubError;
+
+    const latestByChannel = new Map();
+    for (const pub of allPubs || []) {
+      if (!latestByChannel.has(pub.channel)) {
+        latestByChannel.set(pub.channel, pub);
+      }
+    }
+
+    const failedChannels = [];
+    for (const [channel, pub] of latestByChannel) {
+      if (pub.status === 'failed') {
+        failedChannels.push(channel);
+      }
+    }
+
+    if (failedChannels.length === 0) {
+      return res.status(400).json({ error: 'Er zijn geen mislukte kanalen om opnieuw te proberen.' });
+    }
+
+    // Verify Buffer connection
+    const bufferConnected = await hasProviderConnection('buffer');
+    if (!bufferConnected) {
+      return res.status(400).json({ error: 'Buffer is niet gekoppeld. Controleer Merk instellingen.' });
+    }
+
+    const contentPayload = {
+      omschrijving_nl: draft.omschrijving_nl,
+      social_nl: draft.social_nl,
+      linkedin_post: draft.linkedin_post,
+      instagram_caption: draft.instagram_caption,
+      image_path: draft.image_path,
+      form_data: draft.form_data,
+    };
+
+    const publishResult = await publishGateway.publish(
+      draftId,
+      draft.type,
+      failedChannels,
+      contentPayload,
+      { scheduledForMap: {} }
+    );
+
+    const anySuccess = (publishResult?.successCount || 0) > 0;
+
+    if (!anySuccess) {
+      const failedDetails = (publishResult?.rows || [])
+        .filter((r) => r.status === 'failed')
+        .map((r) => `${r.channel}: ${r.error || 'onbekende fout'}`)
+        .join('; ');
+      return res.status(400).json({
+        error: failedDetails
+          ? `Opnieuw proberen mislukt: ${failedDetails}`
+          : 'Opnieuw proberen mislukt voor alle kanalen.',
+      });
+    }
+
+    return res.json({
+      success: true,
+      retriedChannels: failedChannels,
+      successCount: publishResult.successCount,
+      failedCount: publishResult.failedCount || 0,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 router.post('/:id/expire', requireRole('owner'), async (req, res, next) => {
   try {
     const draftId = req.params.id;

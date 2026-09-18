@@ -79,6 +79,14 @@ export default function Gepubliceerd() {
     onError: (err) => setError(err?.message || 'Annuleren mislukt.'),
   });
 
+  const retryFailedMutation = useMutation({
+    mutationFn: (draftId) => api(`/publish/${draftId}/retry-failed`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['published-items'] });
+    },
+    onError: (err) => setError(err?.message || 'Opnieuw proberen mislukt.'),
+  });
+
   function openReschedule(scheduledRow, title) {
     setError('');
     setReschedTarget({
@@ -234,33 +242,51 @@ export default function Gepubliceerd() {
                       <th>Titel</th>
                       <th>Gepubliceerd op</th>
                       <th>Kanaalstatus</th>
+                      {role === 'owner' ? <th>Acties</th> : null}
                     </tr>
                   </thead>
                   <tbody>
-                    {marketingItems.map((item) => (
-                      <tr key={item.id}>
-                        <td className="published-title-cell">{item.title}</td>
-                        <td>{formatDate(item.publishedAt)}</td>
-                        <td>
-                          <div className="channel-status-list">
-                            {(item.channels || []).length === 0 ? (
-                              <span>-</span>
-                            ) : (
-                              item.channels.map((channel) => (
-                                <span key={`${item.id}-${channel.channel}`} className="channel-status-item">
-                                  <ChannelStatus status={channel.status} compact />
-                                  {channel.channel}
-                                  {channel.status === 'scheduled'
-                                    ? ` (ingepland ${formatDateTime(channel.scheduledFor)})`
-                                    : null}
-                                  {renderMetrics(channel.metrics)}
-                                </span>
-                              ))
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {marketingItems.map((item) => {
+                      const hasFailed = (item.channels || []).some((c) => c.status === 'failed');
+                      return (
+                        <tr key={item.id}>
+                          <td className="published-title-cell">{item.title}</td>
+                          <td>{formatDate(item.publishedAt)}</td>
+                          <td>
+                            <div className="channel-status-list">
+                              {(item.channels || []).length === 0 ? (
+                                <span>-</span>
+                              ) : (
+                                item.channels.map((channel) => (
+                                  <span key={`${item.id}-${channel.channel}`} className="channel-status-item">
+                                    <ChannelStatus status={channel.status} compact />
+                                    {channel.channel}
+                                    {channel.status === 'scheduled'
+                                      ? ` (ingepland ${formatDateTime(channel.scheduledFor)})`
+                                      : null}
+                                    {renderMetrics(channel.metrics)}
+                                  </span>
+                                ))
+                              )}
+                            </div>
+                          </td>
+                          {role === 'owner' ? (
+                            <td>
+                              {hasFailed ? (
+                                <button
+                                  type="button"
+                                  className="published-btn"
+                                  onClick={() => retryFailedMutation.mutate(item.id)}
+                                  disabled={retryFailedMutation.isPending}
+                                >
+                                  {retryFailedMutation.isPending ? 'Bezig...' : 'Opnieuw proberen'}
+                                </button>
+                              ) : null}
+                            </td>
+                          ) : null}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
