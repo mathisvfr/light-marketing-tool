@@ -11,6 +11,7 @@ import StatusStrip from '../components/shared/StatusStrip';
 import StickyFooter from '../components/shared/StickyFooter';
 import FormMessage from '../components/shared/FormMessage';
 import '../components/shared/status-strip.css';
+import RichTextEditor from '../components/shared/RichTextEditor';
 import '../components/shared/toast.css';
 import './blog-aanmaken.css';
 
@@ -371,15 +372,13 @@ export default function BlogAanmaken() {
             <span className="char-count">{content.teaser.length}/220</span>
           </label>
 
-          <label className="blog-field">
-            Inhoud (HTML)
-            <textarea
-              className="blog-html-editor"
+          <div className="blog-field">
+            <label>Inhoud</label>
+            <RichTextEditor
               value={content.blog_html}
-              onChange={(e) => setContentEdits((prev) => ({ ...prev, blog_html: e.target.value }))}
-              rows={16}
+              onChange={(html) => setContentEdits((prev) => ({ ...prev, blog_html: html }))}
             />
-          </label>
+          </div>
 
           {imagePath && (
             <div className="blog-image-preview">
