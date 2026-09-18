@@ -138,8 +138,13 @@ async function renderToPng(templateName, fields) {
   const { Resvg } = await import('@resvg/resvg-js');
 
   const svg = await satori(element, { width, height, fonts });
+
+  // Render at 2x resolution for sharper text and lines after social media
+  // compression. Satori produces the SVG at logical size (e.g. 1080px);
+  // Resvg rasterizes at double width (2160px) so the PNG has more detail.
+  const scale = 2;
   const resvg = new Resvg(svg, {
-    fitTo: { mode: 'width', value: width },
+    fitTo: { mode: 'width', value: width * scale },
   });
   const pngData = resvg.render();
   return pngData.asPng();
