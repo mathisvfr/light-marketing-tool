@@ -648,27 +648,37 @@ router.post('/:id/generate', async (req, res, next) => {
       backgroundTasks.push(renderSocialImage(renderInfo.name, renderInfo.fields));
     }
 
-    Promise.all(backgroundTasks)
-      .then(async ([criticusResult, renderedImagePath]) => {
+    Promise.allSettled(backgroundTasks)
+      .then(async ([criticusSettled, renderSettled]) => {
         const bgUpdate = {
-          criticus_passed: criticusResult.passed,
-          criticus_notes: criticusResult.notes || null,
           updated_at: new Date().toISOString(),
         };
 
-        if (renderedImagePath) {
-          bgUpdate.image_path = renderedImagePath;
+        if (criticusSettled.status === 'fulfilled') {
+          bgUpdate.criticus_passed = criticusSettled.value.passed;
+          bgUpdate.criticus_notes = criticusSettled.value.notes || null;
+        } else {
+          console.error('Background criticus failed:', criticusSettled.reason);
+          bgUpdate.criticus_passed = false;
+          bgUpdate.criticus_notes = 'Criticus-check mislukt. Probeer opnieuw te genereren.';
+        }
+
+        if (renderSettled && renderSettled.status === 'fulfilled' && renderSettled.value) {
+          bgUpdate.image_path = renderSettled.value;
+        } else if (renderSettled && renderSettled.status === 'rejected') {
+          console.error('Background image render failed:', renderSettled.reason);
         }
 
         await supabase.from('drafts').update(bgUpdate).eq('id', draft.id);
 
         // Catalogue the auto-generated image so it appears in the media library.
+        const renderedImagePath = renderSettled?.status === 'fulfilled' ? renderSettled.value : null;
         if (renderedImagePath && renderInfo) {
           await registerGeneratedImage(renderedImagePath, renderInfo.altText, draft.created_by);
         }
       })
       .catch((err) => {
-        console.error('Background criticus/render failed:', err);
+        console.error('Background criticus/render save failed:', err);
       });
 
     // Vertalingen naar extra talen: parallel op de achtergrond. NL is al terug
