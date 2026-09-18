@@ -12,7 +12,7 @@ function blogHeader({ width, height, title, category, logoSrc }) {
   const pad = Math.round(base * (wide ? 0.08 : 0.06));
   const titleSize = Math.round(base * (wide ? 0.09 : 0.065));
   const catSize = Math.max(14, Math.round(base * (wide ? 0.035 : 0.025)));
-  const logoSize = Math.round(base * (wide ? 0.1 : 0.08));
+  const logoSize = Math.round(base * (wide ? 0.18 : 0.14));
 
   // Category color mapping
   const catColors = {
