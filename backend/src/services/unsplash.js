@@ -1,48 +1,43 @@
-const { createApi } = require('unsplash-js');
-
 const APP_NAME = 'light_marketing_tool';
-
-let client = null;
-
-function getClient() {
-  if (client) return client;
-
-  const accessKey = process.env.UNSPLASH_ACCESS_KEY;
-  if (!accessKey) return null;
-
-  client = createApi({ accessKey });
-  return client;
-}
+const BASE_URL = 'https://api.unsplash.com';
 
 function isAvailable() {
   return Boolean(process.env.UNSPLASH_ACCESS_KEY);
 }
 
-async function search(query, { orientation, page = 1, perPage = 12 } = {}) {
-  const api = getClient();
-  if (!api) return { available: false, results: [], total: 0, total_pages: 0 };
-
-  const params = {
-    query,
-    page,
-    perPage,
-    contentFilter: 'high',
+function headers() {
+  return {
+    Authorization: `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}`,
+    'Accept-Version': 'v1',
   };
-  if (orientation) params.orientation = orientation;
+}
 
-  const result = await api.search.getPhotos(params);
+async function search(query, { orientation, page = 1, perPage = 12 } = {}) {
+  if (!isAvailable()) return { available: false, results: [], total: 0, total_pages: 0 };
 
-  if (result.errors) {
-    const msg = Array.isArray(result.errors) ? result.errors.join(', ') : String(result.errors);
-    throw new Error(`Unsplash zoeken mislukt: ${msg}`);
+  const params = new URLSearchParams({
+    query,
+    page: String(page),
+    per_page: String(perPage),
+    content_filter: 'high',
+  });
+  if (orientation) params.set('orientation', orientation);
+
+  const response = await fetch(`${BASE_URL}/search/photos?${params.toString()}`, {
+    headers: headers(),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new Error(`Unsplash zoeken mislukt (${response.status}): ${body.slice(0, 200)}`);
   }
 
-  const response = result.response;
+  const data = await response.json();
   return {
     available: true,
-    results: (response.results || []).map(formatPhoto),
-    total: response.total || 0,
-    total_pages: response.total_pages || 0,
+    results: (data.results || []).map(formatPhoto),
+    total: data.total || 0,
+    total_pages: data.total_pages || 0,
   };
 }
 
@@ -68,23 +63,12 @@ function formatPhoto(photo) {
 }
 
 async function trackDownload(downloadLocation) {
-  if (!downloadLocation) return;
-
-  const api = getClient();
-  if (!api) return;
+  if (!downloadLocation || !isAvailable()) return;
 
   try {
-    // The download_location URL must be called with the access key.
-    // unsplash-js handles auth automatically.
-    const accessKey = process.env.UNSPLASH_ACCESS_KEY;
-    await fetch(downloadLocation + (downloadLocation.includes('?') ? '&' : '?') + `client_id=${accessKey}`, {
-      method: 'GET',
-    });
+    await fetch(downloadLocation, { headers: headers() });
   } catch (_err) {
-    // Fire-and-forget: log but don't throw
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[unsplash] Download tracking failed:', _err.message);
-    }
+    // Fire-and-forget
   }
 }
 
