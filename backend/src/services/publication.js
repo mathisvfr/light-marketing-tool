@@ -46,17 +46,17 @@ async function savePublicationRows(draftId, rows) {
 
 async function publishDraft(draft, channels) {
   const requestedChannels = Array.isArray(channels) ? channels.filter(Boolean) : [];
-  const scheduledFor = draft.scheduledFor || null;
+  const scheduledForMap = draft.scheduledForMap || {};
 
   const rows = [];
 
   for (const channel of requestedChannels) {
     try {
-      const result = await publishChannel(channel, draft);
-      // Distinguish "Buffer accepted for future publication" from "already live"
-      // so Gepubliceerd can show the future items separately. Only social channels
-      // support Buffer scheduling; website (stub) does not.
-      const isBufferScheduling = scheduledFor && channel !== 'website';
+      // Set per-channel scheduledFor so the Buffer channel reads the right time
+      const channelScheduledFor = scheduledForMap[channel] || null;
+      const channelDraft = { ...draft, scheduledFor: channelScheduledFor };
+      const result = await publishChannel(channel, channelDraft);
+      const isBufferScheduling = channelScheduledFor && channel !== 'website';
       const finalStatus =
         result.status === 'success' && isBufferScheduling
           ? 'scheduled'
@@ -67,7 +67,7 @@ async function publishDraft(draft, channels) {
         externalId: result.externalId || null,
         error: result.error || null,
         publishedAt: finalStatus === 'scheduled' ? null : new Date().toISOString(),
-        scheduledFor: finalStatus === 'scheduled' ? scheduledFor : null,
+        scheduledFor: finalStatus === 'scheduled' ? channelScheduledFor : null,
       });
     } catch (error) {
       rows.push({

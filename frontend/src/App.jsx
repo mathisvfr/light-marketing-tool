@@ -15,7 +15,6 @@ import Login from './pages/Login';
 import MarketingPost from './pages/MarketingPost';
 import BlogAanmaken from './pages/BlogAanmaken';
 import MerkInstellingen from './pages/MerkInstellingen';
-import Publicatiepatronen from './pages/Publicatiepatronen';
 import Rapportage from './pages/Rapportage';
 import VacaturePlaatsen from './pages/VacaturePlaatsen';
 import { queryClient } from './lib/queryClient';
@@ -68,14 +67,6 @@ function App() {
                 element={
                   <RoleRoute allowedRoles={['owner']}>
                     <MerkInstellingen />
-                  </RoleRoute>
-                }
-              />
-              <Route
-                path="/publicatiepatronen"
-                element={
-                  <RoleRoute allowedRoles={['owner']}>
-                    <Publicatiepatronen />
                   </RoleRoute>
                 }
               />

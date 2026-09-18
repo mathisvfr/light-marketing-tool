@@ -233,24 +233,35 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
       form_data: fullDraft.form_data,
     };
 
-    // Optional scheduling: if the caller supplies dueAt (ISO 8601 in future),
-    // route it to Buffer as customScheduled. Guard against past dates so the
-    // owner never accidentally posts an instant-publish thinking it's queued.
-    let scheduledFor = null;
-    if (req.body?.dueAt) {
-      const raw = String(req.body.dueAt);
-      // Accept both bare wall-clock strings (from datetime-local) and full ISO
-      // strings with an explicit offset. The presence of Z or +/-HH:MM means
-      // the client already normalized it; without it, treat as local Amsterdam.
-      const hasOffset = /Z$|[+-]\d{2}:?\d{2}$/.test(raw);
-      const parsed = hasOffset ? new Date(raw) : fromZonedTime(raw, APP_TIMEZONE);
-      if (Number.isNaN(parsed.getTime())) {
-        return res.status(400).json({ error: 'Ongeldige planningsdatum.' });
+    // Per-channel scheduling: the caller can supply either a single `dueAt`
+    // (legacy, applies to all channels) or a `schedulePerChannel` object
+    // mapping channel names to ISO 8601 / wall-clock datetime strings.
+    // Example: { linkedin: "2026-09-19T09:00", instagram: "2026-09-19T13:00" }
+    function parseDueAt(raw) {
+      if (!raw) return null;
+      const str = String(raw);
+      const hasOffset = /Z$|[+-]\d{2}:?\d{2}$/.test(str);
+      const parsed = hasOffset ? new Date(str) : fromZonedTime(str, APP_TIMEZONE);
+      if (Number.isNaN(parsed.getTime())) return null;
+      if (parsed.getTime() <= Date.now() + 60_000) return null;
+      return parsed.toISOString();
+    }
+
+    let scheduledForMap = {};
+    if (req.body?.schedulePerChannel && typeof req.body.schedulePerChannel === 'object') {
+      for (const [ch, raw] of Object.entries(req.body.schedulePerChannel)) {
+        const parsed = parseDueAt(raw);
+        if (parsed) scheduledForMap[ch] = parsed;
       }
-      if (parsed.getTime() <= Date.now() + 60_000) {
+    } else if (req.body?.dueAt) {
+      // Legacy single dueAt — apply to all channels
+      const parsed = parseDueAt(req.body.dueAt);
+      if (!parsed) {
         return res.status(400).json({ error: 'Planningsdatum moet minstens 1 minuut in de toekomst liggen.' });
       }
-      scheduledFor = parsed.toISOString();
+      for (const ch of publishableChannels) {
+        scheduledForMap[ch] = parsed;
+      }
     }
 
     const publishResult = await publishGateway.publish(
@@ -258,7 +269,7 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
       fullDraft.type,
       publishableChannels,
       contentPayload,
-      { scheduledFor }
+      { scheduledForMap }
     );
 
     const anyProgress =
@@ -292,11 +303,12 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
       }
     }
 
+    const hasScheduled = Object.keys(scheduledForMap).length > 0;
     return res.json(
-      scheduledFor
+      hasScheduled
         ? {
             success: true,
-            scheduledFor,
+            scheduledForMap,
             scheduledCount: publishResult.scheduledCount || 0,
             liveCount: publishResult.successCount || 0,
           }

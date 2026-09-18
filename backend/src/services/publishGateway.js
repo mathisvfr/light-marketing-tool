@@ -14,8 +14,8 @@ async function publish(draftId, type, channels, contentPayload, options = {}) {
     linkedin_post: contentPayload?.linkedin_post || null,
     instagram_caption: contentPayload?.instagram_caption || null,
     image_path: contentPayload?.image_path || null,
-    // ISO 8601 UTC when scheduled via Buffer; falsy for immediate queue.
-    scheduledFor: options?.scheduledFor || null,
+    // Per-channel scheduling: { channel: ISO string } or empty for immediate.
+    scheduledForMap: options?.scheduledForMap || {},
   };
 
   return publishDraft(draft, channels);

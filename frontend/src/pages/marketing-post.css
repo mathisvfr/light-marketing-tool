@@ -331,7 +331,7 @@
 .marketing-schedule {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.5rem;
   padding: 0.75rem 1rem;
   background: var(--grey-100);
   border: 1px solid var(--color-border);
@@ -339,8 +339,86 @@
   margin: 1rem 0;
 }
 
-.marketing-schedule input[type="datetime-local"] {
-  max-width: 18rem;
+.schedule-title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.schedule-channels {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.schedule-channel-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.schedule-channel-label {
+  font-weight: 600;
+  font-size: 0.88rem;
+  min-width: 5.5rem;
+  color: var(--color-text);
+}
+
+.schedule-channel-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.schedule-presets {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.schedule-preset-btn {
+  all: unset;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 6px;
+  background: #e2e8f0;
+  color: #334155;
+  transition: background 0.15s;
+}
+
+.schedule-preset-btn:hover:not(:disabled) {
+  background: #cbd5e1;
+}
+
+.schedule-preset-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.schedule-datetime {
+  font-size: 0.85rem;
+  max-width: 14rem;
+}
+
+.schedule-clear-btn {
+  all: unset;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: #94a3b8;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+}
+
+.schedule-clear-btn:hover {
+  color: var(--color-primary);
+  background: var(--light-red-50);
 }
 
 @media (max-width: 768px) {

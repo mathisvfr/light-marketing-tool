@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useAutosaveDraft, formatSavedAt } from '../hooks/useAutosaveDraft';
 import useImagePath from '../hooks/useImagePath';
 import useCriticus from '../hooks/useCriticus';
-import { isoToLocalInput } from '../lib/datetime';
+import { formatDateTime } from '../lib/datetime';
 import { api } from '../lib/api';
 import MediaPicker from '../components/shared/MediaPicker';
 import PlatformPreview from '../components/shared/PlatformPreview';
@@ -57,7 +57,8 @@ export default function MarketingPost() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [steeringNotes, setSteeringNotes] = useState('');
-  const [scheduleAt, setScheduleAt] = useState('');
+  // Per-channel scheduling: { linkedin: '2026-09-19T09:00', instagram: '2026-09-19T13:00' }
+  const [channelSchedule, setChannelSchedule] = useState({});
 
   const brandQuery = useQuery({
     queryKey: ['brand-settings'],
@@ -174,11 +175,13 @@ export default function MarketingPost() {
   });
 
   const publishMutation = useMutation({
-    mutationFn: (dueAt) =>
-      api(`/publish/${effectiveDraftId}`, {
+    mutationFn: (schedulePerChannel) => {
+      const hasSchedule = schedulePerChannel && Object.keys(schedulePerChannel).length > 0;
+      return api(`/publish/${effectiveDraftId}`, {
         method: 'POST',
-        body: JSON.stringify(dueAt ? { dueAt } : {}),
-      }),
+        body: JSON.stringify(hasSchedule ? { schedulePerChannel } : {}),
+      });
+    },
   });
 
   function updateField(key, value) {
@@ -356,32 +359,25 @@ export default function MarketingPost() {
     }
   }
 
-  // Converts the datetime-local input value to a UTC ISO string. The picker
-  // returns wall-clock time in the user's browser timezone (no offset), so we
-  // rely on Date() interpreting it as local time when constructing the ISO.
-  function resolveDueAt() {
-    if (!scheduleAt) return null;
-    const parsed = new Date(scheduleAt);
-    if (Number.isNaN(parsed.getTime())) return null;
-    return parsed.toISOString();
+  // Builds a { channel: ISO } map from the per-channel datetime-local values.
+  function resolveScheduleMap() {
+    const map = {};
+    for (const [ch, val] of Object.entries(channelSchedule)) {
+      if (!val) continue;
+      const parsed = new Date(val);
+      if (!Number.isNaN(parsed.getTime())) {
+        map[ch] = parsed.toISOString();
+      }
+    }
+    return Object.keys(map).length > 0 ? map : null;
   }
 
-  function formatScheduleLabel(iso) {
-    if (!iso) return '';
-    const d = new Date(iso);
-    return d.toLocaleString('nl-NL', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
+  const hasAnySchedule = Object.values(channelSchedule).some(Boolean);
 
   async function handleApproveAndPublish() {
     setError('');
     setSuccess('');
-    const dueAt = resolveDueAt();
+    const scheduleMap = resolveScheduleMap();
 
     try {
       await saveMutation.mutateAsync('draft');
@@ -392,13 +388,13 @@ export default function MarketingPost() {
     }
 
     try {
-      await publishMutation.mutateAsync(dueAt);
+      await publishMutation.mutateAsync(scheduleMap);
       setSuccess(
-        dueAt
-          ? `Marketingpost is goedgekeurd en ingepland via Buffer voor ${formatScheduleLabel(dueAt)}.`
+        scheduleMap
+          ? 'Marketingpost is goedgekeurd en ingepland via Buffer.'
           : 'Marketingpost is goedgekeurd en gepubliceerd op gekoppelde kanalen.'
       );
-      setScheduleAt('');
+      setChannelSchedule({});
     } catch (err) {
       setError(
         `Goedgekeurd, maar publiceren is mislukt: ${err.message || 'Onbekende fout.'} Controleer de kanaalinstellingen in Merk instellingen en probeer opnieuw.`
@@ -409,16 +405,16 @@ export default function MarketingPost() {
   async function handleRetryPublish() {
     setError('');
     setSuccess('');
-    const dueAt = resolveDueAt();
+    const scheduleMap = resolveScheduleMap();
 
     try {
-      await publishMutation.mutateAsync(dueAt);
+      await publishMutation.mutateAsync(scheduleMap);
       setSuccess(
-        dueAt
-          ? `Ingepland via Buffer voor ${formatScheduleLabel(dueAt)}.`
+        scheduleMap
+          ? 'Ingepland via Buffer.'
           : 'Marketingpost is succesvol gepubliceerd.'
       );
-      setScheduleAt('');
+      setChannelSchedule({});
     } catch (err) {
       setError(`Publiceren mislukt: ${err.message || 'Controleer kanaalinstellingen.'}`);
     }
@@ -738,12 +734,10 @@ export default function MarketingPost() {
           />
 
           {role === 'owner' ? (
-            <PatternPickerBlock
-              form={form}
-              scheduleAt={scheduleAt}
-              setScheduleAt={setScheduleAt}
-              resolveDueAt={resolveDueAt}
-              formatScheduleLabel={formatScheduleLabel}
+            <ChannelScheduleBlock
+              kanalen={form.kanalen}
+              channelSchedule={channelSchedule}
+              setChannelSchedule={setChannelSchedule}
               isBusy={isBusy}
             />
           ) : null}
@@ -764,13 +758,13 @@ export default function MarketingPost() {
 
             {role === 'owner' && loadedDraft?.status === 'approved' ? (
               <button type="button" onClick={handleRetryPublish} disabled={isBusy}>
-                {scheduleAt ? 'Inplannen via Buffer' : 'Opnieuw publiceren'}
+                {hasAnySchedule ? 'Inplannen via Buffer' : 'Opnieuw publiceren'}
               </button>
             ) : null}
 
             {role === 'owner' && loadedDraft?.status !== 'approved' ? (
               <button type="button" onClick={handleApproveAndPublish} disabled={isBusy}>
-                {scheduleAt ? 'Goedkeuren en inplannen' : 'Goedkeuren en publiceren'}
+                {hasAnySchedule ? 'Goedkeuren en inplannen' : 'Goedkeuren en publiceren'}
               </button>
             ) : null}
           </StickyFooter>
@@ -783,95 +777,75 @@ export default function MarketingPost() {
   );
 }
 
-// Owner-only block: shows a datetime-local picker + a dropdown of active
-// publication patterns whose channel matches at least one selected kanaal.
-// Picking a pattern resolves its next-slot on demand (batched on dropdown
-// open) and prefills the datetime input so the user can confirm before
-// committing. This is the "Inplannen via patroon" flow from Slice 2.
-function PatternPickerBlock({ form, scheduleAt, setScheduleAt, resolveDueAt, formatScheduleLabel, isBusy }) {
-  const [selectedPattern, setSelectedPattern] = useState('');
-  const [resolvingPattern, setResolvingPattern] = useState(false);
-  const [patternError, setPatternError] = useState('');
+const CHANNEL_LABELS = { linkedin: 'LinkedIn', facebook: 'Facebook', instagram: 'Instagram' };
+const TIME_PRESETS = [
+  { label: 'Ochtend', time: '09:00' },
+  { label: 'Middag', time: '13:00' },
+  { label: 'Avond', time: '18:00' },
+];
 
-  const patternsQuery = useQuery({
-    queryKey: ['publication-patterns'],
-    queryFn: () => api('/patterns'),
-  });
+function ChannelScheduleBlock({ kanalen, channelSchedule, setChannelSchedule, isBusy }) {
+  const channels = Array.isArray(kanalen) ? kanalen : [];
 
-  const matchingPatterns = useMemo(() => {
-    // form.kanalen may be undefined during hydration — guard here so the dep
-    // stays as `form.kanalen` (referentially stable in state) instead of a
-    // fresh array literal every render.
-    const kanalen = Array.isArray(form.kanalen) ? form.kanalen : [];
-    const all = patternsQuery.data?.patterns || [];
-    return all.filter((p) => p.isActive && kanalen.includes(p.channel));
-  }, [patternsQuery.data, form.kanalen]);
+  if (channels.length === 0) return null;
 
-  async function applyPattern(patternId) {
-    setSelectedPattern(patternId);
-    if (!patternId) return;
-    setPatternError('');
-    setResolvingPattern(true);
-    try {
-      const result = await api(`/patterns/${patternId}/next-slot`);
-      const next = result?.nextSlot;
-      if (!next) throw new Error('Geen datum ontvangen.');
-      // Shared util converteert UTC ISO naar datetime-local wall-clock in
-      // Europe/Amsterdam. Zelfde functie als Gepubliceerd reschedule.
-      setScheduleAt(isoToLocalInput(next));
-    } catch (err) {
-      setPatternError(err?.message || 'Kon volgend moment niet ophalen.');
-    } finally {
-      setResolvingPattern(false);
-    }
+  function setChannelTime(channel, value) {
+    setChannelSchedule((prev) => ({ ...prev, [channel]: value }));
+  }
+
+  function applyPreset(channel, time) {
+    // Use tomorrow's date with the preset time
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dateStr = tomorrow.toISOString().slice(0, 10);
+    setChannelTime(channel, `${dateStr}T${time}`);
   }
 
   return (
     <div className="marketing-schedule">
-      <label className="marketing-field">
-        Publicatiemoment (optioneel)
-        <input
-          type="datetime-local"
-          value={scheduleAt}
-          onChange={(event) => {
-            setScheduleAt(event.target.value);
-            setSelectedPattern('');
-          }}
-          disabled={isBusy}
-        />
-      </label>
-
-      {matchingPatterns.length > 0 ? (
-        <label className="marketing-field">
-          Inplannen via patroon
-          <select
-            value={selectedPattern}
-            onChange={(event) => applyPattern(event.target.value)}
-            disabled={isBusy || resolvingPattern}
-          >
-            <option value="">— Geen patroon —</option>
-            {matchingPatterns.map((pattern) => (
-              <option key={pattern.id} value={pattern.id}>
-                {pattern.name} ({pattern.channel} · {String(pattern.timeOfDay).slice(0, 5)})
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : (
-        <p className="marketing-muted">
-          Geen actieve patronen voor de gekozen kanalen. Maak er één aan in{' '}
-          <a href="/publicatiepatronen">Publicatiepatronen</a>.
-        </p>
-      )}
-
-      <p className="marketing-muted">
-        {scheduleAt
-          ? `Wordt via Buffer ingepland voor ${formatScheduleLabel(resolveDueAt())}.`
-          : 'Leeg = direct in Buffer-wachtrij.'}
-      </p>
-
-      {resolvingPattern ? <p className="marketing-muted">Volgend moment ophalen...</p> : null}
-      {patternError ? <p className="marketing-error">{patternError}</p> : null}
+      <h4 className="schedule-title">Publicatiemoment per kanaal</h4>
+      <p className="marketing-muted">Leeg = direct in Buffer-wachtrij.</p>
+      <div className="schedule-channels">
+        {channels.map((ch) => (
+          <div key={ch} className="schedule-channel-row">
+            <span className="schedule-channel-label">{CHANNEL_LABELS[ch] || ch}</span>
+            <div className="schedule-channel-controls">
+              <div className="schedule-presets">
+                {TIME_PRESETS.map((preset) => (
+                  <button
+                    key={preset.time}
+                    type="button"
+                    className="schedule-preset-btn"
+                    onClick={() => applyPreset(ch, preset.time)}
+                    disabled={isBusy}
+                    title={`Morgen ${preset.time}`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="datetime-local"
+                className="schedule-datetime"
+                value={channelSchedule[ch] || ''}
+                onChange={(e) => setChannelTime(ch, e.target.value)}
+                disabled={isBusy}
+              />
+              {channelSchedule[ch] ? (
+                <button
+                  type="button"
+                  className="schedule-clear-btn"
+                  onClick={() => setChannelTime(ch, '')}
+                  disabled={isBusy}
+                  title="Wissen"
+                >
+                  ×
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
