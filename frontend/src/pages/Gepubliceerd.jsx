@@ -342,9 +342,6 @@ export default function Gepubliceerd() {
               </table>
             </div>
           )}
-          <p className="published-note">
-            Blog-publicatie naar de website volgt zodra de nieuwe site live staat.
-          </p>
         </section>
       )}
 
