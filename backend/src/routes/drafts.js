@@ -631,62 +631,56 @@ router.post('/:id/generate', async (req, res, next) => {
     // Respond immediately with generated content (criticus_passed = null)
     res.json({ draft: formatDraftForResponse(updatedDraft) });
 
-    // Run criticus + image render in background (don't block the response)
+    // Run criticus + image render in background (don't block the response).
+    // Each task writes its result to the DB independently so the frontend can
+    // pick up whichever finishes first without waiting for the other.
     const tBg = Date.now();
-    const backgroundTasks = [
-      criticus({ type: draft.type, formData: draft.form_data, content: generated })
-        .then((r) => { console.log(`[timing] criticus ${Date.now() - tBg}ms`); return r; }),
-    ];
 
-    // Skip Satori render entirely when the user attached their own image up front.
+    // Criticus — independent DB write
+    criticus({ type: draft.type, formData: draft.form_data, content: generated })
+      .then(async (result) => {
+        console.log(`[timing] criticus ${Date.now() - tBg}ms`);
+        await supabase.from('drafts').update({
+          criticus_passed: result.passed,
+          criticus_notes: result.notes || null,
+          updated_at: new Date().toISOString(),
+        }).eq('id', draft.id);
+      })
+      .catch(async (err) => {
+        console.error('Background criticus failed:', err);
+        await supabase.from('drafts').update({
+          criticus_passed: false,
+          criticus_notes: 'Criticus-check mislukt. Probeer opnieuw te genereren.',
+          updated_at: new Date().toISOString(),
+        }).eq('id', draft.id).catch(() => {});
+      });
+
+    // Image render — independent DB write
     let renderInfo = null;
     if (!draft.image_path && (draft.type === 'marketing-post' || draft.type === 'vacature')) {
       renderInfo = resolveRenderTemplate(draft.type, draft.form_data, generated);
-      backgroundTasks.push(renderSocialImage(renderInfo.name, renderInfo.fields)
-        .then((r) => { console.log(`[timing] render(${renderInfo.name}) ${Date.now() - tBg}ms`); return r; }));
     } else if (!draft.image_path && draft.type === 'blog') {
       renderInfo = {
         name: 'blog-header',
         fields: { title: generated.blog_titel || draft.form_data?.onderwerp || 'Blog', category: draft.form_data?.categorie || 'Bedrijfsnieuws' },
         altText: generated.blog_titel || 'Blog header',
       };
-      backgroundTasks.push(renderSocialImage(renderInfo.name, renderInfo.fields)
-        .then((r) => { console.log(`[timing] render(blog-header) ${Date.now() - tBg}ms`); return r; }));
     }
 
-    Promise.allSettled(backgroundTasks)
-      .then(async ([criticusSettled, renderSettled]) => {
-        console.log(`[timing] background total ${Date.now() - tBg}ms`);
-        const bgUpdate = {
-          updated_at: new Date().toISOString(),
-        };
-
-        if (criticusSettled.status === 'fulfilled') {
-          bgUpdate.criticus_passed = criticusSettled.value.passed;
-          bgUpdate.criticus_notes = criticusSettled.value.notes || null;
-        } else {
-          console.error('Background criticus failed:', criticusSettled.reason);
-          bgUpdate.criticus_passed = false;
-          bgUpdate.criticus_notes = 'Criticus-check mislukt. Probeer opnieuw te genereren.';
-        }
-
-        if (renderSettled && renderSettled.status === 'fulfilled' && renderSettled.value) {
-          bgUpdate.image_path = renderSettled.value;
-        } else if (renderSettled && renderSettled.status === 'rejected') {
-          console.error('Background image render failed:', renderSettled.reason);
-        }
-
-        await supabase.from('drafts').update(bgUpdate).eq('id', draft.id);
-
-        // Catalogue the auto-generated image so it appears in the media library.
-        const renderedImagePath = renderSettled?.status === 'fulfilled' ? renderSettled.value : null;
-        if (renderedImagePath && renderInfo) {
+    if (renderInfo) {
+      renderSocialImage(renderInfo.name, renderInfo.fields)
+        .then(async (renderedImagePath) => {
+          console.log(`[timing] render(${renderInfo.name}) ${Date.now() - tBg}ms`);
+          await supabase.from('drafts').update({
+            image_path: renderedImagePath,
+            updated_at: new Date().toISOString(),
+          }).eq('id', draft.id);
           await registerGeneratedImage(renderedImagePath, renderInfo.altText, draft.created_by);
-        }
-      })
-      .catch((err) => {
-        console.error('Background criticus/render save failed:', err);
-      });
+        })
+        .catch((err) => {
+          console.error('Background image render failed:', err);
+        });
+    }
 
     // Vertalingen naar extra talen: parallel op de achtergrond. NL is al terug
     // in de response; iedere taal die klaar is wordt los in translations[lang]
