@@ -104,13 +104,14 @@ async function createPost({ accessToken, channelId, channel, text, imageUrl, due
           ]`
     : '';
 
-  // Scheduling: when dueAt is provided, switch mode to customScheduled and add
-  // dueAt (ISO 8601 UTC). Without dueAt we keep the addToQueue behavior so
-  // owners without a schedule flow are unaffected.
-  const scheduledIso = dueAt ? new Date(dueAt).toISOString() : null;
-  const modeBlock = scheduledIso
-    ? `mode: customScheduled\n          dueAt: ${JSON.stringify(scheduledIso)}`
-    : 'mode: addToQueue';
+  // Scheduling: customScheduled is used for both explicit schedules AND
+  // "publish now" (no dueAt). For immediate publishing we set dueAt to
+  // 2 minutes from now, which bypasses Buffer's queue slots and posts
+  // almost immediately. addToQueue would wait for the next queue slot.
+  const scheduledIso = dueAt
+    ? new Date(dueAt).toISOString()
+    : new Date(Date.now() + 2 * 60_000).toISOString();
+  const modeBlock = `mode: customScheduled\n          dueAt: ${JSON.stringify(scheduledIso)}`;
 
   // Facebook and Instagram require metadata with type (post/story/reel).
   // Instagram also requires shouldShareToFeed. LinkedIn needs no metadata.
