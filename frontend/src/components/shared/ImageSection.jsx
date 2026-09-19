@@ -6,7 +6,7 @@ import './ImageSection.css';
 const UNSPLASH_APP = 'light_marketing_tool';
 
 /**
- * Unified image picker.
+ * Compact image field + modal picker.
  *
  * Props:
  *  - imagePath        current selected image
@@ -16,11 +16,67 @@ const UNSPLASH_APP = 'light_marketing_tool';
  *  - disabled         true during generation / save
  */
 export default function ImageSection({ imagePath, onSelect, suggestions, searchTerms, disabled }) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedAttribution, setSelectedAttribution] = useState(null);
+
+  const isUnsplashImage = imagePath && imagePath.includes('images.unsplash.com');
+
+  function handleSelect(path, attribution) {
+    onSelect(path);
+    setSelectedAttribution(attribution || null);
+    setModalOpen(false);
+  }
+
+  return (
+    <div className="is-field">
+      <label className="is-field-label">Afbeelding</label>
+
+      {imagePath ? (
+        <div className="is-preview">
+          <img src={imagePath} alt="Geselecteerde afbeelding" className="is-preview-img" />
+          <div className="is-preview-bar">
+            {selectedAttribution || isUnsplashImage ? (
+              <UnsplashAttribution attribution={selectedAttribution} />
+            ) : <span />}
+            <div className="is-preview-btns">
+              <button type="button" className="is-btn-outline" onClick={() => setModalOpen(true)} disabled={disabled}>
+                Wijzigen
+              </button>
+              <button type="button" className="is-btn-danger" onClick={() => { setSelectedAttribution(null); onSelect(''); }} disabled={disabled}>
+                Verwijderen
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="is-choose-btn" onClick={() => setModalOpen(true)} disabled={disabled}>
+          Kies afbeelding...
+        </button>
+      )}
+
+      {modalOpen ? (
+        <ImagePickerModal
+          onSelect={handleSelect}
+          onClose={() => setModalOpen(false)}
+          suggestions={suggestions}
+          searchTerms={searchTerms}
+          disabled={disabled}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Modal picker
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function ImagePickerModal({ onSelect, onClose, suggestions, searchTerms, disabled }) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
   const debounceRef = useRef(null);
 
-  // Unsplash availability
+  // Unsplash
   const statusQuery = useQuery({
     queryKey: ['unsplash-status'],
     queryFn: () => api('/unsplash/status'),
@@ -28,37 +84,21 @@ export default function ImageSection({ imagePath, onSelect, suggestions, searchT
   });
   const unsplashAvailable = statusQuery.data?.available === true;
 
-  // Unsplash state
-  const [searchQuery, setSearchQuery] = useState('');
+  const displayTerms = searchTerms || [];
+  const [searchQuery, setSearchQuery] = useState(displayTerms[0] || '');
   const [unsplashResults, setUnsplashResults] = useState([]);
   const [unsplashTotal, setUnsplashTotal] = useState(0);
   const [unsplashPage, setUnsplashPage] = useState(1);
   const [isSearching, setIsSearching] = useState(false);
   const [localError, setLocalError] = useState('');
-  const [selectedAttribution, setSelectedAttribution] = useState(null);
+
+  // Use pre-fetched suggestions until the user searches
+  const displayResults = unsplashResults.length > 0 ? unsplashResults : (suggestions || []);
 
   // Secondary panels
-  const [openPanel, setOpenPanel] = useState(null); // 'library' | 'upload' | 'generate' | null
+  const [openPanel, setOpenPanel] = useState(null);
   const [librarySearch, setLibrarySearch] = useState('');
   const [generateForm, setGenerateForm] = useState({ onderwerp: '', caption: '' });
-
-  // Picker visibility (collapse after selection)
-  const [pickerOpen, setPickerOpen] = useState(!imagePath);
-
-  // Use pre-fetched suggestions if we haven't searched yet
-  const displayResults = unsplashResults.length > 0 ? unsplashResults : (suggestions || []);
-  const displayTerms = searchTerms || [];
-
-  // Populate search query from first term when suggestions arrive.
-  // Track via a state string instead of a ref to avoid the "cannot update
-  // ref during render" lint error while keeping the same single-fire logic.
-  const [appliedTerm, setAppliedTerm] = useState(null);
-  const firstTerm = displayTerms[0] || null;
-  if (firstTerm && firstTerm !== appliedTerm) {
-    setAppliedTerm(firstTerm);
-    if (!searchQuery) setSearchQuery(firstTerm);
-    setPickerOpen(true);
-  }
 
   async function doSearch(query, page = 1) {
     if (!query.trim()) return;
@@ -103,10 +143,7 @@ export default function ImageSection({ imagePath, onSelect, suggestions, searchT
           downloadLocation: photo.download_location,
         }),
       });
-      setSelectedAttribution({ name: photo.user.name, link: photo.user.link });
-      onSelect(result.item.path);
-      setPickerOpen(false);
-      setOpenPanel(null);
+      onSelect(result.item.path, { name: photo.user.name, link: photo.user.link });
     } catch (err) {
       setLocalError(err.message || 'Selecteren mislukt.');
     }
@@ -114,7 +151,7 @@ export default function ImageSection({ imagePath, onSelect, suggestions, searchT
 
   // Library
   const libraryQuery = useQuery({
-    queryKey: ['media-library-imgsection', librarySearch],
+    queryKey: ['media-library-picker', librarySearch],
     queryFn: () => {
       const params = new URLSearchParams();
       if (librarySearch.trim()) params.set('search', librarySearch.trim());
@@ -124,14 +161,10 @@ export default function ImageSection({ imagePath, onSelect, suggestions, searchT
   });
 
   function handleLibrarySelect(item) {
-    if (item.source === 'unsplash' && item.unsplash_photographer) {
-      setSelectedAttribution({ name: item.unsplash_photographer, link: item.unsplash_photographer_url || '#' });
-    } else {
-      setSelectedAttribution(null);
-    }
-    onSelect(item.path);
-    setPickerOpen(false);
-    setOpenPanel(null);
+    const attr = item.source === 'unsplash' && item.unsplash_photographer
+      ? { name: item.unsplash_photographer, link: item.unsplash_photographer_url || '#' }
+      : null;
+    onSelect(item.path, attr);
   }
 
   // Upload
@@ -139,12 +172,8 @@ export default function ImageSection({ imagePath, onSelect, suggestions, searchT
     mutationFn: ({ dataUrl, altText }) =>
       api('/media/upload', { method: 'POST', body: JSON.stringify({ dataUrl, altText }) }),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['media-library-imgsection'] });
-      setSelectedAttribution(null);
-      onSelect(data.item.path);
-      setLocalError('');
-      setPickerOpen(false);
-      setOpenPanel(null);
+      queryClient.invalidateQueries({ queryKey: ['media-library-picker'] });
+      onSelect(data.item.path, null);
     },
     onError: (err) => setLocalError(err.message || 'Uploaden mislukt.'),
   });
@@ -171,13 +200,9 @@ export default function ImageSection({ imagePath, onSelect, suggestions, searchT
     mutationFn: (fields) =>
       api('/media/generate', { method: 'POST', body: JSON.stringify(fields) }),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['media-library-imgsection'] });
+      queryClient.invalidateQueries({ queryKey: ['media-library-picker'] });
       setGenerateForm({ onderwerp: '', caption: '' });
-      setSelectedAttribution(null);
-      onSelect(data.item.path);
-      setLocalError('');
-      setPickerOpen(false);
-      setOpenPanel(null);
+      onSelect(data.item.path, null);
     },
     onError: (err) => setLocalError(err.message || 'Genereren mislukt.'),
   });
@@ -196,53 +221,34 @@ export default function ImageSection({ imagePath, onSelect, suggestions, searchT
   }
 
   const isBusy = disabled || uploadMutation.isPending || generateMutation.isPending;
-  const isUnsplashImage = imagePath && imagePath.includes('images.unsplash.com');
 
   return (
-    <div className="is-section">
-      <label className="is-label">Afbeelding</label>
-
-      {localError ? <p className="is-error">{localError}</p> : null}
-
-      {/* === SELECTED IMAGE PREVIEW === */}
-      {imagePath ? (
-        <div className="is-selected">
-          <img src={imagePath} alt="Geselecteerde afbeelding" className="is-selected-img" />
-          <div className="is-selected-bar">
-            {selectedAttribution || isUnsplashImage ? (
-              <UnsplashAttribution attribution={selectedAttribution} />
-            ) : <span />}
-            <div className="is-selected-btns">
-              <button type="button" className="is-btn-outline" onClick={() => setPickerOpen((v) => !v)} disabled={isBusy}>
-                {pickerOpen ? 'Sluiten' : 'Andere afbeelding'}
-              </button>
-              <button type="button" className="is-btn-danger" onClick={() => { setSelectedAttribution(null); onSelect(''); setPickerOpen(true); }} disabled={isBusy}>
-                Verwijderen
-              </button>
-            </div>
-          </div>
+    <div className="is-overlay" onClick={onClose}>
+      <div className="is-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="is-modal-header">
+          <h2>Kies afbeelding</h2>
+          <button type="button" className="is-modal-close" onClick={onClose} aria-label="Sluiten">✕</button>
         </div>
-      ) : null}
 
-      {/* === PICKER (visible when no image or explicitly opened) === */}
-      {pickerOpen || !imagePath ? (
-        <div className="is-picker">
+        {localError ? <p className="is-error">{localError}</p> : null}
 
-          {/* Unsplash suggestions strip */}
+        <div className="is-modal-body">
+          {/* Unsplash suggestions */}
           {unsplashAvailable && displayResults.length > 0 ? (
-            <div className="is-strip-wrap">
-              <div className="is-strip">
+            <div className="is-suggestions">
+              <p className="is-suggestions-label">Suggesties op basis van je content</p>
+              <div className="is-suggestions-grid">
                 {displayResults.map((photo) => (
-                  <button key={photo.id} type="button" className="is-strip-photo" onClick={() => handleUnsplashSelect(photo)} disabled={isBusy}>
+                  <button key={photo.id} type="button" className="is-suggestion" onClick={() => handleUnsplashSelect(photo)} disabled={isBusy}>
                     <img src={photo.urls.small} alt={photo.alt_description || ''} loading="lazy" />
-                    <div className="is-strip-overlay"><span>Kies</span></div>
-                    <span className="is-strip-credit">{photo.user.name}</span>
+                    <div className="is-suggestion-overlay"><span>Kies</span></div>
+                    <span className="is-suggestion-credit">{photo.user.name}</span>
                   </button>
                 ))}
               </div>
               {displayResults.length < unsplashTotal && unsplashResults.length > 0 ? (
-                <button type="button" className="is-strip-more" onClick={() => doSearch(searchQuery, unsplashPage + 1)} disabled={isSearching}>
-                  {isSearching ? '...' : 'Meer'}
+                <button type="button" className="is-more-btn" onClick={() => doSearch(searchQuery, unsplashPage + 1)} disabled={isSearching}>
+                  {isSearching ? 'Laden...' : 'Meer laden'}
                 </button>
               ) : null}
             </div>
@@ -250,7 +256,16 @@ export default function ImageSection({ imagePath, onSelect, suggestions, searchT
 
           {/* Search bar + chips */}
           {unsplashAvailable ? (
-            <div className="is-search-row">
+            <div className="is-search-section">
+              <input
+                type="search"
+                className="is-search"
+                placeholder="Zoek stockfoto's op Unsplash..."
+                value={searchQuery}
+                onChange={(e) => handleSearchInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); doSearch(searchQuery, 1); } }}
+                autoFocus
+              />
               {displayTerms.length > 0 ? (
                 <div className="is-chips">
                   {displayTerms.map((term) => (
@@ -260,21 +275,14 @@ export default function ImageSection({ imagePath, onSelect, suggestions, searchT
                   ))}
                 </div>
               ) : null}
-              <input
-                type="search"
-                className="is-search"
-                placeholder="Zoek stockfoto's op Unsplash..."
-                value={searchQuery}
-                onChange={(e) => handleSearchInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); doSearch(searchQuery, 1); } }}
-              />
-              {isSearching ? <span className="is-searching">Zoeken...</span> : null}
+              {isSearching && displayResults.length === 0 ? <p className="is-searching-msg">Zoeken...</p> : null}
             </div>
           ) : null}
 
-          {/* Divider + secondary actions */}
+          {/* Divider */}
           <div className="is-divider"><span>of kies een andere bron</span></div>
 
+          {/* Secondary action buttons */}
           <div className="is-actions">
             <button type="button" className={`is-action-btn${openPanel === 'upload' ? ' active' : ''}`} onClick={() => togglePanel('upload')} disabled={isBusy}>
               Upload foto
@@ -323,12 +331,12 @@ export default function ImageSection({ imagePath, onSelect, suggestions, searchT
               ) : (libraryQuery.data?.items || []).length === 0 ? (
                 <p className="is-empty">Geen afbeeldingen in de bibliotheek.</p>
               ) : (
-                <div className="is-grid">
+                <div className="is-lib-grid">
                   {(libraryQuery.data?.items || []).map((item) => (
-                    <button key={item.id} type="button" className="is-photo" onClick={() => handleLibrarySelect(item)} disabled={isBusy}>
+                    <button key={item.id} type="button" className="is-suggestion" onClick={() => handleLibrarySelect(item)} disabled={isBusy}>
                       <img src={item.path} alt={item.alt_text || item.filename} loading="lazy" />
-                      <div className="is-photo-overlay"><span>Kies</span></div>
-                      <span className={`is-photo-badge ${item.source}`}>
+                      <div className="is-suggestion-overlay"><span>Kies</span></div>
+                      <span className={`is-lib-badge ${item.source}`}>
                         {item.source === 'upload' ? 'foto' : item.source === 'unsplash' ? 'unsplash' : 'gegenereerd'}
                       </span>
                     </button>
@@ -355,7 +363,7 @@ export default function ImageSection({ imagePath, onSelect, suggestions, searchT
             </div>
           ) : null}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }
