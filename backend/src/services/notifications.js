@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const nodemailer = require('nodemailer');
 const { supabase } = require('../db/client');
 
 // Transactional-integrity rule (Eng review HIGH): notify() must be called AFTER
@@ -115,8 +116,8 @@ function renderTemplate(event, payload) {
 }
 
 // Logger transport (Push 1 default): appends to a jsonl file so a future
-// operator can grep-audit what would have been sent. Swap to real Resend by
-// setting NOTIFICATION_TRANSPORT=resend + RESEND_API_KEY.
+// operator can grep-audit what would have been sent. Swap to real SMTP by
+// setting NOTIFICATION_TRANSPORT=smtp + SMTP_USER/SMTP_PASS.
 async function loggerTransport({ to, subject, body }) {
   const logDir = path.resolve(__dirname, '..', '..', 'uploads', 'notifications');
   try {
@@ -132,47 +133,56 @@ async function loggerTransport({ to, subject, body }) {
   }
 }
 
-async function resendTransport({ to, subject, body }) {
-  const apiKey = process.env.RESEND_API_KEY;
+// Cached nodemailer transporter — created once, reused across all dispatches.
+let _smtpTransporter = null;
+
+function getSmtpTransporter() {
+  if (!_smtpTransporter) {
+    _smtpTransporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.office365.com',
+      port: Number(process.env.SMTP_PORT) || 587,
+      secure: false, // STARTTLS on port 587
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+  }
+  return _smtpTransporter;
+}
+
+async function smtpTransport({ to, subject, body }) {
   const from = process.env.NOTIFICATION_FROM || 'Light Marketing Tool <noreply@lightpersoneelsdiensten.nl>';
   const listUnsubUrl = process.env.PUBLIC_APP_URL
     ? `${process.env.PUBLIC_APP_URL.replace(/\/$/, '')}/notificaties/uitschrijven`
     : null;
 
-  if (!apiKey) {
-    return { ok: false, error: 'RESEND_API_KEY ontbreekt' };
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    return { ok: false, error: 'SMTP_USER en/of SMTP_PASS ontbreekt' };
   }
 
   try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from,
-        to,
-        subject,
-        text: body,
-        // GDPR: List-Unsubscribe (RFC 8058). Resend passes this through.
-        headers: listUnsubUrl
-          ? { 'List-Unsubscribe': `<${listUnsubUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' }
-          : {},
-      }),
-    });
-    if (!response.ok) {
-      const text = await response.text();
-      return { ok: false, error: `Resend ${response.status}: ${text.slice(0, 200)}` };
+    const headers = {};
+    if (listUnsubUrl) {
+      headers['List-Unsubscribe'] = `<${listUnsubUrl}>`;
+      headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
     }
+
+    await getSmtpTransporter().sendMail({
+      from,
+      to,
+      subject,
+      text: body,
+      headers,
+    });
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: err.message || 'resend fetch failed' };
+    return { ok: false, error: err.message || 'smtp send failed' };
   }
 }
 
 async function dispatch(transport, args) {
-  if (transport === 'resend') return resendTransport(args);
+  if (transport === 'smtp') return smtpTransport(args);
   if (transport === 'logger' || transport === 'placeholder') return loggerTransport(args);
   return { ok: false, error: `unsupported-transport:${transport}` };
 }
@@ -273,5 +283,5 @@ module.exports = {
   notify,
   notifyAfterCommit,
   // Exports below are for tests only.
-  __testables: { renderTemplate, loggerTransport, resendTransport, dispatch },
+  __testables: { renderTemplate, loggerTransport, smtpTransport, dispatch },
 };
