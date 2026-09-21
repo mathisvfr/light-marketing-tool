@@ -376,6 +376,42 @@
   font-size: 0.75rem;
 }
 
+/* ---- Week summary (recruiter) ---- */
+.dash-week-summary {
+  margin: 0;
+  padding: 0.5rem 0;
+  font-size: 0.88rem;
+  color: #334155;
+}
+
+/* ---- Team table (owner/manager weekly overview) ---- */
+.dash-team-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.dash-team-table th {
+  text-align: left;
+  font-weight: 600;
+  color: #64748b;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.45rem 0.65rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.dash-team-table td {
+  padding: 0.45rem 0.65rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.dash-team-table tbody tr:hover {
+  background: #f8fafc;
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 980px) {
   .dash-metrics {

@@ -165,7 +165,7 @@ router.get('/summary', async (req, res, next) => {
       ['owner', 'manager'].includes(req.user.role)
         ? getJobsFeedStatus().then((data) => ({ data, error: null }))
         : Promise.resolve({ data: null, error: null }),
-      // Owner also gets team-wide totals rendered in the 'Team totaal' section.
+      // Owner/manager also gets team-wide totals rendered in the 'Team totaal' section.
       ['owner', 'manager'].includes(req.user.role)
         ? supabase.from('drafts').select('*', { count: 'exact', head: true }).eq('status', 'pending_approval')
         : Promise.resolve({ count: 0, error: null }),
@@ -239,6 +239,82 @@ router.get('/summary', async (req, res, next) => {
       creatorName: item.creator?.name || 'Onbekend',
     }));
 
+    // ---- Role-specific widgets ----
+    const roleExtras = {};
+    const userRole = req.user.role;
+
+    if (userRole === 'recruiter' || (userRole === 'manager' && userRole !== 'owner')) {
+      // My recent drafts
+      const { data: myDrafts } = await supabase
+        .from('drafts')
+        .select('id, type, status, updated_at, form_data')
+        .eq('created_by', req.user.id)
+        .order('updated_at', { ascending: false })
+        .limit(5);
+
+      roleExtras.myRecentDrafts = (myDrafts || []).map((d) => ({
+        id: d.id,
+        type: d.type,
+        title: getDraftTitle(d.form_data),
+        status: d.status,
+        updatedAt: d.updated_at,
+      }));
+
+      // Week summary from activity_log
+      const { data: weekActions } = await supabase
+        .from('activity_log')
+        .select('action')
+        .eq('user_id', req.user.id)
+        .gte('created_at', weekAgoIso);
+
+      const weekSummary = { submitted: 0, approved: 0, rejected: 0 };
+      for (const row of weekActions || []) {
+        if (row.action === 'submitted' || row.action === 'submit') weekSummary.submitted++;
+        else if (row.action === 'approved' || row.action === 'approve') weekSummary.approved++;
+        else if (row.action === 'rejected' || row.action === 'reject') weekSummary.rejected++;
+      }
+      roleExtras.weekSummary = weekSummary;
+    }
+
+    if (userRole === 'owner' || userRole === 'manager') {
+      // Team weekly overview from activity_log
+      const { data: teamActions } = await supabase
+        .from('activity_log')
+        .select('user_name, action')
+        .gte('created_at', weekAgoIso);
+
+      const teamMap = new Map();
+      for (const row of teamActions || []) {
+        const name = row.user_name || 'Onbekend';
+        if (!teamMap.has(name)) {
+          teamMap.set(name, { name, submitted: 0, approved: 0, published: 0 });
+        }
+        const entry = teamMap.get(name);
+        if (row.action === 'submitted' || row.action === 'submit') entry.submitted++;
+        else if (row.action === 'approved' || row.action === 'approve') entry.approved++;
+        else if (row.action === 'published' || row.action === 'publish') entry.published++;
+      }
+      roleExtras.teamWeekly = Array.from(teamMap.values());
+    }
+
+    if (userRole === 'viewer') {
+      // Recent publications for viewer
+      const { data: pubDrafts } = await supabase
+        .from('drafts')
+        .select('id, type, status, updated_at, form_data')
+        .in('status', ['published', 'actief'])
+        .order('updated_at', { ascending: false })
+        .limit(5);
+
+      roleExtras.recentPublications = (pubDrafts || []).map((d) => ({
+        id: d.id,
+        type: d.type,
+        title: getDraftTitle(d.form_data),
+        status: d.status,
+        updatedAt: d.updated_at,
+      }));
+    }
+
     return res.json({
       // Personal counts for the caller. Frontend renders these under 'Jouw'.
       counts: {
@@ -261,6 +337,7 @@ router.get('/summary', async (req, res, next) => {
       channelHealth: Array.from(channelMap.values())
         .map(({ channel, status, updatedAt }) => ({ channel, status, updatedAt }))
         .sort((a, b) => a.channel.localeCompare(b.channel)),
+      ...roleExtras,
     });
   } catch (error) {
     return next(error);

@@ -79,9 +79,19 @@ export default function Dashboard() {
   const channelHealth = summaryQuery.data?.channelHealth || [];
   const feedHealth = summaryQuery.data?.feedHealth || null;
   const feedIssueCount = feedHealth?.itemsWithIssues || 0;
+  const myRecentDrafts = summaryQuery.data?.myRecentDrafts || [];
+  const weekSummary = summaryQuery.data?.weekSummary || null;
+  const teamWeekly = summaryQuery.data?.teamWeekly || [];
+  const recentPublications = summaryQuery.data?.recentPublications || [];
 
   const isEmptyDashboard = role !== 'viewer' && !user?.onboarded_at;
   const prefix = viewScope === 'personal' ? 'Jouw ' : '';
+
+  function getEditPath(draft) {
+    if (draft.type === 'marketing-post') return `/marketing-post?draftId=${draft.id}`;
+    if (draft.type === 'blog') return `/blog-aanmaken?draftId=${draft.id}`;
+    return `/vacature-plaatsen?draftId=${draft.id}`;
+  }
 
   return (
     <div className="dash">
@@ -267,6 +277,86 @@ export default function Dashboard() {
           </div>
         )}
       </section>
+
+      {/* Role-specific widgets */}
+      <div className="dash-panels">
+        {/* Recruiter: Mijn concepten */}
+        {role === 'recruiter' && myRecentDrafts.length > 0 && (
+          <section className="dash-panel">
+            <h3 className="dash-panel-title">Mijn concepten</h3>
+            <div className="dash-activity">
+              {myRecentDrafts.map((draft) => (
+                <div key={draft.id} className="dash-activity-item">
+                  <div className="dash-activity-dot" />
+                  <div>
+                    <Link to={getEditPath(draft)} className="dash-activity-title">{draft.title}</Link>
+                    <span className="dash-activity-meta">
+                      <StatusBadge status={draft.status} /> · {formatRelative(draft.updatedAt)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Recruiter: Weekoverzicht */}
+        {role === 'recruiter' && weekSummary && (
+          <section className="dash-panel">
+            <h3 className="dash-panel-title">Weekoverzicht</h3>
+            <p className="dash-week-summary">
+              Deze week: {weekSummary.submitted} ingediend, {weekSummary.approved} goedgekeurd, {weekSummary.rejected} afgewezen
+            </p>
+          </section>
+        )}
+
+        {/* Viewer: Laatste publicaties */}
+        {role === 'viewer' && recentPublications.length > 0 && (
+          <section className="dash-panel">
+            <h3 className="dash-panel-title">Laatste publicaties</h3>
+            <div className="dash-activity">
+              {recentPublications.map((draft) => (
+                <div key={draft.id} className="dash-activity-item">
+                  <div className="dash-activity-dot" />
+                  <div>
+                    <span className="dash-activity-title">{draft.title}</span>
+                    <span className="dash-activity-meta">
+                      <StatusBadge status={draft.status} /> · {formatRelative(draft.updatedAt)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+
+      {/* Owner/Manager: Weekoverzicht per teamlid */}
+      {['owner', 'manager'].includes(role) && teamWeekly.length > 0 && (
+        <section className="dash-panel" style={{ gridColumn: '1 / -1' }}>
+          <h3 className="dash-panel-title">Weekoverzicht per teamlid</h3>
+          <table className="dash-team-table">
+            <thead>
+              <tr>
+                <th>Naam</th>
+                <th>Ingediend</th>
+                <th>Goedgekeurd</th>
+                <th>Gepubliceerd</th>
+              </tr>
+            </thead>
+            <tbody>
+              {teamWeekly.map((row) => (
+                <tr key={row.name}>
+                  <td>{row.name}</td>
+                  <td>{row.submitted}</td>
+                  <td>{row.approved}</td>
+                  <td>{row.published}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
     </div>
   );
 }
