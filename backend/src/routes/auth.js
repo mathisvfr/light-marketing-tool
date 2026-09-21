@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const { supabase } = require('../db/client');
 const { AUTH_COOKIE_NAME, requireAuth } = require('../middleware/auth');
 const { sendPasswordReset } = require('../services/notifications');
+const { logActivity } = require('../services/activityLog');
 
 const router = express.Router();
 
@@ -66,6 +67,8 @@ router.post('/login', async (req, res, next) => {
 
     // Track last login
     await supabase.from('users').update({ last_login_at: new Date().toISOString() }).eq('id', user.id);
+
+    logActivity(user.id, user.name, 'login', 'user', user.id);
 
     return res.json({
       user: {

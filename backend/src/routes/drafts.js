@@ -9,6 +9,7 @@ const { notifyAfterCommit } = require('../services/notifications');
 const { validateVacatureForApproval } = require('../services/vacatureValidation');
 const unsplash = require('../services/unsplash');
 const { triggerBlogTranslations } = require('../services/blogTranslations');
+const { logActivity } = require('../services/activityLog');
 
 // Whitelist of safe HTML tags for blog content. Strips scripts, iframes,
 // event handlers, and anything not explicitly listed.
@@ -297,6 +298,8 @@ router.post('/', async (req, res, next) => {
     if (error) {
       throw error;
     }
+
+    logActivity(req.user.id, req.user.name, 'draft.created', 'draft', data.id, { title: getDraftTitle(formData), type });
 
     // Auto-onboarding: marking the user as onboarded the first time they
     // create a draft is a stronger signal than "dashboard was non-empty."
@@ -929,6 +932,8 @@ router.post('/:id/submit', async (req, res, next) => {
       throw updateError;
     }
 
+    logActivity(req.user.id, req.user.name, 'draft.submitted', 'draft', draft.id, { title: getDraftTitle(updatedDraft?.form_data) });
+
     // Fire draft.submitted to all owners AFTER the DB commit. Never blocks
     // the response — worst case the notify writes a failed log row.
     const { data: approvers } = await supabase.from('users').select('id').in('role', ['owner', 'manager']);
@@ -1380,6 +1385,8 @@ router.post('/:id/approve', async (req, res, next) => {
       return res.status(404).json({ error: 'Concept niet gevonden.' });
     }
 
+    logActivity(req.user.id, req.user.name, 'draft.approved', 'draft', draftId, { title: getDraftTitle(data.form_data) });
+
     // Notify the creator (post-commit). Suppress if the owner is the creator
     // (self-approval doesn't need a notification).
     if (currentDraft.created_by && currentDraft.created_by !== req.user.id) {
@@ -1446,6 +1453,8 @@ router.post('/:id/reject', async (req, res, next) => {
     if (error) {
       throw error;
     }
+
+    logActivity(req.user.id, req.user.name, 'draft.rejected', 'draft', draftId, { title: getDraftTitle(data?.form_data), reason: comment });
 
     if (currentDraft.created_by && currentDraft.created_by !== req.user.id) {
       notifyAfterCommit('draft.rejected', {

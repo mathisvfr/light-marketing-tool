@@ -5,6 +5,7 @@ const { requireRole } = require('../middleware/auth');
 const publishGateway = require('../services/publishGateway');
 const { getCredential } = require('../services/integrations');
 const { triggerBlogTranslations } = require('../services/blogTranslations');
+const { logActivity } = require('../services/activityLog');
 
 // The frontend datetime-local input returns a wall-clock string with no
 // timezone (e.g. "2026-09-01T09:00"). new Date() interprets that in the
@@ -317,6 +318,8 @@ router.post('/:id', requireRole(['owner', 'manager']), async (req, res, next) =>
       }
     }
 
+    logActivity(req.user.id, req.user.name, 'draft.published', 'draft', draftId, { title: getDraftTitle(draft.form_data), channels: publishableChannels });
+
     const hasScheduled = Object.keys(scheduledForMap).length > 0;
     return res.json(
       hasScheduled
@@ -572,7 +575,7 @@ router.post('/:id/expire', requireRole(['owner', 'manager']), async (req, res, n
 
     const { data: draft, error: draftError } = await supabase
       .from('drafts')
-      .select('id, type, status')
+      .select('id, type, status, form_data')
       .eq('id', draftId)
       .maybeSingle();
 
@@ -625,6 +628,8 @@ router.post('/:id/expire', requireRole(['owner', 'manager']), async (req, res, n
     if (updatePublicationsError) {
       throw updatePublicationsError;
     }
+
+    logActivity(req.user.id, req.user.name, 'draft.expired', 'draft', draftId, { title: getDraftTitle(draft.form_data) });
 
     return res.json({ success: true });
   } catch (error) {

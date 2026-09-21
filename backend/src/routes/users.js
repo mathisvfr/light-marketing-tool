@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { supabase } = require('../db/client');
 const { requireRole } = require('../middleware/auth');
+const { logActivity } = require('../services/activityLog');
 
 const router = express.Router();
 const ALLOWED_ROLES = ['owner', 'manager', 'recruiter', 'viewer'];
@@ -84,6 +85,8 @@ router.post('/', async (req, res, next) => {
       throw error;
     }
 
+    logActivity(req.user.id, req.user.name, 'user.created', 'user', data.id, { newUserName: name, role });
+
     return res.status(201).json({
       user: {
         id: data.id,
@@ -139,6 +142,8 @@ router.patch('/:id/role', async (req, res, next) => {
       throw error;
     }
 
+    logActivity(req.user.id, req.user.name, 'user.role_changed', 'user', userId, { oldRole: user.role, newRole });
+
     return res.json({
       user: {
         id: data.id,
@@ -187,6 +192,8 @@ router.delete('/:id', async (req, res, next) => {
     if (error) {
       throw error;
     }
+
+    logActivity(req.user.id, req.user.name, 'user.deleted', 'user', userId);
 
     return res.status(204).send();
   } catch (error) {

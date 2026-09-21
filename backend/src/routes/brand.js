@@ -2,6 +2,7 @@ const express = require('express');
 const { supabase } = require('../db/client');
 const { requireRole } = require('../middleware/auth');
 const { getCredential } = require('../services/integrations');
+const { logActivity } = require('../services/activityLog');
 
 const router = express.Router();
 
@@ -107,6 +108,8 @@ router.put('/', requireRole('owner'), async (req, res, next) => {
     if (error) {
       throw error;
     }
+
+    logActivity(req.user.id, req.user.name, 'brand.updated', 'brand_settings', null);
 
     return res.json({ success: true });
   } catch (error) {

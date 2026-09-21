@@ -5,6 +5,7 @@ const { getJobsFeedStatus } = require('../services/feed');
 const { getAllCredentialStatuses } = require('../services/integrations');
 const { notifyAfterCommit } = require('../services/notifications');
 const { validateVacatureForApproval } = require('../services/vacatureValidation');
+const { logActivity } = require('../services/activityLog');
 
 const router = express.Router();
 
@@ -20,6 +21,39 @@ function getDraftTitle(formData) {
     formData.titel ||
     'Zonder titel'
   );
+}
+
+function formatActivityTitle(item) {
+  const name = item.user_name || 'Iemand';
+  const title = item.metadata?.title || '';
+  switch (item.action) {
+    case 'login': return `${name} is ingelogd`;
+    case 'draft.created': return `${name} heeft '${title}' aangemaakt`;
+    case 'draft.submitted': return `${name} heeft '${title}' ingediend`;
+    case 'draft.approved': return `${name} heeft '${title}' goedgekeurd`;
+    case 'draft.rejected': return `${name} heeft '${title}' afgewezen`;
+    case 'draft.published': return `${name} heeft '${title}' gepubliceerd`;
+    case 'draft.expired': return `${name} heeft '${title}' gesloten`;
+    case 'user.created': return `${name} heeft ${item.metadata?.newUserName || 'een gebruiker'} toegevoegd`;
+    case 'user.role_changed': return `${name} heeft een rol gewijzigd naar ${item.metadata?.newRole}`;
+    case 'user.deleted': return `${name} heeft een gebruiker verwijderd`;
+    case 'brand.updated': return `${name} heeft merkinstellingen bijgewerkt`;
+    case 'profile.updated': return `${name} heeft profiel bijgewerkt`;
+    case 'password.changed': return `${name} heeft wachtwoord gewijzigd`;
+    default: return `${name}: ${item.action}`;
+  }
+}
+
+function actionToStatus(action) {
+  const map = {
+    'draft.approved': 'approved',
+    'draft.rejected': 'rejected',
+    'draft.published': 'published',
+    'draft.submitted': 'pending_approval',
+    'draft.created': 'draft',
+    'draft.expired': 'expired',
+  };
+  return map[action] || 'draft';
 }
 
 function toIsoWeekAgo() {
@@ -94,13 +128,17 @@ router.get('/summary', async (req, res, next) => {
           .eq('type', 'vacature')
           .eq('status', 'actief')
       ),
-      personalFilter(
-        supabase
-          .from('drafts')
-          .select('id, type, status, updated_at, form_data')
-          .order('updated_at', { ascending: false })
-          .limit(10)
-      ),
+      (async () => {
+        let q = supabase
+          .from('activity_log')
+          .select('id, user_id, user_name, action, resource_type, resource_id, metadata, created_at')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        if (isPersonal) {
+          q = q.eq('user_id', req.user.id);
+        }
+        return q;
+      })(),
       getAllCredentialStatuses().then((data) => ({ data, error: null })),
       // "Openstaande concepten" widget. Owner sees all pending_approval items
       // (the classic approval queue) PLUS their own drafts (Mathis is the sole
@@ -184,10 +222,12 @@ router.get('/summary', async (req, res, next) => {
 
     const recentActivity = (recentActivityResult.data || []).map((item) => ({
       id: item.id,
-      type: item.type,
-      status: item.status,
-      updatedAt: item.updated_at,
-      title: getDraftTitle(item.form_data),
+      title: formatActivityTitle(item),
+      action: item.action,
+      userName: item.user_name,
+      metadata: item.metadata,
+      status: actionToStatus(item.action),
+      updatedAt: item.created_at,
     }));
 
     const approvalQueue = (approvalQueueResult.data || []).map((item) => ({
@@ -262,6 +302,8 @@ router.post('/queue/:id/approve', requireRole(['owner', 'manager']), async (req,
 
     if (error) throw error;
 
+    logActivity(req.user.id, req.user.name, 'draft.approved', 'draft', id, { title: getDraftTitle(draft.form_data) });
+
     if (draft.created_by && draft.created_by !== req.user.id) {
       notifyAfterCommit('draft.approved', {
         draft_id: id,
@@ -307,6 +349,8 @@ router.post('/queue/:id/reject', requireRole(['owner', 'manager']), async (req, 
       .eq('id', id);
 
     if (error) throw error;
+
+    logActivity(req.user.id, req.user.name, 'draft.rejected', 'draft', id, { title: getDraftTitle(draft.form_data), reason: comment });
 
     if (draft.created_by && draft.created_by !== req.user.id) {
       notifyAfterCommit('draft.rejected', {
