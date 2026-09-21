@@ -461,7 +461,7 @@ export default function SeoPaginas() {
                   </button>
                 ) : null}
 
-                {role === 'owner' ? (
+                {(role === 'owner' || role === 'manager') ? (
                   <button type="button" onClick={handlePublish} disabled={isBusy} className={BUTTON_PRIMARY}>
                     Goedkeuren en publiceren
                   </button>
@@ -504,7 +504,7 @@ export default function SeoPaginas() {
                     </tr>
                   ) : (
                     pages.map((page) => {
-                      const isOwner = role === 'owner';
+                      const isOwner = role === 'owner' || role === 'manager';
                       const isOwnDraft = role === 'recruiter' && page.createdBy === user?.id;
 
                       return (

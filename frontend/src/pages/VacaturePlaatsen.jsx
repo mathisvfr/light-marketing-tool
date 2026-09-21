@@ -985,7 +985,7 @@ export default function VacaturePlaatsen() {
               </button>
             ) : null}
 
-            {role === 'owner' && ['draft', 'pending_approval', 'rejected'].includes(loadedDraft?.status) ? (
+            {(role === 'owner' || role === 'manager') && ['draft', 'pending_approval', 'rejected'].includes(loadedDraft?.status) ? (
               <button type="button" onClick={handleApprove} disabled={isBusy}>
                 Goedkeuren
               </button>

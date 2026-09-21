@@ -196,7 +196,7 @@ export default function Dashboard() {
                         </span>
                       </div>
                       <div className="dash-queue-actions">
-                        {item.status === 'pending_approval' && role === 'owner' ? (
+                        {item.status === 'pending_approval' && (role === 'owner' || role === 'manager') ? (
                           <>
                             <button
                               type="button"

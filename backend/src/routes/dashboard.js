@@ -61,7 +61,7 @@ router.get('/summary', async (req, res, next) => {
     // Recruiter (and viewer) see their OWN activity. Owner sees the whole team.
     // Design review: each user's dashboard should reflect their own work; the
     // 'Jouw' affordance in the frontend expects created_by-filtered counts here.
-    const isPersonal = req.user.role !== 'owner';
+    const isPersonal = !['owner', 'manager'].includes(req.user.role);
     const personalFilter = (query) =>
       isPersonal ? query.eq('created_by', req.user.id) : query;
 
@@ -108,7 +108,7 @@ router.get('/summary', async (req, res, next) => {
       // Recruiter sees only their own drafts — nothing they'd approve, but
       // they need a "concepten die ik nog moet afmaken" surface.
       // Viewer sees nothing (falls through to []).
-      req.user.role === 'owner'
+      ['owner', 'manager'].includes(req.user.role)
         ? supabase
             .from('drafts')
             .select('id, type, status, created_at, form_data, created_by, creator:users!drafts_created_by_fkey(name)')
@@ -124,21 +124,21 @@ router.get('/summary', async (req, res, next) => {
             .order('created_at', { ascending: true })
             .limit(10)
         : Promise.resolve({ data: [], error: null }),
-      req.user.role === 'owner'
+      ['owner', 'manager'].includes(req.user.role)
         ? getJobsFeedStatus().then((data) => ({ data, error: null }))
         : Promise.resolve({ data: null, error: null }),
       // Owner also gets team-wide totals rendered in the 'Team totaal' section.
-      req.user.role === 'owner'
+      ['owner', 'manager'].includes(req.user.role)
         ? supabase.from('drafts').select('*', { count: 'exact', head: true }).eq('status', 'pending_approval')
         : Promise.resolve({ count: 0, error: null }),
-      req.user.role === 'owner'
+      ['owner', 'manager'].includes(req.user.role)
         ? supabase
             .from('drafts')
             .select('*', { count: 'exact', head: true })
             .eq('status', 'published')
             .gte('updated_at', weekAgoIso)
         : Promise.resolve({ count: 0, error: null }),
-      req.user.role === 'owner'
+      ['owner', 'manager'].includes(req.user.role)
         ? supabase
             .from('drafts')
             .select('*', { count: 'exact', head: true })
@@ -207,7 +207,7 @@ router.get('/summary', async (req, res, next) => {
         activeVacatures: activeVacaturesResult.count || 0,
       },
       // Team totals (owner only). Frontend renders these beneath 'Team totaal'.
-      teamCounts: req.user.role === 'owner'
+      teamCounts: ['owner', 'manager'].includes(req.user.role)
         ? {
             pendingApproval: teamPendingCountResult.count || 0,
             publishedThisWeek: teamPublishedCountResult.count || 0,
@@ -227,7 +227,7 @@ router.get('/summary', async (req, res, next) => {
   }
 });
 
-router.post('/queue/:id/approve', requireRole('owner'), async (req, res, next) => {
+router.post('/queue/:id/approve', requireRole(['owner', 'manager']), async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -277,7 +277,7 @@ router.post('/queue/:id/approve', requireRole('owner'), async (req, res, next) =
   }
 });
 
-router.post('/queue/:id/reject', requireRole('owner'), async (req, res, next) => {
+router.post('/queue/:id/reject', requireRole(['owner', 'manager']), async (req, res, next) => {
   try {
     const { id } = req.params;
     const comment = String(req.body?.comment || '').trim();

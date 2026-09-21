@@ -377,12 +377,12 @@ export default function BlogAanmaken() {
             <button type="button" className="btn-secondary" onClick={handleSaveDraft} disabled={isBusy}>
               {['actief', 'approved', 'published'].includes(draftStatus) ? 'Wijzigingen opslaan' : 'Opslaan als concept'}
             </button>
-            {role !== 'owner' && (
+            {role !== 'owner' && role !== 'manager' && (
               <button type="button" className="btn-primary" onClick={handleSubmitForApproval} disabled={isBusy}>
                 Indienen ter goedkeuring
               </button>
             )}
-            {role === 'owner' && ['draft', 'pending_approval', 'rejected'].includes(draftStatus) && (
+            {(role === 'owner' || role === 'manager') && ['draft', 'pending_approval', 'rejected'].includes(draftStatus) && (
               <button type="button" className="btn-primary" onClick={handleApproveAndPublish} disabled={isBusy}>
                 Goedkeuren en publiceren
               </button>

@@ -414,7 +414,7 @@ export default function ContentWachtrij() {
         </label>
       </div>
 
-      {role === 'owner' && selectedIds.size > 0 ? (
+      {(role === 'owner' || role === 'manager') && selectedIds.size > 0 ? (
         <div className="queue-bulk-bar">
           <span>
             {selectedIds.size} geselecteerd ({selectionStatusLabel})
@@ -479,7 +479,7 @@ export default function ContentWachtrij() {
         <table className="queue-table">
           <thead>
             <tr>
-              {role === 'owner' ? (
+              {(role === 'owner' || role === 'manager') ? (
                 <th>
                   <input
                     type="checkbox"
@@ -506,18 +506,18 @@ export default function ContentWachtrij() {
           <tbody>
             {drafts.length === 0 ? (
               <tr>
-                <td colSpan={role === 'owner' ? 8 : 7}>Geen concepten gevonden.</td>
+                <td colSpan={(role === 'owner' || role === 'manager') ? 8 : 7}>Geen concepten gevonden.</td>
               </tr>
             ) : (
               drafts.map((draft) => {
-                const isOwner = role === 'owner';
+                const isOwner = role === 'owner' || role === 'manager';
                 const isRecruiterOwnDraft = role === 'recruiter' && draft.createdBy === user?.id;
 
                 const canDuplicate = isOwner || isRecruiterOwnDraft;
 
                 return (
                   <tr key={draft.id}>
-                    {role === 'owner' ? (
+                    {(role === 'owner' || role === 'manager') ? (
                       <td>
                         <input
                           type="checkbox"

@@ -9,7 +9,7 @@ const router = express.Router();
 
 // Only owners and recruiters may create media; viewers are read-only.
 function requireWriteRole(req, res, next) {
-  if (!['owner', 'recruiter'].includes(req.user?.role)) {
+  if (!['owner', 'manager', 'recruiter'].includes(req.user?.role)) {
     return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
   }
   return next();
@@ -213,8 +213,8 @@ router.post('/unsplash-select', requireWriteRole, async (req, res, next) => {
 // DELETE /api/media/:id — verwijderen (owner only)
 router.delete('/:id', async (req, res, next) => {
   try {
-    if (req.user.role !== 'owner') {
-      return res.status(403).json({ error: 'Alleen owners mogen afbeeldingen verwijderen.' });
+    if (!['owner', 'manager'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Alleen owners en managers mogen afbeeldingen verwijderen.' });
     }
 
     const { data: item, error: fetchError } = await supabase

@@ -4,7 +4,7 @@ const { supabase } = require('../db/client');
 const { requireRole } = require('../middleware/auth');
 
 const router = express.Router();
-const ALLOWED_ROLES = ['owner', 'recruiter', 'viewer'];
+const ALLOWED_ROLES = ['owner', 'manager', 'recruiter', 'viewer'];
 
 router.use(requireRole('owner'));
 

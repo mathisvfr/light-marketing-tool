@@ -100,7 +100,7 @@ async function registerGeneratedImage(imagePath, altText, createdBy) {
 }
 
 function canEditDraft(user, draft) {
-  if (user.role === 'owner') {
+  if (['owner', 'manager'].includes(user.role)) {
     return true;
   }
 
@@ -267,7 +267,7 @@ router.get('/:id', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    if (!['owner', 'recruiter'].includes(req.user.role)) {
+    if (!['owner', 'manager', 'recruiter'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -326,7 +326,7 @@ router.post('/', async (req, res, next) => {
 // tend to share ~80% of the form, so this is the daily-workflow shortcut.
 router.post('/:id/duplicate', async (req, res, next) => {
   try {
-    if (!['owner', 'recruiter'].includes(req.user.role)) {
+    if (!['owner', 'manager', 'recruiter'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -373,7 +373,7 @@ router.post('/:id/duplicate', async (req, res, next) => {
 // the restore is pushed to history so the operation is undoable in kind.
 router.post('/:id/restore-version', async (req, res, next) => {
   try {
-    if (!['owner', 'recruiter'].includes(req.user.role)) {
+    if (!['owner', 'manager', 'recruiter'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -470,7 +470,7 @@ router.post('/:id/restore-version', async (req, res, next) => {
 
 router.post('/:id/generate', async (req, res, next) => {
   try {
-    if (!['owner', 'recruiter'].includes(req.user.role)) {
+    if (!['owner', 'manager', 'recruiter'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -763,7 +763,7 @@ router.post('/:id/generate', async (req, res, next) => {
 // autosave must not go through it — it would wipe criticus_notes and content.
 router.patch('/:id/form-data', async (req, res, next) => {
   try {
-    if (!['owner', 'recruiter'].includes(req.user.role)) {
+    if (!['owner', 'manager', 'recruiter'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -811,7 +811,7 @@ router.patch('/:id/form-data', async (req, res, next) => {
 
 router.put('/:id', async (req, res, next) => {
   try {
-    if (!['owner', 'recruiter'].includes(req.user.role)) {
+    if (!['owner', 'manager', 'recruiter'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -888,7 +888,7 @@ router.put('/:id', async (req, res, next) => {
 
 router.post('/:id/submit', async (req, res, next) => {
   try {
-    if (!['owner', 'recruiter'].includes(req.user.role)) {
+    if (!['owner', 'manager', 'recruiter'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -931,14 +931,14 @@ router.post('/:id/submit', async (req, res, next) => {
 
     // Fire draft.submitted to all owners AFTER the DB commit. Never blocks
     // the response — worst case the notify writes a failed log row.
-    const { data: owners } = await supabase.from('users').select('id').eq('role', 'owner');
-    const ownerIds = (owners || []).map((row) => row.id).filter((id) => id !== req.user.id);
-    if (ownerIds.length > 0) {
+    const { data: approvers } = await supabase.from('users').select('id').in('role', ['owner', 'manager']);
+    const approverIds = (approvers || []).map((row) => row.id).filter((id) => id !== req.user.id);
+    if (approverIds.length > 0) {
       notifyAfterCommit('draft.submitted', {
         draft_id: draft.id,
         actor_name: req.user.name || req.user.email || 'Iemand',
         title: getDraftTitle(updatedDraft?.form_data) || 'concept',
-        recipient_user_ids: ownerIds,
+        recipient_user_ids: approverIds,
       });
     }
 
@@ -954,7 +954,7 @@ router.post('/:id/submit', async (req, res, next) => {
 // with a hard cap of 100 ids per call.
 router.post('/bulk-approve', async (req, res, next) => {
   try {
-    if (req.user.role !== 'owner') {
+    if (!['owner', 'manager'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -1078,7 +1078,7 @@ function parseBulkIds(rawIds) {
 // partial results.
 router.post('/bulk-reject', async (req, res, next) => {
   try {
-    if (req.user.role !== 'owner') {
+    if (!['owner', 'manager'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -1135,7 +1135,7 @@ router.post('/bulk-reject', async (req, res, next) => {
 // what it can. Delete is hard — no soft-delete column exists.
 router.post('/bulk-delete', async (req, res, next) => {
   try {
-    if (!['owner', 'recruiter'].includes(req.user.role)) {
+    if (!['owner', 'manager', 'recruiter'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -1157,7 +1157,7 @@ router.post('/bulk-delete', async (req, res, next) => {
     const eligibleIds = [];
 
     for (const draft of drafts || []) {
-      if (req.user.role === 'owner' || draft.created_by === req.user.id) {
+      if (['owner', 'manager'].includes(req.user.role) || draft.created_by === req.user.id) {
         eligibleIds.push(draft.id);
       } else {
         skipped.push({ id: draft.id, reason: 'not-owner' });
@@ -1191,7 +1191,7 @@ router.post('/bulk-delete', async (req, res, next) => {
 // and shouldn't be silently allowed.
 router.post('/bulk-submit', async (req, res, next) => {
   try {
-    if (!['owner', 'recruiter'].includes(req.user.role)) {
+    if (!['owner', 'manager', 'recruiter'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -1217,7 +1217,7 @@ router.post('/bulk-submit', async (req, res, next) => {
         skipped.push({ id: draft.id, reason: 'wrong-status', status: draft.status });
         continue;
       }
-      if (req.user.role !== 'owner' && draft.created_by !== req.user.id) {
+      if (!['owner', 'manager'].includes(req.user.role) && draft.created_by !== req.user.id) {
         skipped.push({ id: draft.id, reason: 'not-owner' });
         continue;
       }
@@ -1255,7 +1255,7 @@ router.post('/bulk-submit', async (req, res, next) => {
 // Non-vacature rows worden overgeslagen (marketing-posts hebben geen 'actief').
 router.post('/bulk-expire', async (req, res, next) => {
   try {
-    if (req.user.role !== 'owner') {
+    if (!['owner', 'manager'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -1328,7 +1328,7 @@ router.post('/bulk-expire', async (req, res, next) => {
 
 router.post('/:id/approve', async (req, res, next) => {
   try {
-    if (req.user.role !== 'owner') {
+    if (!['owner', 'manager'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -1399,7 +1399,7 @@ router.post('/:id/approve', async (req, res, next) => {
 
 router.post('/:id/reject', async (req, res, next) => {
   try {
-    if (req.user.role !== 'owner') {
+    if (!['owner', 'manager'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -1499,7 +1499,7 @@ router.delete('/:id', async (req, res, next) => {
 
 router.post('/:id/image-override', async (req, res, next) => {
   try {
-    if (req.user.role !== 'owner') {
+    if (!['owner', 'manager'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Alleen owners mogen een afbeelding overschrijven.' });
     }
 

@@ -164,7 +164,7 @@ router.get('/', async (_req, res, next) => {
   }
 });
 
-router.post('/:id', requireRole('owner'), async (req, res, next) => {
+router.post('/:id', requireRole(['owner', 'manager']), async (req, res, next) => {
   try {
     const draftId = req.params.id;
 
@@ -339,7 +339,7 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
 // channel failed at Buffer, lands in skipped[] with a reason. Rows that
 // publish live are flipped to 'published' individually so a partial batch
 // still records the successful ones.
-router.post('/bulk', requireRole('owner'), async (req, res, next) => {
+router.post('/bulk', requireRole(['owner', 'manager']), async (req, res, next) => {
   try {
     const rawIds = Array.isArray(req.body?.ids) ? req.body.ids : null;
     if (!rawIds || rawIds.length === 0) {
@@ -474,7 +474,7 @@ router.post('/bulk', requireRole('owner'), async (req, res, next) => {
 });
 
 // Retry only the failed channels for an already-published draft.
-router.post('/:id/retry-failed', requireRole('owner'), async (req, res, next) => {
+router.post('/:id/retry-failed', requireRole(['owner', 'manager']), async (req, res, next) => {
   try {
     const draftId = req.params.id;
 
@@ -566,7 +566,7 @@ router.post('/:id/retry-failed', requireRole('owner'), async (req, res, next) =>
   }
 });
 
-router.post('/:id/expire', requireRole('owner'), async (req, res, next) => {
+router.post('/:id/expire', requireRole(['owner', 'manager']), async (req, res, next) => {
   try {
     const draftId = req.params.id;
 

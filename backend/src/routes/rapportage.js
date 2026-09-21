@@ -178,7 +178,7 @@ router.post('/application', async (req, res, next) => {
 });
 
 // POST /api/rapportage/refresh -- owner-only force-refresh of DB snapshots
-router.post('/refresh', requireRole('owner'), async (req, res, next) => {
+router.post('/refresh', requireRole(['owner', 'manager']), async (req, res, next) => {
   try {
     const result = await dbSnapshotter.run();
     return res.json({ success: true, ...result });

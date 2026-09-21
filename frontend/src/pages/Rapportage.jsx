@@ -120,7 +120,7 @@ export default function Rapportage() {
           <option value="week">Deze week</option>
           <option value="month">Deze maand</option>
         </select>
-        {role === 'owner' && (
+        {(role === 'owner' || role === 'manager') && (
           <button
             type="button"
             onClick={() => refreshMutation.mutate()}

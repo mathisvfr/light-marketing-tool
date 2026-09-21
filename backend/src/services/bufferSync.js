@@ -139,7 +139,7 @@ async function reconcileRow(row, token) {
       .maybeSingle();
     // Notify the creator + all other owners (bulk approvers). Dedupe via
     // notification_log's UNIQUE index, so we can double-target safely.
-    const { data: owners } = await supabase.from('users').select('id').eq('role', 'owner');
+    const { data: owners } = await supabase.from('users').select('id').in('role', ['owner', 'manager']);
     const recipients = new Set((owners || []).map((u) => u.id));
     if (draft?.created_by) recipients.add(draft.created_by);
     notifyAfterCommit('publication.fired', {

@@ -6,6 +6,7 @@ import useStatusMeta from '../../hooks/useStatusMeta';
 
 const FALLBACK_META = {
   owner:     { label: 'Eigenaar',  tone: 'live' },
+  manager:   { label: 'Manager',   tone: 'info' },
   recruiter: { label: 'Recruiter', tone: 'neutral' },
   viewer:    { label: 'Lezer',     tone: 'muted' },
 };

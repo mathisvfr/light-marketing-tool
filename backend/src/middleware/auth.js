@@ -38,13 +38,14 @@ async function requireAuth(req, res, next) {
   }
 }
 
-function requireRole(role) {
+function requireRole(roleOrRoles) {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Niet ingelogd.' });
     }
 
-    if (req.user.role !== role) {
+    const allowed = Array.isArray(roleOrRoles) ? roleOrRoles : [roleOrRoles];
+    if (!allowed.includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 

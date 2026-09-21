@@ -662,7 +662,7 @@ export default function MarketingPost() {
             {copied ? 'Gekopieerd!' : 'Kopieer tekst'}
           </button>
 
-          {role === 'owner' ? (
+          {(role === 'owner' || role === 'manager') ? (
             <ChannelScheduleBlock
               kanalen={form.kanalen}
               channelSchedule={channelSchedule}
@@ -685,13 +685,13 @@ export default function MarketingPost() {
               </button>
             ) : null}
 
-            {role === 'owner' && loadedDraft?.status === 'approved' ? (
+            {(role === 'owner' || role === 'manager') && loadedDraft?.status === 'approved' ? (
               <button type="button" onClick={handleRetryPublish} disabled={isBusy}>
                 {hasAnySchedule ? 'Inplannen via Buffer' : 'Opnieuw publiceren'}
               </button>
             ) : null}
 
-            {role === 'owner' && ['draft', 'pending_approval', 'rejected'].includes(loadedDraft?.status) ? (
+            {(role === 'owner' || role === 'manager') && ['draft', 'pending_approval', 'rejected'].includes(loadedDraft?.status) ? (
               <button type="button" onClick={handleApproveAndPublish} disabled={isBusy}>
                 {hasAnySchedule ? 'Goedkeuren en inplannen' : 'Goedkeuren en publiceren'}
               </button>

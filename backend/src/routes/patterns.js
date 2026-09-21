@@ -7,8 +7,8 @@ const router = express.Router();
 const ALLOWED_CHANNELS = ['linkedin', 'facebook', 'instagram'];
 const HHMM_RE = /^(\d{1,2}):(\d{2})$/;
 
-function requireOwner(req, res, next) {
-  if (req.user?.role !== 'owner') {
+function requireOwnerOrManager(req, res, next) {
+  if (!['owner', 'manager'].includes(req.user?.role)) {
     return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
   }
   return next();
@@ -96,7 +96,7 @@ router.get('/', async (_req, res, next) => {
   }
 });
 
-router.post('/', requireOwner, async (req, res, next) => {
+router.post('/', requireOwnerOrManager, async (req, res, next) => {
   try {
     const { errors, fields } = validatePayload(req.body);
     if (errors.length > 0) {
@@ -120,7 +120,7 @@ router.post('/', requireOwner, async (req, res, next) => {
   }
 });
 
-router.put('/:id', requireOwner, async (req, res, next) => {
+router.put('/:id', requireOwnerOrManager, async (req, res, next) => {
   try {
     const { errors, fields } = validatePayload(req.body);
     if (errors.length > 0) {
@@ -146,7 +146,7 @@ router.put('/:id', requireOwner, async (req, res, next) => {
   }
 });
 
-router.delete('/:id', requireOwner, async (req, res, next) => {
+router.delete('/:id', requireOwnerOrManager, async (req, res, next) => {
   try {
     const { error, count } = await supabase
       .from('publication_patterns')

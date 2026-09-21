@@ -182,7 +182,7 @@ export default function Gepubliceerd() {
                       <th>Titel</th>
                       <th>Kanaal</th>
                       <th>Ingepland voor</th>
-                      {role === 'owner' ? <th>Acties</th> : null}
+                      {(role === 'owner' || role === 'manager') ? <th>Acties</th> : null}
                     </tr>
                   </thead>
                   <tbody>
@@ -199,7 +199,7 @@ export default function Gepubliceerd() {
                               </span>
                             </td>
                             <td>{formatDateTime(channel.scheduledFor)}</td>
-                            {role === 'owner' ? (
+                            {(role === 'owner' || role === 'manager') ? (
                               <td>
                                 <div className="published-actions">
                                   <button
@@ -242,7 +242,7 @@ export default function Gepubliceerd() {
                       <th>Titel</th>
                       <th>Gepubliceerd op</th>
                       <th>Kanaalstatus</th>
-                      {role === 'owner' ? <th>Acties</th> : null}
+                      {(role === 'owner' || role === 'manager') ? <th>Acties</th> : null}
                     </tr>
                   </thead>
                   <tbody>
@@ -270,7 +270,7 @@ export default function Gepubliceerd() {
                               )}
                             </div>
                           </td>
-                          {role === 'owner' ? (
+                          {(role === 'owner' || role === 'manager') ? (
                             <td>
                               {hasFailed ? (
                                 <button
@@ -323,7 +323,7 @@ export default function Gepubliceerd() {
                           <Link to={`/vacature-plaatsen?draftId=${item.id}`} className="published-btn">
                             Bewerken
                           </Link>
-                          {role === 'owner' && (
+                          {(role === 'owner' || role === 'manager') && (
                             <button
                               type="button"
                               className="published-btn destructive"

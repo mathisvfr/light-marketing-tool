@@ -12,7 +12,7 @@ const SELECT_COLUMNS =
 const VALID_DOELGROEP = ['werkzoekenden', 'opdrachtgevers'];
 
 function canEdit(user, page) {
-  if (user.role === 'owner') {
+  if (['owner', 'manager'].includes(user.role)) {
     return true;
   }
 
@@ -161,7 +161,7 @@ router.get('/:id', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    if (!['owner', 'recruiter'].includes(req.user.role)) {
+    if (!['owner', 'manager', 'recruiter'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -210,7 +210,7 @@ router.post('/', async (req, res, next) => {
 
 router.post('/:id/generate', async (req, res, next) => {
   try {
-    if (!['owner', 'recruiter'].includes(req.user.role)) {
+    if (!['owner', 'manager', 'recruiter'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -267,7 +267,7 @@ router.post('/:id/generate', async (req, res, next) => {
 
 router.put('/:id', async (req, res, next) => {
   try {
-    if (!['owner', 'recruiter'].includes(req.user.role)) {
+    if (!['owner', 'manager', 'recruiter'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -321,7 +321,7 @@ router.put('/:id', async (req, res, next) => {
 
 router.post('/:id/submit', async (req, res, next) => {
   try {
-    if (!['owner', 'recruiter'].includes(req.user.role)) {
+    if (!['owner', 'manager', 'recruiter'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
 
@@ -366,8 +366,8 @@ router.post('/:id/submit', async (req, res, next) => {
 
 router.post('/:id/approve', async (req, res, next) => {
   try {
-    if (req.user.role !== 'owner') {
-      return res.status(403).json({ error: 'Alleen eigenaren kunnen goedkeuren.' });
+    if (!['owner', 'manager'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Alleen eigenaren en managers kunnen goedkeuren.' });
     }
 
     const { error } = await supabase
@@ -396,8 +396,8 @@ router.post('/:id/approve', async (req, res, next) => {
 
 router.post('/:id/reject', async (req, res, next) => {
   try {
-    if (req.user.role !== 'owner') {
-      return res.status(403).json({ error: 'Alleen eigenaren kunnen afwijzen.' });
+    if (!['owner', 'manager'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Alleen eigenaren en managers kunnen afwijzen.' });
     }
 
     const { error } = await supabase
@@ -426,8 +426,8 @@ router.post('/:id/reject', async (req, res, next) => {
 
 router.post('/:id/publish', async (req, res, next) => {
   try {
-    if (req.user.role !== 'owner') {
-      return res.status(403).json({ error: 'Alleen eigenaren kunnen publiceren.' });
+    if (!['owner', 'manager'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Alleen eigenaren en managers kunnen publiceren.' });
     }
 
     const { data: page, error: pageError } = await supabase

@@ -7,8 +7,8 @@ const router = express.Router();
 
 const APP_TIMEZONE = 'Europe/Amsterdam';
 
-function requireOwner(req, res, next) {
-  if (req.user?.role !== 'owner') {
+function requireOwnerOrManager(req, res, next) {
+  if (!['owner', 'manager'].includes(req.user?.role)) {
     return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
   }
   return next();
@@ -39,7 +39,7 @@ async function loadPublication(id) {
 // POST /publications/:id/reschedule — atomic via Buffer editPost. Only allowed
 // for rows still in 'scheduled' state; anything else is a 409 to prevent
 // accidental double-fire (Design + Eng consensus at autoplan review).
-router.post('/:id/reschedule', requireOwner, async (req, res, next) => {
+router.post('/:id/reschedule', requireOwnerOrManager, async (req, res, next) => {
   try {
     const parsed = normalizeDueAt(req.body?.dueAt);
     if (!parsed) return res.status(400).json({ error: 'Ongeldige planningsdatum.' });
@@ -84,7 +84,7 @@ router.post('/:id/reschedule', requireOwner, async (req, res, next) => {
 // POST /publications/:id/cancel — delete the Buffer post and mark our row.
 // Idempotent: if Buffer already forgot about it, we still flip the local
 // state so the UI stops showing it as scheduled.
-router.post('/:id/cancel', requireOwner, async (req, res, next) => {
+router.post('/:id/cancel', requireOwnerOrManager, async (req, res, next) => {
   try {
     const publication = await loadPublication(req.params.id);
     if (!publication) return res.status(404).json({ error: 'Publicatie niet gevonden.' });

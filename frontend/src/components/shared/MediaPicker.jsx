@@ -256,7 +256,7 @@ export default function MediaPicker({ open, onSelect, onClose }) {
                   <span className={`mp-item-badge ${item.source}`}>
                     {item.source === 'upload' ? 'foto' : 'gegenereerd'}
                   </span>
-                  {role === 'owner' ? (
+                  {(role === 'owner' || role === 'manager') ? (
                     <button
                       type="button"
                       className="mp-item-delete"

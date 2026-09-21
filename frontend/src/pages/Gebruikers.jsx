@@ -175,6 +175,7 @@ export default function Gebruikers() {
                       disabled={updateRoleMutation.isPending || deleteUserMutation.isPending}
                     >
                       <option value="owner">owner</option>
+                      <option value="manager">manager</option>
                       <option value="recruiter">recruiter</option>
                       <option value="viewer">viewer</option>
                     </select>
