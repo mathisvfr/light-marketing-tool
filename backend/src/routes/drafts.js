@@ -8,6 +8,7 @@ const { renderSocialImage, saveUploadedImageDataUrl } = require('../services/ren
 const { notifyAfterCommit } = require('../services/notifications');
 const { validateVacatureForApproval } = require('../services/vacatureValidation');
 const unsplash = require('../services/unsplash');
+const { triggerBlogTranslations } = require('../services/blogTranslations');
 
 // Whitelist of safe HTML tags for blog content. Strips scripts, iframes,
 // event handlers, and anything not explicitly listed.
@@ -864,6 +865,19 @@ router.put('/:id', async (req, res, next) => {
 
     if (updateError) {
       throw updateError;
+    }
+
+    // Re-translate published blogs when translatable content changes.
+    // Fire-and-forget — doesn't block the save response.
+    if (draft.status === 'published' && updatedDraft.type === 'blog') {
+      const hasContentChange =
+        req.body?.blog_titel !== undefined ||
+        req.body?.blog_html !== undefined;
+      if (hasContentChange) {
+        triggerBlogTranslations(draft.id).catch((err) =>
+          console.error('[blog-translate] hervertaling mislukt:', err.message || err)
+        );
+      }
     }
 
     return res.json({ draft: formatDraftForResponse(updatedDraft) });

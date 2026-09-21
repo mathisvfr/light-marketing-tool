@@ -372,26 +372,44 @@ async function callProvider(provider, systemInput, payload) {
   return extractTextFromAnthropicResponse(responseJson);
 }
 
-async function callAnthropicExpectingJson(systemPrompt, payload) {
+async function callAnthropicExpectingJson(systemPrompt, payload, options) {
   const provider = getProvider();
 
   if (!['anthropic', 'gemini', 'greenpt'].includes(provider)) {
     throw new Error('AI_PROVIDER moet "anthropic", "gemini" of "greenpt" zijn.');
   }
 
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const rawText = await callProvider(provider, systemPrompt, payload);
+  // Allow callers to override the model for cheaper tasks (e.g. translations).
+  // Only works for Anthropic provider; Gemini/GreenPT ignore this.
+  const originalModel = process.env.ANTHROPIC_MODEL;
+  if (options?.model && provider === 'anthropic') {
+    process.env.ANTHROPIC_MODEL = options.model;
+  }
 
-    try {
-      return parseJsonOrThrow(rawText);
-    } catch (error) {
-      if (attempt === 1) {
-        throw new Error(`${getProviderLabel(provider)} gaf geen geldige JSON terug.`);
+  try {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const rawText = await callProvider(provider, systemPrompt, payload);
+
+      try {
+        return parseJsonOrThrow(rawText);
+      } catch (error) {
+        if (attempt === 1) {
+          throw new Error(`${getProviderLabel(provider)} gaf geen geldige JSON terug.`);
+        }
+      }
+    }
+
+    throw new Error('Genereren mislukte door ongeldige JSON-respons.');
+  } finally {
+    // Restore original model so other calls aren't affected.
+    if (options?.model && provider === 'anthropic') {
+      if (originalModel === undefined) {
+        delete process.env.ANTHROPIC_MODEL;
+      } else {
+        process.env.ANTHROPIC_MODEL = originalModel;
       }
     }
   }
-
-  throw new Error('Genereren mislukte door ongeldige JSON-respons.');
 }
 
 function buildSystemBlocks(brandKnowledge, brandContext, templatePrompt) {
@@ -463,6 +481,51 @@ async function translateVacature(lang, formData, nlContent) {
     functie_eisen: result?.functie_eisen || '',
     wat_wij_bieden: result?.wat_wij_bieden || '',
     social: result?.social || '',
+  });
+}
+
+// Ondersteunde talen voor blog-vertalingen — alle website-locales behalve NL.
+// Bevat de en es die vacatures niet hebben (website ondersteunt meer locales).
+const SUPPORTED_BLOG_TRANSLATION_LANGS = ['pl', 'bg', 'sk', 'lv', 'en', 'hu', 'ro', 'uk', 'de', 'es'];
+
+// Goedkoper model voor vertalingen — Haiku is snel, goedkoop en prima voor
+// rechtstreekse vertalingen. Gemini Flash wordt al automatisch gebruikt als
+// AI_PROVIDER=gemini staat.
+const TRANSLATION_MODEL = process.env.TRANSLATION_MODEL || 'claude-haiku-4-5-20251001';
+
+async function translateBlog(lang, formData, nlContent) {
+  if (!SUPPORTED_BLOG_TRANSLATION_LANGS.includes(lang)) {
+    throw new Error(`Onbekende blogtaal: ${lang}`);
+  }
+
+  const [brandKnowledge, brandContext, translatePrompt] = await Promise.all([
+    loadBrandKnowledge(),
+    loadBrandContext(),
+    loadPrompt('blog-translate'),
+  ]);
+
+  const systemBlocks = buildSystemBlocks(brandKnowledge, brandContext, translatePrompt);
+  const payload = {
+    lang,
+    form_data: formData,
+    nl: {
+      blog_titel: nlContent?.blog_titel || '',
+      blog_html: nlContent?.blog_html || '',
+      teaser: nlContent?.teaser || '',
+      lead: nlContent?.lead || '',
+      meta_description: nlContent?.meta_description || '',
+      leestijd: nlContent?.leestijd || '',
+    },
+  };
+
+  const result = await callAnthropicExpectingJson(systemBlocks, payload, { model: TRANSLATION_MODEL });
+  return sanitizeGenerated({
+    blog_titel: result?.blog_titel || '',
+    blog_html: result?.blog_html || '',
+    teaser: result?.teaser || '',
+    lead: result?.lead || '',
+    meta_description: result?.meta_description || '',
+    leestijd: result?.leestijd || '',
   });
 }
 
@@ -542,7 +605,9 @@ module.exports = {
   loadBrandContext,
   generate,
   translateVacature,
+  translateBlog,
   extractDocumentFields,
   criticus,
   SUPPORTED_TRANSLATION_LANGS,
+  SUPPORTED_BLOG_TRANSLATION_LANGS,
 };

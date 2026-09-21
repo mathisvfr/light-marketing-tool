@@ -4,6 +4,7 @@ const { supabase } = require('../db/client');
 const { requireRole } = require('../middleware/auth');
 const publishGateway = require('../services/publishGateway');
 const { getCredential } = require('../services/integrations');
+const { triggerBlogTranslations } = require('../services/blogTranslations');
 
 // The frontend datetime-local input returns a wall-clock string with no
 // timezone (e.g. "2026-09-01T09:00"). new Date() interprets that in the
@@ -305,6 +306,14 @@ router.post('/:id', requireRole('owner'), async (req, res, next) => {
 
       if (updateError) {
         throw updateError;
+      }
+
+      // Kick off blog translations in the background — fire-and-forget.
+      // Uses a cheap model (Haiku) so cost is minimal.
+      if (fullDraft.type === 'blog') {
+        triggerBlogTranslations(draftId).catch((err) =>
+          console.error('[blog-translate] achtergrond-fout na publicatie:', err.message || err)
+        );
       }
     }
 
