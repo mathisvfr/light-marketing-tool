@@ -4,6 +4,7 @@ const { requireRole } = require('../middleware/auth');
 const { getJobsFeedStatus } = require('../services/feed');
 const { getAllCredentialStatuses } = require('../services/integrations');
 const { notifyAfterCommit } = require('../services/notifications');
+const { validateVacatureForApproval } = require('../services/vacatureValidation');
 
 const router = express.Router();
 
@@ -233,7 +234,7 @@ router.post('/queue/:id/approve', requireRole('owner'), async (req, res, next) =
     // Fetch draft to determine type (vacatures → actief, others → approved)
     const { data: draft, error: fetchError } = await supabase
       .from('drafts')
-      .select('id, type, status, created_by, form_data')
+      .select('id, type, status, created_by, form_data, sollicitatie_url, omschrijving_nl')
       .eq('id', id)
       .maybeSingle();
 
@@ -241,6 +242,11 @@ router.post('/queue/:id/approve', requireRole('owner'), async (req, res, next) =
 
     if (!draft || !['draft', 'pending_approval'].includes(draft.status)) {
       return res.status(404).json({ error: 'Concept niet gevonden of niet meer in wachtrij.' });
+    }
+
+    const validationError = validateVacatureForApproval(draft);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
     }
 
     const nextStatus = draft.type === 'vacature' ? 'actief' : 'approved';

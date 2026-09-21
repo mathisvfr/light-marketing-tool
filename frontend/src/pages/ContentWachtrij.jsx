@@ -295,13 +295,22 @@ export default function ContentWachtrij() {
     }
   }
 
-  async function handleApprove(id) {
+  function handleApprove(draft) {
     setError('');
-    try {
-      await approveMutation.mutateAsync(id);
-    } catch (err) {
-      setError(err.message || 'Goedkeuren mislukt.');
-    }
+    setConfirm({
+      title: 'Goedkeuren',
+      message: `Weet je zeker dat je "${draft.title || 'dit concept'}" wilt goedkeuren?${draft.type === 'vacature' ? ' De vacature wordt direct actief in de XML feed.' : ''}`,
+      confirmLabel: 'Goedkeuren',
+      variant: 'normal',
+      onConfirm: async () => {
+        try {
+          await approveMutation.mutateAsync(draft.id);
+        } catch (err) {
+          setError(err.message || 'Goedkeuren mislukt.');
+          throw err;
+        }
+      },
+    });
   }
 
   async function handleReject(id) {
@@ -481,6 +490,8 @@ export default function ContentWachtrij() {
         </div>
       ) : null}
 
+      {error && <FormMessage variant="error">{error}</FormMessage>}
+
       <div className="queue-table-wrap">
         <table className="queue-table">
           <thead>
@@ -552,7 +563,7 @@ export default function ContentWachtrij() {
                               <button
                                 type="button"
                                 disabled={isMutating}
-                                onClick={() => handleApprove(draft.id)}
+                                onClick={() => handleApprove(draft)}
                               >
                                 Goedkeuren
                               </button>
@@ -613,8 +624,6 @@ export default function ContentWachtrij() {
           </tbody>
         </table>
       </div>
-
-      <FormMessage variant="error">{error}</FormMessage>
 
       <ConfirmDialog
         open={Boolean(confirm)}

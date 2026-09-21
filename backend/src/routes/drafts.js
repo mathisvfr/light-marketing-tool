@@ -6,6 +6,7 @@ const { supabase } = require('../db/client');
 const { generate, criticus, translateVacature, SUPPORTED_TRANSLATION_LANGS } = require('../services/claude');
 const { renderSocialImage, saveUploadedImageDataUrl } = require('../services/render');
 const { notifyAfterCommit } = require('../services/notifications');
+const { validateVacatureForApproval } = require('../services/vacatureValidation');
 const unsplash = require('../services/unsplash');
 
 // Whitelist of safe HTML tags for blog content. Strips scripts, iframes,
@@ -584,7 +585,12 @@ router.post('/:id/generate', async (req, res, next) => {
       };
     } else {
       // Vacature (default)
+      const formData = { ...(draft.form_data || {}) };
+      if (Array.isArray(generated.image_search_terms) && generated.image_search_terms.length > 0) {
+        formData.image_search_terms = generated.image_search_terms;
+      }
       updatePayload = {
+        form_data: formData,
         omschrijving_nl: generated.omschrijving_nl || draft.omschrijving_nl || null,
         functie_eisen: generated.functie_eisen || draft.functie_eisen || null,
         wat_wij_bieden: generated.wat_wij_bieden || draft.wat_wij_bieden || null,
@@ -1332,25 +1338,9 @@ router.post('/:id/approve', async (req, res, next) => {
       return res.status(400).json({ error: 'Alleen concepten of items in de wachtrij kunnen goedgekeurd worden.' });
     }
 
-    if (currentDraft.type === 'vacature') {
-      // Sollicitatie-URL is de enige weg voor kandidaten om te reageren via de
-      // feed. Zonder geldige URL komt niemand ergens; blokkeer daarom activering.
-      const sollicitatieUrl = String(
-        currentDraft.sollicitatie_url || currentDraft.form_data?.sollicitatie_url || ''
-      ).trim();
-
-      if (!sollicitatieUrl || !/^https?:\/\//i.test(sollicitatieUrl)) {
-        return res.status(400).json({
-          error:
-            'Sollicitatie-URL ontbreekt of is ongeldig. Zonder geldige URL komen kandidaten via de feed nergens terecht.',
-        });
-      }
-
-      if (!currentDraft.omschrijving_nl || !String(currentDraft.omschrijving_nl).trim()) {
-        return res.status(400).json({
-          error: 'Nederlandse omschrijving ontbreekt; Jobit vereist een NL-omschrijving.',
-        });
-      }
+    const validationError = validateVacatureForApproval(currentDraft);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
     }
 
     const nextStatus = currentDraft.type === 'vacature' ? 'actief' : 'approved';
