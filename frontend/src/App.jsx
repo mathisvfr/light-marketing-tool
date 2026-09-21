@@ -6,6 +6,7 @@ import ErrorBoundary from './components/shared/ErrorBoundary';
 import { ToastProvider } from './components/shared/Toast';
 import './components/shared/toast.css';
 import { AuthProvider } from './contexts/AuthContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import ContentWachtrij from './pages/ContentWachtrij';
 import Dashboard from './pages/Dashboard';
 import Gebruikers from './pages/Gebruikers';
@@ -48,6 +49,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <AuthProvider>
+            <NotificationProvider>
             <BrowserRouter>
               <Routes>
             <Route path="/login" element={<Login />} />
@@ -90,6 +92,7 @@ function App() {
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </BrowserRouter>
+            </NotificationProvider>
           </AuthProvider>
         </ToastProvider>
       </QueryClientProvider>

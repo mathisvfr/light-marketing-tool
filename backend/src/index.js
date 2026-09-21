@@ -36,6 +36,7 @@ const publicationsRoutes = require('./routes/publications');
 const rapportageRoutes = require('./routes/rapportage');
 const profileRoutes = require('./routes/profile');
 const activityRoutes = require('./routes/activity');
+const notificationsRoutes = require('./routes/notifications');
 const { requireAuth } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/errorHandler');
 const { startCleanupSchedule } = require('./services/cleanup');
@@ -227,6 +228,7 @@ app.use('/api/publications', requireAuth, publicationsRoutes);
 app.use('/api/rapportage', requireAuth, rapportageRoutes);
 app.use('/api/profile', requireAuth, profileRoutes);
 app.use('/api/activity', requireAuth, activityRoutes);
+app.use('/api/notifications', requireAuth, notificationsRoutes);
 
 app.use(errorHandler);
 

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import NotificationBell from './NotificationBell';
 import RoleBadge from '../shared/RoleBadge';
 import '../shared/status-strip.css';
 
@@ -62,6 +63,8 @@ export default function Header({ pageTitle, userName, role, onLogout, avatarPath
       </div>
 
       <div className="app-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}>
+        <NotificationBell />
+
         <Link to="/profiel" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit', gap: '.75rem' }}>
           <SmallAvatar avatarPath={avatarPath} name={userName} />
           <div style={{ textAlign: 'right' }}>

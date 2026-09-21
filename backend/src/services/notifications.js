@@ -306,6 +306,19 @@ async function notify(event, payload) {
     }
   }
 
+  // Create in-app notification for each recipient (never blocks)
+  for (const userId of recipients) {
+    try {
+      await supabase.from('in_app_notifications').insert({
+        user_id: userId,
+        type: event,
+        title: template.subject,
+        message: template.body.slice(0, 200),
+        link: draftDeepLink(draft_id),
+      });
+    } catch (_e) { /* never block */ }
+  }
+
   return result;
 }
 
