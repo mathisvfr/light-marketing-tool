@@ -140,6 +140,9 @@ app.use('/uploads', (req, res, next) => {
   }
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  // Allow public website to embed uploaded images
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Access-Control-Allow-Origin', '*');
   return next();
 }, express.static(path.resolve(__dirname, '..', 'uploads')));
 
