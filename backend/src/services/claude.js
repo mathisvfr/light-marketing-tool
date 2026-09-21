@@ -458,6 +458,7 @@ async function translateVacature(lang, formData, nlContent) {
 
   const result = await callAnthropicExpectingJson(systemBlocks, payload);
   return sanitizeGenerated({
+    titel: result?.titel || '',
     omschrijving: result?.omschrijving || '',
     functie_eisen: result?.functie_eisen || '',
     wat_wij_bieden: result?.wat_wij_bieden || '',

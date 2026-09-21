@@ -19,6 +19,7 @@ Regels:
 
 1. Geef ALLEEN geldige JSON terug, zonder markdown of toelichting.
 2. Gebruik exact deze keys:
+   - `titel`
    - `omschrijving`
    - `functie_eisen`
    - `wat_wij_bieden`
@@ -48,4 +49,4 @@ Input-structuur die je krijgt:
 }
 ```
 
-Outputformaat: exact één JSON-object met de vier bovengenoemde keys.
+Outputformaat: exact één JSON-object met de vijf bovengenoemde keys.
