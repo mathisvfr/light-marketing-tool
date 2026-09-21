@@ -106,6 +106,26 @@ function renderTemplate(event, payload) {
           `Light Marketing Tool`,
         ].join('\n'),
       };
+    case 'email.verify':
+      return {
+        subject: 'Bevestig je nieuwe e-mailadres - Light Marketing Tool',
+        preheader: 'Klik op de link om je nieuwe e-mailadres te bevestigen.',
+        body: [
+          'Hoi,',
+          '',
+          'Je hebt een verzoek ingediend om je e-mailadres te wijzigen.',
+          '',
+          'Klik op deze link om je nieuwe e-mailadres te bevestigen:',
+          payload.verifyLink,
+          '',
+          'Deze link is 24 uur geldig.',
+          '',
+          'Heb je dit niet aangevraagd? Dan kun je deze e-mail negeren.',
+          '',
+          'Groet,',
+          'Light Marketing Tool',
+        ].join('\n'),
+      };
     case 'password.reset':
       return {
         subject: 'Wachtwoord resetten - Light Marketing Tool',
@@ -312,10 +332,22 @@ async function sendPasswordReset(email, name, resetLink) {
   return result;
 }
 
+async function sendEmailVerification(email, name, verifyLink) {
+  const transport = transportName();
+  const template = renderTemplate('email.verify', { verifyLink });
+  const result = await dispatch(transport, {
+    to: email,
+    subject: template.subject,
+    body: template.body,
+  });
+  return result;
+}
+
 module.exports = {
   notify,
   notifyAfterCommit,
   sendPasswordReset,
+  sendEmailVerification,
   // Exports below are for tests only.
   __testables: { renderTemplate, loggerTransport, smtpTransport, dispatch },
 };

@@ -80,6 +80,9 @@ export default function Profiel() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  const [showEmailChange, setShowEmailChange] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+
   const profileQuery = useQuery({
     queryKey: ['profile'],
     queryFn: () => api('/profile'),
@@ -152,6 +155,20 @@ export default function Profiel() {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       refreshSession();
       toast.success('Avatar verwijderd.');
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const emailChangeMutation = useMutation({
+    mutationFn: () =>
+      api('/profile/change-email', {
+        method: 'POST',
+        body: JSON.stringify({ newEmail: newEmail.trim() }),
+      }),
+    onSuccess: (data) => {
+      toast.success(data?.message || 'Verificatiemail verstuurd.');
+      setShowEmailChange(false);
+      setNewEmail('');
     },
     onError: (err) => toast.error(err.message),
   });
@@ -263,6 +280,42 @@ export default function Profiel() {
             <div style={{ display: 'grid', gap: '.35rem' }}>
               <span className="text-sm font-display font-bold">E-mailadres</span>
               <span className="text-sm text-muted-foreground">{profile.email}</span>
+              {!showEmailChange ? (
+                <button
+                  type="button"
+                  className="text-sm"
+                  style={{ color: 'var(--color-primary)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', textDecoration: 'underline' }}
+                  onClick={() => setShowEmailChange(true)}
+                >
+                  E-mail wijzigen
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', marginTop: '.25rem' }}>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="nieuw@voorbeeld.nl"
+                    className="input"
+                    style={{ flex: 1, maxWidth: 280 }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    disabled={emailChangeMutation.isPending || !newEmail.trim()}
+                    onClick={() => emailChangeMutation.mutate()}
+                  >
+                    {emailChangeMutation.isPending ? 'Versturen...' : 'Versturen'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => { setShowEmailChange(false); setNewEmail(''); }}
+                  >
+                    Annuleren
+                  </button>
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'grid', gap: '.35rem' }}>
