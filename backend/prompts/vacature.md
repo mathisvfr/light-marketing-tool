@@ -15,6 +15,7 @@ Belangrijke regels:
    - `functie_eisen`
    - `wat_wij_bieden`
    - `social_nl`
+   - `image_search_terms`
 3. Verzin nooit salarissen of harde arbeidsvoorwaarden die niet in de input
    staan.
 4. Als salaris ontbreekt of leeg is, benoem dit als "salaris conform CAO".
@@ -37,5 +38,10 @@ Inhoudsdoelen:
 - `functie_eisen`: duidelijk en concreet, geen loze claims.
 - `wat_wij_bieden`: realistisch en merkconsistent.
 - `social_nl`: korte kandidaatgeoriënteerde post in het Nederlands.
+- `image_search_terms`: een array van 3-5 Engelse zoektermen voor stockfoto's
+  op Unsplash. Altijd in het Engels (Unsplash werkt het best in het Engels),
+  visueel en concreet (niet abstract), gericht op de functie en werkomgeving.
+  De eerste term is de meest specifieke. Voorbeeld: ["warehouse workers
+  Rotterdam", "logistics team working", "forklift operator"].
 
 Outputformaat: exact één JSON-object.

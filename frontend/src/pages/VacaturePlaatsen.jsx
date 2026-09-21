@@ -12,7 +12,7 @@ import StatusStrip from '../components/shared/StatusStrip';
 import StickyFooter from '../components/shared/StickyFooter';
 import FormMessage from '../components/shared/FormMessage';
 import { api } from '../lib/api';
-import MediaPicker from '../components/shared/MediaPicker';
+import ImageSection from '../components/shared/ImageSection';
 import '../components/shared/status-strip.css';
 import '../components/shared/toast.css';
 import './vacature-plaatsen.css';
@@ -129,7 +129,8 @@ export default function VacaturePlaatsen() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
+  const [unsplashSuggestions, setUnsplashSuggestions] = useState([]);
+  const [imageSearchTerms, setImageSearchTerms] = useState([]);
   const [steeringNotes, setSteeringNotes] = useState('');
   const [documentText, setDocumentText] = useState('');
   const [documentFilename, setDocumentFilename] = useState('');
@@ -158,6 +159,12 @@ export default function VacaturePlaatsen() {
     }),
     [loadedDraft, formEdits]
   );
+
+  // Effective search terms: fresh generate-time terms take precedence,
+  // fall back to persisted terms from form_data when reopening a draft.
+  const effectiveSearchTerms = imageSearchTerms.length > 0
+    ? imageSearchTerms
+    : (Array.isArray(form.image_search_terms) ? form.image_search_terms : []);
 
   // Merge server translations with any local edits (contentEdits.translations
   // overrides field-by-field, per language). Local edits alleen zichtbaar zolang
@@ -281,37 +288,6 @@ export default function VacaturePlaatsen() {
 
   function updateField(key, value) {
     setFormEdits((prev) => ({ ...prev, [key]: value }));
-  }
-
-  async function handlePreUpload(event) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    setError('');
-    setSuccess('');
-
-    try {
-      const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error('Afbeelding kon niet worden gelezen.'));
-        reader.readAsDataURL(file);
-      });
-
-      const uploaded = await api('/media/upload', {
-        method: 'POST',
-        body: JSON.stringify({ dataUrl, altText: file.name }),
-      });
-
-      setImagePath(uploaded?.item?.path || '');
-      setSuccess('Afbeelding geüpload. Deze wordt gebruikt in plaats van een gegenereerde afbeelding.');
-    } catch (err) {
-      setError(err.message || 'Uploaden van afbeelding is mislukt.');
-    } finally {
-      event.target.value = '';
-    }
   }
 
   async function handleDocumentUpload(event) {
@@ -480,6 +456,8 @@ export default function VacaturePlaatsen() {
         setCriticusOverride({ passed: undefined, notes: undefined });
       }
       setActiveLangTab('nl');
+      setUnsplashSuggestions(generated?.unsplash_suggestions || []);
+      setImageSearchTerms(generated?.image_search_terms || []);
       setSuccess('Concept succesvol gegenereerd.');
       setSteeringNotes('');
     } catch (err) {
@@ -695,7 +673,7 @@ export default function VacaturePlaatsen() {
           </label>
         </section>
 
-        {/* Sectie 3 · Afbeelding — format + image (upload of bibliotheek) */}
+        {/* Sectie 3 · Afbeelding — format + image picker (Unsplash, upload, bibliotheek, genereer) */}
         <section className="vacature-section">
           <h3 className="vacature-section-header">Afbeelding</h3>
 
@@ -715,48 +693,14 @@ export default function VacaturePlaatsen() {
             </div>
           </div>
 
-          <div className="vacature-field">
-            <span>Afbeelding</span>
-            <div className="vacature-image-editor">
-              <div className="vacature-image-tile">
-                {imagePath ? (
-                  <img src={imagePath} alt="Vacature afbeelding" />
-                ) : (
-                  <span>Nog geen afbeelding</span>
-                )}
-              </div>
-              <div className="vacature-image-controls">
-                <label className={`vacature-button-like${isBusy ? ' is-disabled' : ''}`}>
-                  Upload eigen foto
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    onChange={handlePreUpload}
-                    disabled={isBusy}
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="vacature-pick-image"
-                  onClick={() => setMediaPickerOpen(true)}
-                  disabled={isBusy}
-                >
-                  Kies uit bibliotheek
-                </button>
-                {imagePath ? (
-                  <button
-                    type="button"
-                    className="vacature-remove-image"
-                    onClick={() => setImagePath('')}
-                    disabled={isBusy}
-                  >
-                    Afbeelding verwijderen
-                  </button>
-                ) : null}
-                <small>Leeg = wij genereren automatisch bij "Concept genereren".</small>
-              </div>
-            </div>
-          </div>
+          <ImageSection
+            imagePath={imagePath}
+            onSelect={setImagePath}
+            suggestions={unsplashSuggestions}
+            searchTerms={effectiveSearchTerms}
+            disabled={isBusy}
+          />
+          <small className="vacature-image-hint">Leeg = wij genereren automatisch bij "Concept genereren".</small>
         </section>
 
         {/* Sectie 4 · Talen — NL basis + extra talen (checkboxes, chip-cluster komt in PR 2a) */}
@@ -797,12 +741,6 @@ export default function VacaturePlaatsen() {
             </small>
           </div>
         </section>
-
-        <MediaPicker
-          open={mediaPickerOpen}
-          onSelect={(path) => setImagePath(path)}
-          onClose={() => setMediaPickerOpen(false)}
-        />
 
         <div className="form-actions">
           <button type="submit" disabled={isBusy}>
