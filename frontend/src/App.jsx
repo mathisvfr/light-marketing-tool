@@ -18,6 +18,7 @@ import MarketingPost from './pages/MarketingPost';
 import BlogAanmaken from './pages/BlogAanmaken';
 import MerkInstellingen from './pages/MerkInstellingen';
 import Rapportage from './pages/Rapportage';
+import Profiel from './pages/Profiel';
 import VacaturePlaatsen from './pages/VacaturePlaatsen';
 import { queryClient } from './lib/queryClient';
 import { useAuth } from './hooks/useAuth';
@@ -66,6 +67,7 @@ function App() {
               <Route path="/gepubliceerd" element={<Gepubliceerd />} />
               <Route path="/kalender" element={<Kalender />} />
               <Route path="/rapportage" element={<Rapportage />} />
+              <Route path="/profiel" element={<Profiel />} />
               <Route
                 path="/merk-instellingen"
                 element={

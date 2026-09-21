@@ -16,6 +16,7 @@ const navItems = [
   { to: '/rapportage', label: 'Rapportage' },
   { to: '/merk-instellingen', label: 'Merk instellingen', ownerOnly: true },
   { to: '/gebruikers', label: 'Gebruikers', ownerOnly: true },
+  { to: '/profiel', label: 'Profiel' },
 ];
 
 const routeTitles = {
@@ -29,6 +30,7 @@ const routeTitles = {
   '/rapportage': 'Rapportage',
   '/merk-instellingen': 'Merk instellingen',
   '/gebruikers': 'Gebruikers',
+  '/profiel': 'Profiel',
 };
 
 export default function AppShell() {
@@ -51,6 +53,7 @@ export default function AppShell() {
           userName={user?.name || 'Onbekend'}
           role={role}
           onLogout={logout}
+          avatarPath={user?.avatar_path}
         />
 
         <main className="app-shell-content">

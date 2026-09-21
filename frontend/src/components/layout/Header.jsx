@@ -1,7 +1,48 @@
+import { Link } from 'react-router-dom';
 import RoleBadge from '../shared/RoleBadge';
 import '../shared/status-strip.css';
 
-export default function Header({ pageTitle, userName, role, onLogout }) {
+function SmallAvatar({ avatarPath, name }) {
+  const initials = (name || '?').charAt(0).toUpperCase();
+
+  if (avatarPath) {
+    return (
+      <img
+        src={avatarPath}
+        alt=""
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: '50%',
+          objectFit: 'cover',
+          border: '2px solid var(--light-red-100, #fecaca)',
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width: 32,
+        height: 32,
+        borderRadius: '50%',
+        background: 'var(--light-red, #d42b2b)',
+        color: '#fff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 14,
+        fontWeight: 700,
+        border: '2px solid var(--light-red-100, #fecaca)',
+      }}
+    >
+      {initials}
+    </div>
+  );
+}
+
+export default function Header({ pageTitle, userName, role, onLogout, avatarPath }) {
   return (
     <header
       className="app-header"
@@ -21,12 +62,15 @@ export default function Header({ pageTitle, userName, role, onLogout }) {
       </div>
 
       <div className="app-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}>
-        <div style={{ textAlign: 'right' }}>
-          <strong style={{ display: 'block' }}>{userName}</strong>
-          <div style={{ marginTop: '.15rem' }}>
-            <RoleBadge role={role} />
+        <Link to="/profiel" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit', gap: '.75rem' }}>
+          <SmallAvatar avatarPath={avatarPath} name={userName} />
+          <div style={{ textAlign: 'right' }}>
+            <strong style={{ display: 'block' }}>{userName}</strong>
+            <div style={{ marginTop: '.15rem' }}>
+              <RoleBadge role={role} />
+            </div>
           </div>
-        </div>
+        </Link>
 
         <button
           type="button"
