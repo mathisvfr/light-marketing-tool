@@ -15,12 +15,20 @@ async function requireAuth(req, res, next) {
 
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, name, email, role, onboarded_at')
+      .select('id, name, email, role, onboarded_at, password_changed_at, avatar_path, last_login_at')
       .eq('id', decoded.sub)
       .maybeSingle();
 
     if (error || !user) {
       return res.status(401).json({ error: 'Sessie is ongeldig of verlopen.' });
+    }
+
+    // Invalidate tokens issued before the last password change
+    if (user.password_changed_at && decoded.iat) {
+      const changedEpoch = Math.floor(new Date(user.password_changed_at).getTime() / 1000);
+      if (decoded.iat < changedEpoch) {
+        return res.status(401).json({ error: 'Sessie is ongeldig of verlopen.' });
+      }
     }
 
     req.user = user;

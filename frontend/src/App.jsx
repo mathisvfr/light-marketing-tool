@@ -12,6 +12,8 @@ import Gebruikers from './pages/Gebruikers';
 import Gepubliceerd from './pages/Gepubliceerd';
 import Kalender from './pages/Kalender';
 import Login from './pages/Login';
+import WachtwoordVergeten from './pages/WachtwoordVergeten';
+import WachtwoordResetten from './pages/WachtwoordResetten';
 import MarketingPost from './pages/MarketingPost';
 import BlogAanmaken from './pages/BlogAanmaken';
 import MerkInstellingen from './pages/MerkInstellingen';
@@ -47,6 +49,8 @@ function App() {
             <BrowserRouter>
               <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/wachtwoord-vergeten" element={<WachtwoordVergeten />} />
+            <Route path="/wachtwoord-resetten" element={<WachtwoordResetten />} />
             <Route
               element={
                 <ProtectedRoute>

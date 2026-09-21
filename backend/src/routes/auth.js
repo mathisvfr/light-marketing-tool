@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { supabase } = require('../db/client');
 const { AUTH_COOKIE_NAME, requireAuth } = require('../middleware/auth');
+const { sendPasswordReset } = require('../services/notifications');
 
 const router = express.Router();
 
@@ -63,6 +64,9 @@ router.post('/login', async (req, res, next) => {
 
     res.cookie(AUTH_COOKIE_NAME, token, getCookieConfig());
 
+    // Track last login
+    await supabase.from('users').update({ last_login_at: new Date().toISOString() }).eq('id', user.id);
+
     return res.json({
       user: {
         id: user.id,
@@ -89,6 +93,156 @@ router.post('/logout', (_req, res) => {
   });
 
   return res.status(204).send();
+});
+
+// PATCH /password — change own password (requires auth)
+router.patch('/password', requireAuth, async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Huidig wachtwoord en nieuw wachtwoord zijn verplicht.' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'Nieuw wachtwoord moet minimaal 8 tekens bevatten.' });
+    }
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, password_hash')
+      .eq('id', req.user.id)
+      .maybeSingle();
+
+    if (error || !user) {
+      return res.status(400).json({ error: 'Gebruiker niet gevonden.' });
+    }
+
+    const matches = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!matches) {
+      return res.status(400).json({ error: 'Huidig wachtwoord is onjuist.' });
+    }
+
+    const hash = await bcrypt.hash(newPassword, 12);
+    const now = new Date().toISOString();
+
+    await supabase
+      .from('users')
+      .update({ password_hash: hash, password_changed_at: now })
+      .eq('id', req.user.id);
+
+    return res.json({ message: 'Wachtwoord succesvol gewijzigd.' });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// POST /forgot-password — request a password reset link (no auth)
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const { email } = req.body || {};
+
+    // Always return 200 to prevent user enumeration
+    if (!email) {
+      return res.json({ message: 'Als dit e-mailadres bij ons bekend is, ontvang je een resetlink.' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, name, email')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
+
+    if (!user) {
+      return res.json({ message: 'Als dit e-mailadres bij ons bekend is, ontvang je een resetlink.' });
+    }
+
+    // Rate limit: max 3 tokens per email per hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count } = await supabase
+      .from('password_reset_tokens')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', oneHourAgo);
+
+    if (count >= 3) {
+      return res.json({ message: 'Als dit e-mailadres bij ons bekend is, ontvang je een resetlink.' });
+    }
+
+    // Generate token
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+    await supabase.from('password_reset_tokens').insert({
+      user_id: user.id,
+      token_hash: tokenHash,
+      expires_at: expiresAt,
+    });
+
+    // Build reset link
+    const baseUrl = (process.env.PUBLIC_APP_URL || process.env.APP_BASE_URL || '').replace(/\/$/, '');
+    const resetLink = `${baseUrl}/wachtwoord-resetten?token=${rawToken}`;
+
+    // Send email (fire-and-forget, don't block response)
+    sendPasswordReset(user.email, user.name, resetLink).catch((err) => {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[auth] password reset email failed:', err.message);
+      }
+    });
+
+    return res.json({ message: 'Als dit e-mailadres bij ons bekend is, ontvang je een resetlink.' });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// POST /reset-password — set new password using a reset token (no auth)
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const { token, newPassword } = req.body || {};
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Token en nieuw wachtwoord zijn verplicht.' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'Nieuw wachtwoord moet minimaal 8 tekens bevatten.' });
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const now = new Date().toISOString();
+
+    const { data: resetToken, error: tokenErr } = await supabase
+      .from('password_reset_tokens')
+      .select('id, user_id')
+      .eq('token_hash', tokenHash)
+      .is('used_at', null)
+      .gt('expires_at', now)
+      .maybeSingle();
+
+    if (tokenErr || !resetToken) {
+      return res.status(400).json({ error: 'Ongeldige of verlopen resetlink. Vraag een nieuwe aan.' });
+    }
+
+    const hash = await bcrypt.hash(newPassword, 12);
+
+    await supabase
+      .from('users')
+      .update({ password_hash: hash, password_changed_at: now })
+      .eq('id', resetToken.user_id);
+
+    await supabase
+      .from('password_reset_tokens')
+      .update({ used_at: now })
+      .eq('id', resetToken.id);
+
+    return res.json({ message: 'Wachtwoord succesvol gewijzigd. Je kunt nu inloggen.' });
+  } catch (err) {
+    return next(err);
+  }
 });
 
 module.exports = router;

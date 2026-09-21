@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Logo from '@/components/shared/Logo';
 import Card from '@/components/shared/Card';
 import '@/components/shared/card.css';
@@ -140,6 +140,13 @@ export default function Login() {
                 >
                   {isSubmitting ? 'Bezig met inloggen...' : 'Inloggen'}
                 </button>
+
+                <Link
+                  to="/wachtwoord-vergeten"
+                  className="text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Wachtwoord vergeten?
+                </Link>
               </div>
             </form>
           </Card>

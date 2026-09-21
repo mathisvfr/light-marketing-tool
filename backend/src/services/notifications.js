@@ -106,6 +106,26 @@ function renderTemplate(event, payload) {
           `Light Marketing Tool`,
         ].join('\n'),
       };
+    case 'password.reset':
+      return {
+        subject: 'Wachtwoord resetten - Light Marketing Tool',
+        preheader: 'Klik op de link om je wachtwoord te resetten.',
+        body: [
+          'Hoi,',
+          '',
+          'Er is een verzoek ingediend om je wachtwoord te resetten.',
+          '',
+          'Klik op deze link om een nieuw wachtwoord in te stellen:',
+          payload.resetLink,
+          '',
+          'Deze link is 1 uur geldig.',
+          '',
+          'Heb je dit niet aangevraagd? Dan kun je deze e-mail negeren.',
+          '',
+          'Groet,',
+          'Light Marketing Tool',
+        ].join('\n'),
+      };
     default:
       return {
         subject: `Update: ${title}`,
@@ -279,9 +299,23 @@ function notifyAfterCommit(event, payload) {
   });
 }
 
+// Direct password-reset email — bypasses the normal notify flow (no draft_id,
+// no notification_log). Used by the forgot-password endpoint.
+async function sendPasswordReset(email, name, resetLink) {
+  const transport = transportName();
+  const template = renderTemplate('password.reset', { resetLink });
+  const result = await dispatch(transport, {
+    to: email,
+    subject: template.subject,
+    body: template.body,
+  });
+  return result;
+}
+
 module.exports = {
   notify,
   notifyAfterCommit,
+  sendPasswordReset,
   // Exports below are for tests only.
   __testables: { renderTemplate, loggerTransport, smtpTransport, dispatch },
 };
