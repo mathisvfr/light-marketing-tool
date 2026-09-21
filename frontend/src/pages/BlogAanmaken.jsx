@@ -375,14 +375,14 @@ export default function BlogAanmaken() {
 
           <StickyFooter>
             <button type="button" className="btn-secondary" onClick={handleSaveDraft} disabled={isBusy}>
-              Opslaan als concept
+              {['actief', 'approved', 'published'].includes(draftStatus) ? 'Wijzigingen opslaan' : 'Opslaan als concept'}
             </button>
             {role !== 'owner' && (
               <button type="button" className="btn-primary" onClick={handleSubmitForApproval} disabled={isBusy}>
                 Indienen ter goedkeuring
               </button>
             )}
-            {role === 'owner' && (
+            {role === 'owner' && ['draft', 'pending_approval', 'rejected'].includes(draftStatus) && (
               <button type="button" className="btn-primary" onClick={handleApproveAndPublish} disabled={isBusy}>
                 Goedkeuren en publiceren
               </button>

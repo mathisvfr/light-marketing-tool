@@ -119,10 +119,6 @@ export default function ContentWachtrij() {
     mutationFn: (ids) => api('/drafts/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['drafts-queue'] }),
   });
-  const bulkSubmitMutation = useMutation({
-    mutationFn: (ids) => api('/drafts/bulk-submit', { method: 'POST', body: JSON.stringify({ ids }) }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['drafts-queue'] }),
-  });
   const bulkExpireMutation = useMutation({
     mutationFn: (ids) => api('/drafts/bulk-expire', { method: 'POST', body: JSON.stringify({ ids }) }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['drafts-queue'] }),
@@ -247,10 +243,6 @@ export default function ContentWachtrij() {
     await runBulk(bulkRejectMutation, 'afgewezen', 'Bulk afwijzen mislukt.');
   }
 
-  async function handleBulkSubmit() {
-    await runBulk(bulkSubmitMutation, 'ingediend', 'Bulk indienen mislukt.');
-  }
-
   async function handleBulkExpire() {
     await runBulk(bulkExpireMutation, 'gesloten', 'Bulk sluiten mislukt.');
   }
@@ -371,7 +363,6 @@ export default function ContentWachtrij() {
     bulkApproveMutation.isPending ||
     bulkRejectMutation.isPending ||
     bulkDeleteMutation.isPending ||
-    bulkSubmitMutation.isPending ||
     bulkExpireMutation.isPending ||
     bulkPublishMutation.isPending;
 
@@ -430,17 +421,9 @@ export default function ContentWachtrij() {
           </span>
 
           {selectionStatus === 'draft' ? (
-            <>
-              <button type="button" onClick={handleBulkApprove} disabled={isMutating}>
-                Direct goedkeuren
-              </button>
-              <button type="button" onClick={handleBulkSubmit} disabled={isMutating}>
-                Indienen ter goedkeuring
-              </button>
-              <button type="button" onClick={handleBulkDelete} disabled={isMutating}>
-                Verwijderen
-              </button>
-            </>
+            <button type="button" onClick={handleBulkApprove} disabled={isMutating}>
+              Goedkeuren
+            </button>
           ) : null}
 
           {selectionStatus === 'pending_approval' ? (

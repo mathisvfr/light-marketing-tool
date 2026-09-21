@@ -976,7 +976,7 @@ export default function VacaturePlaatsen() {
             autosaveError={autosave.error}
           >
             <button type="button" onClick={handleSaveDraft} disabled={isBusy}>
-              Opslaan als concept
+              {['actief', 'approved', 'published'].includes(loadedDraft?.status) ? 'Wijzigingen opslaan' : 'Opslaan als concept'}
             </button>
 
             {role === 'recruiter' ? (
@@ -985,7 +985,7 @@ export default function VacaturePlaatsen() {
               </button>
             ) : null}
 
-            {role === 'owner' ? (
+            {role === 'owner' && ['draft', 'pending_approval', 'rejected'].includes(loadedDraft?.status) ? (
               <button type="button" onClick={handleApprove} disabled={isBusy}>
                 Goedkeuren
               </button>

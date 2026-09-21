@@ -676,7 +676,7 @@ export default function MarketingPost() {
             autosaveError={autosave.error}
           >
             <button type="button" onClick={handleSaveDraft} disabled={isBusy}>
-              Opslaan als concept
+              {['actief', 'approved', 'published'].includes(loadedDraft?.status) ? 'Wijzigingen opslaan' : 'Opslaan als concept'}
             </button>
 
             {role === 'recruiter' ? (
@@ -691,7 +691,7 @@ export default function MarketingPost() {
               </button>
             ) : null}
 
-            {role === 'owner' && loadedDraft?.status !== 'approved' ? (
+            {role === 'owner' && ['draft', 'pending_approval', 'rejected'].includes(loadedDraft?.status) ? (
               <button type="button" onClick={handleApproveAndPublish} disabled={isBusy}>
                 {hasAnySchedule ? 'Goedkeuren en inplannen' : 'Goedkeuren en publiceren'}
               </button>
