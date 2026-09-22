@@ -28,6 +28,56 @@ function draftDeepLink(draftId) {
   return `${base}/content-wachtrij?draft=${draftId}`;
 }
 
+// HTML email helpers — branded shell matching the website design.
+function esc(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function emailShell(heading, preheader, contentHtml) {
+  return `<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+${preheader ? `<span style="display:none;max-height:0;overflow:hidden;mso-hide:all">${esc(preheader)}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</span>` : ''}
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;">
+<div style="background-color:#f4f4f5;padding:32px 16px;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto;">
+    <tr>
+      <td style="background-color:#be1e2d;padding:24px 32px;border-radius:8px 8px 0 0;">
+        <h2 style="color:#ffffff;margin:0;font-size:20px;font-weight:700;">${esc(heading)}</h2>
+      </td>
+    </tr>
+    <tr>
+      <td style="background-color:#ffffff;padding:28px 32px;border-radius:0 0 8px 8px;">
+        ${contentHtml}
+        <p style="color:#9ca3af;font-size:12px;margin:24px 0 0;text-align:center;">
+          Dit bericht is automatisch verzonden via Light Marketing Tool
+        </p>
+      </td>
+    </tr>
+  </table>
+</div>
+</body>
+</html>`;
+}
+
+function ctaButton(url, label) {
+  return `<table cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;">
+  <tr>
+    <td style="background-color:#be1e2d;border-radius:6px;padding:12px 24px;">
+      <a href="${esc(url)}" style="color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;display:inline-block;">${esc(label)}</a>
+    </td>
+  </tr>
+</table>`;
+}
+
+function paragraph(text) {
+  return `<p style="color:#1f2937;line-height:1.6;margin:0 0 16px;">${esc(text)}</p>`;
+}
+
 // Dutch email templates per event. Kept plain-text-first (works even if
 // downstream converts to HTML). All copy audited: no em-dashes, no en-dashes.
 function renderTemplate(event, payload) {
@@ -37,10 +87,12 @@ function renderTemplate(event, payload) {
   const reason = payload.reason || '';
 
   switch (event) {
-    case 'draft.submitted':
+    case 'draft.submitted': {
+      const subject = `${actor} vraagt goedkeuring: ${title}`;
+      const preheader = 'Er wacht een concept op je in de tool.';
       return {
-        subject: `${actor} vraagt goedkeuring: ${title}`,
-        preheader: 'Er wacht een concept op je in de tool.',
+        subject,
+        preheader,
         body: [
           `Hoi,`,
           ``,
@@ -52,11 +104,22 @@ function renderTemplate(event, payload) {
           `Groet,`,
           `Light Marketing Tool`,
         ].join('\n'),
+        html: emailShell('Concept ter goedkeuring', preheader, `
+          ${paragraph('Hoi,')}
+          ${paragraph(`${actor} heeft een concept ingediend ter goedkeuring: "${title}".`)}
+          ${paragraph('Bekijk het concept en keur het goed of wijs het af:')}
+          ${ctaButton(link, 'Concept bekijken')}
+          ${paragraph('Groet,')}
+          ${paragraph('Light Marketing Tool')}
+        `),
       };
-    case 'draft.approved':
+    }
+    case 'draft.approved': {
+      const subject = `Goedgekeurd: ${title}`;
+      const preheader = `${actor} heeft je concept goedgekeurd.`;
       return {
-        subject: `Goedgekeurd: ${title}`,
-        preheader: `${actor} heeft je concept goedgekeurd.`,
+        subject,
+        preheader,
         body: [
           `Hoi,`,
           ``,
@@ -71,11 +134,24 @@ function renderTemplate(event, payload) {
           `Groet,`,
           `Light Marketing Tool`,
         ].join('\n'),
+        html: emailShell('Concept goedgekeurd', preheader, `
+          ${paragraph('Hoi,')}
+          ${paragraph(`${actor} heeft je concept goedgekeurd: "${title}".`)}
+          <div style="background-color:#f0fdf4;border-left:3px solid #16a34a;padding:14px 18px;border-radius:0 6px 6px 0;margin:0 0 16px;">
+            <p style="color:#166534;margin:0;line-height:1.6;">Voor vacatures verschijnt het concept nu in de XML feed. Voor marketingposts kan het via Buffer gepubliceerd worden.</p>
+          </div>
+          ${ctaButton(link, 'Bekijk in de tool')}
+          ${paragraph('Groet,')}
+          ${paragraph('Light Marketing Tool')}
+        `),
       };
-    case 'draft.rejected':
+    }
+    case 'draft.rejected': {
+      const subject = `Afgewezen: ${title}`;
+      const preheader = `${actor} heeft je concept afgewezen.`;
       return {
-        subject: `Afgewezen: ${title}`,
-        preheader: `${actor} heeft je concept afgewezen.`,
+        subject,
+        preheader,
         body: [
           `Hoi,`,
           ``,
@@ -89,11 +165,26 @@ function renderTemplate(event, payload) {
           `Groet,`,
           `Light Marketing Tool`,
         ].filter((line) => line !== null).join('\n'),
+        html: emailShell('Concept afgewezen', preheader, `
+          ${paragraph('Hoi,')}
+          ${paragraph(`${actor} heeft je concept afgewezen: "${title}".`)}
+          ${reason ? `<div style="background-color:#fef2f2;border-left:3px solid #dc2626;padding:14px 18px;border-radius:0 6px 6px 0;margin:0 0 16px;">
+            <p style="font-weight:600;color:#374151;margin:0 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">Reden</p>
+            <p style="color:#991b1b;margin:0;line-height:1.6;">${esc(reason)}</p>
+          </div>` : ''}
+          ${paragraph('Je kunt het concept bewerken en opnieuw indienen:')}
+          ${ctaButton(link, 'Concept bewerken')}
+          ${paragraph('Groet,')}
+          ${paragraph('Light Marketing Tool')}
+        `),
       };
-    case 'publication.fired':
+    }
+    case 'publication.fired': {
+      const subject = `Gepubliceerd: ${title}`;
+      const preheader = `Je post is live op ${payload.channel || 'het kanaal'}.`;
       return {
-        subject: `Gepubliceerd: ${title}`,
-        preheader: `Je post is live op ${payload.channel || 'het kanaal'}.`,
+        subject,
+        preheader,
         body: [
           `Hoi,`,
           ``,
@@ -105,11 +196,21 @@ function renderTemplate(event, payload) {
           `Groet,`,
           `Light Marketing Tool`,
         ].join('\n'),
+        html: emailShell('Content gepubliceerd', preheader, `
+          ${paragraph('Hoi,')}
+          ${paragraph(`Je post is gepubliceerd via Buffer op ${payload.channel || 'het gekozen kanaal'}: "${title}".`)}
+          ${ctaButton(link, 'Bekijk in de tool')}
+          ${paragraph('Groet,')}
+          ${paragraph('Light Marketing Tool')}
+        `),
       };
-    case 'email.verify':
+    }
+    case 'email.verify': {
+      const subject = 'Bevestig je nieuwe e-mailadres - Light Marketing Tool';
+      const preheader = 'Klik op de link om je nieuwe e-mailadres te bevestigen.';
       return {
-        subject: 'Bevestig je nieuwe e-mailadres - Light Marketing Tool',
-        preheader: 'Klik op de link om je nieuwe e-mailadres te bevestigen.',
+        subject,
+        preheader,
         body: [
           'Hoi,',
           '',
@@ -125,11 +226,23 @@ function renderTemplate(event, payload) {
           'Groet,',
           'Light Marketing Tool',
         ].join('\n'),
+        html: emailShell('E-mailadres bevestigen', preheader, `
+          ${paragraph('Hoi,')}
+          ${paragraph('Je hebt een verzoek ingediend om je e-mailadres te wijzigen.')}
+          ${paragraph('Klik op de knop hieronder om je nieuwe e-mailadres te bevestigen:')}
+          ${ctaButton(payload.verifyLink, 'E-mailadres bevestigen')}
+          <p style="color:#6b7280;font-size:13px;line-height:1.5;margin:0 0 16px;">Deze link is 24 uur geldig. Heb je dit niet aangevraagd? Dan kun je deze e-mail negeren.</p>
+          ${paragraph('Groet,')}
+          ${paragraph('Light Marketing Tool')}
+        `),
       };
-    case 'password.reset':
+    }
+    case 'password.reset': {
+      const subject = 'Wachtwoord resetten - Light Marketing Tool';
+      const preheader = 'Klik op de link om je wachtwoord te resetten.';
       return {
-        subject: 'Wachtwoord resetten - Light Marketing Tool',
-        preheader: 'Klik op de link om je wachtwoord te resetten.',
+        subject,
+        preheader,
         body: [
           'Hoi,',
           '',
@@ -145,12 +258,26 @@ function renderTemplate(event, payload) {
           'Groet,',
           'Light Marketing Tool',
         ].join('\n'),
+        html: emailShell('Wachtwoord resetten', preheader, `
+          ${paragraph('Hoi,')}
+          ${paragraph('Er is een verzoek ingediend om je wachtwoord te resetten.')}
+          ${paragraph('Klik op de knop hieronder om een nieuw wachtwoord in te stellen:')}
+          ${ctaButton(payload.resetLink, 'Wachtwoord resetten')}
+          <p style="color:#6b7280;font-size:13px;line-height:1.5;margin:0 0 16px;">Deze link is 1 uur geldig. Heb je dit niet aangevraagd? Dan kun je deze e-mail negeren.</p>
+          ${paragraph('Groet,')}
+          ${paragraph('Light Marketing Tool')}
+        `),
       };
+    }
     default:
       return {
         subject: `Update: ${title}`,
         preheader: '',
         body: `Er is een update op je concept "${title}": ${link}`,
+        html: emailShell('Update', '', `
+          ${paragraph(`Er is een update op je concept "${title}".`)}
+          ${ctaButton(link, 'Bekijk in de tool')}
+        `),
       };
   }
 }
@@ -158,14 +285,14 @@ function renderTemplate(event, payload) {
 // Logger transport (Push 1 default): appends to a jsonl file so a future
 // operator can grep-audit what would have been sent. Swap to real SMTP by
 // setting NOTIFICATION_TRANSPORT=smtp + SMTP_USER/SMTP_PASS.
-async function loggerTransport({ to, subject, body }) {
+async function loggerTransport({ to, subject, body, html }) {
   const logDir = path.resolve(__dirname, '..', '..', 'uploads', 'notifications');
   try {
     fs.mkdirSync(logDir, { recursive: true });
     const filePath = path.join(logDir, 'notifications.jsonl');
     fs.appendFileSync(
       filePath,
-      JSON.stringify({ at: new Date().toISOString(), to, subject, body }) + '\n'
+      JSON.stringify({ at: new Date().toISOString(), to, subject, body, html: html ? '(html included)' : null }) + '\n'
     );
     return { ok: true };
   } catch (err) {
@@ -191,7 +318,7 @@ function getSmtpTransporter() {
   return _smtpTransporter;
 }
 
-async function smtpTransport({ to, subject, body }) {
+async function smtpTransport({ to, subject, body, html }) {
   const from = process.env.NOTIFICATION_FROM || 'Light Marketing Tool <noreply@lightpersoneelsdiensten.nl>';
   const listUnsubUrl = process.env.PUBLIC_APP_URL
     ? `${process.env.PUBLIC_APP_URL.replace(/\/$/, '')}/notificaties/uitschrijven`
@@ -213,6 +340,7 @@ async function smtpTransport({ to, subject, body }) {
       to,
       subject,
       text: body,
+      html: html || undefined,
       headers,
     });
     return { ok: true };
@@ -314,6 +442,7 @@ async function notify(event, payload) {
         to: user.email,
         subject: template.subject,
         body: template.body,
+        html: template.html,
       });
 
       // Idempotency: try to insert with UNIQUE (event, draft_id, recipient).
@@ -385,6 +514,7 @@ async function sendPasswordReset(email, name, resetLink) {
     to: email,
     subject: template.subject,
     body: template.body,
+    html: template.html,
   });
   return result;
 }
@@ -396,6 +526,7 @@ async function sendEmailVerification(email, name, verifyLink) {
     to: email,
     subject: template.subject,
     body: template.body,
+    html: template.html,
   });
   return result;
 }
