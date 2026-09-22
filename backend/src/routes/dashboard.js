@@ -269,9 +269,9 @@ router.get('/summary', async (req, res, next) => {
 
       const weekSummary = { submitted: 0, approved: 0, rejected: 0 };
       for (const row of weekActions || []) {
-        if (row.action === 'submitted' || row.action === 'submit') weekSummary.submitted++;
-        else if (row.action === 'approved' || row.action === 'approve') weekSummary.approved++;
-        else if (row.action === 'rejected' || row.action === 'reject') weekSummary.rejected++;
+        if (row.action === 'draft.submitted') weekSummary.submitted++;
+        else if (row.action === 'draft.approved') weekSummary.approved++;
+        else if (row.action === 'draft.rejected') weekSummary.rejected++;
       }
       roleExtras.weekSummary = weekSummary;
     }
@@ -290,9 +290,9 @@ router.get('/summary', async (req, res, next) => {
           teamMap.set(name, { name, submitted: 0, approved: 0, published: 0 });
         }
         const entry = teamMap.get(name);
-        if (row.action === 'submitted' || row.action === 'submit') entry.submitted++;
-        else if (row.action === 'approved' || row.action === 'approve') entry.approved++;
-        else if (row.action === 'published' || row.action === 'publish') entry.published++;
+        if (row.action === 'draft.submitted') entry.submitted++;
+        else if (row.action === 'draft.approved') entry.approved++;
+        else if (row.action === 'draft.published') entry.published++;
       }
       roleExtras.teamWeekly = Array.from(teamMap.values());
     }
