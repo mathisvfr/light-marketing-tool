@@ -249,8 +249,49 @@ async function notify(event, payload) {
 
   const result = { attempted: recipients.length, delivered: 0, skipped: 0, failed: 0 };
 
+  // Fetch notification preferences for all recipients
+  const { data: allPrefs } = await supabase
+    .from('notification_preferences')
+    .select('*')
+    .in('user_id', recipients);
+
+  const prefsMap = new Map();
+  for (const p of (allPrefs || [])) {
+    prefsMap.set(p.user_id, p);
+  }
+
+  const EVENT_TO_PREF_KEY = {
+    'draft.submitted': 'email_draft_submitted',
+    'draft.approved': 'email_draft_approved',
+    'draft.rejected': 'email_draft_rejected',
+    'publication.fired': 'email_publication_fired',
+  };
+
   for (const userId of recipients) {
     try {
+      // Check email preference for this user
+      const userPrefs = prefsMap.get(userId);
+      const emailMasterEnabled = userPrefs?.email_enabled !== false; // default true
+      const eventPrefKey = EVENT_TO_PREF_KEY[event];
+      const eventPrefValue = eventPrefKey ? userPrefs?.[eventPrefKey] : undefined;
+      // Event-level overrides master when explicitly set (not null)
+      const shouldEmail = eventPrefValue !== null && eventPrefValue !== undefined
+        ? eventPrefValue
+        : emailMasterEnabled;
+
+      if (!shouldEmail) {
+        result.skipped += 1;
+        await supabase.from('notification_log').insert({
+          event,
+          draft_id,
+          recipient_user_id: userId,
+          status: 'skipped',
+          transport,
+          error_message: 'user preference: email disabled',
+        });
+        continue;
+      }
+
       const { data: user, error: userErr } = await supabase
         .from('users')
         .select('id, email, name')
@@ -308,6 +349,9 @@ async function notify(event, payload) {
 
   // Create in-app notification for each recipient (never blocks)
   for (const userId of recipients) {
+    const userPrefs = prefsMap.get(userId);
+    if (userPrefs?.in_app_enabled === false) continue; // default true
+
     try {
       await supabase.from('in_app_notifications').insert({
         user_id: userId,

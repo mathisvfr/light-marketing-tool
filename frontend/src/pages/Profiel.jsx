@@ -7,6 +7,49 @@ import Card, { CardHeader, CardBody } from '../components/shared/Card';
 import RoleBadge from '../components/shared/RoleBadge';
 import '../components/shared/card.css';
 
+function ToggleRow({ label, description, checked, onChange, disabled, small }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+      <div>
+        <span className={small ? 'text-sm' : 'text-sm font-display font-bold'}>{label}</span>
+        {description && <p className="text-sm text-muted-foreground" style={{ margin: '.15rem 0 0' }}>{description}</p>}
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        disabled={disabled}
+        style={{
+          width: 44,
+          height: 24,
+          borderRadius: 12,
+          border: 'none',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          background: checked ? 'var(--light-red, #d42b2b)' : '#d1d5db',
+          position: 'relative',
+          transition: 'background .2s',
+          flexShrink: 0,
+        }}
+      >
+        <span
+          style={{
+            position: 'absolute',
+            top: 2,
+            left: checked ? 22 : 2,
+            width: 20,
+            height: 20,
+            borderRadius: '50%',
+            background: '#fff',
+            transition: 'left .2s',
+            boxShadow: '0 1px 3px rgba(0,0,0,.15)',
+          }}
+        />
+      </button>
+    </div>
+  );
+}
+
 function formatDate(value) {
   if (!value) return '-';
   return new Intl.DateTimeFormat('nl-NL', {
@@ -82,6 +125,36 @@ export default function Profiel() {
 
   const [showEmailChange, setShowEmailChange] = useState(false);
   const [newEmail, setNewEmail] = useState('');
+
+  const prefsQuery = useQuery({
+    queryKey: ['notification-preferences'],
+    queryFn: () => api('/profile/notification-preferences'),
+  });
+
+  const prefsMutation = useMutation({
+    mutationFn: (updates) =>
+      api('/profile/notification-preferences', {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+      }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['notification-preferences'], data);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const prefs = prefsQuery.data?.preferences || {
+    email_enabled: true,
+    in_app_enabled: true,
+    email_draft_submitted: null,
+    email_draft_approved: null,
+    email_draft_rejected: null,
+    email_publication_fired: null,
+  };
+
+  function updatePref(key, value) {
+    prefsMutation.mutate({ [key]: value });
+  }
 
   const profileQuery = useQuery({
     queryKey: ['profile'],
@@ -401,6 +474,70 @@ export default function Profiel() {
               </button>
             </div>
           </form>
+        </CardBody>
+      </Card>
+
+      {/* Notification preferences */}
+      <Card>
+        <CardHeader title="Meldingen" />
+        <CardBody>
+          <div style={{ display: 'grid', gap: '1.25rem' }}>
+            {/* Email master toggle */}
+            <ToggleRow
+              label="E-mailmeldingen"
+              description="Ontvang meldingen per e-mail"
+              checked={prefs.email_enabled}
+              onChange={(val) => updatePref('email_enabled', val)}
+              disabled={prefsMutation.isPending}
+            />
+
+            {/* Per-event toggles (only shown when email master is on) */}
+            {prefs.email_enabled && (
+              <div style={{ paddingLeft: '1.5rem', display: 'grid', gap: '.75rem', borderLeft: '2px solid #e5e7eb' }}>
+                <ToggleRow
+                  label="Concept ingediend ter goedkeuring"
+                  checked={prefs.email_draft_submitted ?? true}
+                  onChange={(val) => updatePref('email_draft_submitted', val)}
+                  disabled={prefsMutation.isPending}
+                  small
+                />
+                <ToggleRow
+                  label="Concept goedgekeurd"
+                  checked={prefs.email_draft_approved ?? true}
+                  onChange={(val) => updatePref('email_draft_approved', val)}
+                  disabled={prefsMutation.isPending}
+                  small
+                />
+                <ToggleRow
+                  label="Concept afgewezen"
+                  checked={prefs.email_draft_rejected ?? true}
+                  onChange={(val) => updatePref('email_draft_rejected', val)}
+                  disabled={prefsMutation.isPending}
+                  small
+                />
+                <ToggleRow
+                  label="Content gepubliceerd"
+                  checked={prefs.email_publication_fired ?? true}
+                  onChange={(val) => updatePref('email_publication_fired', val)}
+                  disabled={prefsMutation.isPending}
+                  small
+                />
+              </div>
+            )}
+
+            {/* In-app master toggle */}
+            <ToggleRow
+              label="In-app meldingen"
+              description="Toon meldingen in de tool"
+              checked={prefs.in_app_enabled}
+              onChange={(val) => updatePref('in_app_enabled', val)}
+              disabled={prefsMutation.isPending}
+            />
+
+            <p className="text-sm text-muted-foreground" style={{ margin: 0 }}>
+              Wachtwoord-reset en e-mailverificatie worden altijd verstuurd.
+            </p>
+          </div>
         </CardBody>
       </Card>
     </div>

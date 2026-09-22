@@ -237,4 +237,71 @@ router.post('/verify-email', async (req, res, next) => {
   }
 });
 
+// ---------- GET /notification-preferences ----------
+
+router.get('/notification-preferences', async (req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from('notification_preferences')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    // Return defaults if no row exists yet
+    const prefs = data || {
+      user_id: req.user.id,
+      email_enabled: true,
+      in_app_enabled: true,
+      email_draft_submitted: null,
+      email_draft_approved: null,
+      email_draft_rejected: null,
+      email_publication_fired: null,
+    };
+
+    return res.json({ preferences: prefs });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// ---------- PATCH /notification-preferences ----------
+
+router.patch('/notification-preferences', async (req, res, next) => {
+  try {
+    const allowed = [
+      'email_enabled', 'in_app_enabled',
+      'email_draft_submitted', 'email_draft_approved',
+      'email_draft_rejected', 'email_publication_fired',
+    ];
+
+    const updates = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) {
+        updates[key] = req.body[key] === null ? null : Boolean(req.body[key]);
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'Geen geldige velden opgegeven.' });
+    }
+
+    updates.updated_at = new Date().toISOString();
+
+    // Upsert: insert if not exists, update if exists
+    const { data, error } = await supabase
+      .from('notification_preferences')
+      .upsert({ user_id: req.user.id, ...updates }, { onConflict: 'user_id' })
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    return res.json({ preferences: data });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 module.exports = router;
