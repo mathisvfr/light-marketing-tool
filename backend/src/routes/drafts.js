@@ -995,23 +995,13 @@ router.post('/bulk-approve', async (req, res, next) => {
       .filter((id) => !(drafts || []).some((d) => d.id === id))
       .map((id) => ({ id, reason: 'not-found' }));
 
-    // Vacatures moeten dezelfde validatie doorstaan als de single-approve
-    // route: geldige sollicitatie_url + NL-omschrijving. Skip degenen die
-    // falen zodat de rest in de bulk toch door kan.
+    // Vacatures moeten een NL-omschrijving hebben (Jobit vereist dit).
+    // sollicitatie_url is optioneel — de website heeft eigen sollicitatieformulieren.
     const vacatureCandidates = eligible.filter((d) => d.type === 'vacature');
     const vacatureIds = [];
 
     for (const draft of vacatureCandidates) {
-      const sollicitatieUrl = String(
-        draft.sollicitatie_url || draft.form_data?.sollicitatie_url || ''
-      ).trim();
-      const hasValidUrl = sollicitatieUrl && /^https?:\/\//i.test(sollicitatieUrl);
       const hasNlDescription = draft.omschrijving_nl && String(draft.omschrijving_nl).trim();
-
-      if (!hasValidUrl) {
-        skipped.push({ id: draft.id, reason: 'missing-sollicitatie-url' });
-        continue;
-      }
 
       if (!hasNlDescription) {
         skipped.push({ id: draft.id, reason: 'missing-nl-description' });

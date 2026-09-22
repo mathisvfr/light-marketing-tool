@@ -16,14 +16,6 @@ function validateVacatureForApproval(draft) {
     return null;
   }
 
-  const sollicitatieUrl = String(
-    draft.sollicitatie_url || draft.form_data?.sollicitatie_url || ''
-  ).trim();
-
-  if (!sollicitatieUrl || !/^https?:\/\//i.test(sollicitatieUrl)) {
-    return 'Sollicitatie-URL ontbreekt of is ongeldig. Zonder geldige URL komen kandidaten via de feed nergens terecht.';
-  }
-
   const omschrijvingNl = String(
     draft.omschrijving_nl || draft.form_data?.omschrijving_nl || ''
   ).trim();
