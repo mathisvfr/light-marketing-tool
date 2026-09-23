@@ -53,7 +53,7 @@ function actionToStatus(action) {
     'draft.created': 'draft',
     'draft.expired': 'expired',
   };
-  return map[action] || 'draft';
+  return map[action] || null;
 }
 
 function toIsoWeekAgo() {
@@ -380,6 +380,12 @@ router.post('/queue/:id/approve', requireRole(['owner', 'manager']), async (req,
     if (error) throw error;
 
     logActivity(req.user.id, req.user.name, 'draft.approved', 'draft', id, { title: getDraftTitle(draft.form_data) });
+
+    // For vacatures, approval = publication (appears in XML feed), so also log
+    // draft.published so the dashboard "Gepubliceerd" counter is accurate.
+    if (draft.type === 'vacature') {
+      logActivity(req.user.id, req.user.name, 'draft.published', 'draft', id, { title: getDraftTitle(draft.form_data), channels: ['xml-feed'] });
+    }
 
     if (draft.created_by && draft.created_by !== req.user.id) {
       notifyAfterCommit('draft.approved', {

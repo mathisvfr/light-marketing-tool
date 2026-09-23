@@ -1377,6 +1377,12 @@ router.post('/:id/approve', async (req, res, next) => {
 
     logActivity(req.user.id, req.user.name, 'draft.approved', 'draft', draftId, { title: getDraftTitle(data.form_data) });
 
+    // For vacatures, approval = publication (appears in XML feed), so also log
+    // draft.published so the dashboard "Gepubliceerd" counter is accurate.
+    if (currentDraft.type === 'vacature') {
+      logActivity(req.user.id, req.user.name, 'draft.published', 'draft', draftId, { title: getDraftTitle(data.form_data), channels: ['xml-feed'] });
+    }
+
     // Notify the creator (post-commit). Suppress if the owner is the creator
     // (self-approval doesn't need a notification).
     if (currentDraft.created_by && currentDraft.created_by !== req.user.id) {

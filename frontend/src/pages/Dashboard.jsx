@@ -250,7 +250,7 @@ export default function Dashboard() {
                   <div>
                     <span className="dash-activity-title">{item.title}</span>
                     <span className="dash-activity-meta">
-                      <StatusBadge status={item.status} /> · {formatRelative(item.updatedAt)}
+                      {item.status && <><StatusBadge status={item.status} /> · </>}{formatRelative(item.updatedAt)}
                     </span>
                   </div>
                 </div>
