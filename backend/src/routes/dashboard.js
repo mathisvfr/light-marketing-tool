@@ -34,6 +34,7 @@ function formatActivityTitle(item) {
     case 'draft.rejected': return `${name} heeft '${title}' afgewezen`;
     case 'draft.published': return `${name} heeft '${title}' gepubliceerd`;
     case 'draft.expired': return `${name} heeft '${title}' gesloten`;
+    case 'draft.deleted': return `${name} heeft '${title}' verwijderd`;
     case 'user.created': return `${name} heeft ${item.metadata?.newUserName || 'een gebruiker'} toegevoegd`;
     case 'user.role_changed': return `${name} heeft een rol gewijzigd naar ${item.metadata?.newRole}`;
     case 'user.deleted': return `${name} heeft een gebruiker verwijderd`;
