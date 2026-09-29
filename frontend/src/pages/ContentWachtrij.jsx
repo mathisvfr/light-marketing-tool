@@ -438,14 +438,9 @@ export default function ContentWachtrij() {
           ) : null}
 
           {selectionStatus === 'approved' ? (
-            <>
-              <button type="button" onClick={handleBulkPublish} disabled={isMutating}>
-                Publiceren
-              </button>
-              <button type="button" onClick={handleBulkDelete} disabled={isMutating}>
-                Verwijderen
-              </button>
-            </>
+            <button type="button" onClick={handleBulkPublish} disabled={isMutating}>
+              Publiceren
+            </button>
           ) : null}
 
           {selectionStatus === 'actief' ? (
@@ -454,13 +449,9 @@ export default function ContentWachtrij() {
             </button>
           ) : null}
 
-          {selectionStatus === 'published' ||
-          selectionStatus === 'expired' ||
-          selectionStatus === 'rejected' ? (
-            <button type="button" onClick={handleBulkDelete} disabled={isMutating}>
-              Verwijderen
-            </button>
-          ) : null}
+          <button type="button" onClick={handleBulkDelete} disabled={isMutating}>
+            Verwijderen
+          </button>
 
           <button
             type="button"
@@ -566,6 +557,13 @@ export default function ContentWachtrij() {
                               onClick={() => handleEdit(draft)}
                             >
                               Bewerken
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isMutating}
+                              onClick={() => handleDelete(draft.id)}
+                            >
+                              Verwijderen
                             </button>
                           </>
                         ) : null}

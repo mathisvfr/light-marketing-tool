@@ -1141,7 +1141,7 @@ router.post('/bulk-delete', async (req, res, next) => {
 
     const { data: drafts, error: fetchError } = await supabase
       .from('drafts')
-      .select('id, created_by')
+      .select('id, created_by, form_data')
       .in('id', parsed.ids);
 
     if (fetchError) {
@@ -1149,21 +1149,28 @@ router.post('/bulk-delete', async (req, res, next) => {
     }
 
     const skipped = [];
-    const eligibleIds = [];
+    const eligible = [];
 
     for (const draft of drafts || []) {
       if (['owner', 'manager'].includes(req.user.role) || draft.created_by === req.user.id) {
-        eligibleIds.push(draft.id);
+        eligible.push(draft);
       } else {
         skipped.push({ id: draft.id, reason: 'not-owner' });
       }
     }
+
+    const eligibleIds = eligible.map((d) => d.id);
 
     const notFound = parsed.ids
       .filter((id) => !(drafts || []).some((d) => d.id === id))
       .map((id) => ({ id, reason: 'not-found' }));
 
     if (eligibleIds.length > 0) {
+      // Log before delete so draft data is still available
+      for (const draft of eligible) {
+        await logActivity(req.user.id, req.user.name, 'draft.deleted', 'draft', draft.id, { title: getDraftTitle(draft.form_data) });
+      }
+
       const { error } = await supabase.from('drafts').delete().in('id', eligibleIds);
       if (error) {
         throw error;
@@ -1472,9 +1479,13 @@ router.delete('/:id', async (req, res, next) => {
   try {
     const draftId = req.params.id;
 
+    if (!['owner', 'manager', 'recruiter'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
+    }
+
     const { data: draft, error: draftError } = await supabase
       .from('drafts')
-      .select('id, created_by')
+      .select('id, created_by, form_data')
       .eq('id', draftId)
       .maybeSingle();
 
@@ -1486,9 +1497,12 @@ router.delete('/:id', async (req, res, next) => {
       return res.status(404).json({ error: 'Concept niet gevonden.' });
     }
 
-    if (req.user.role !== 'recruiter' || draft.created_by !== req.user.id) {
+    if (req.user.role === 'recruiter' && draft.created_by !== req.user.id) {
       return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
     }
+
+    const title = getDraftTitle(draft.form_data);
+    await logActivity(req.user.id, req.user.name, 'draft.deleted', 'draft', draftId, { title });
 
     const { error } = await supabase.from('drafts').delete().eq('id', draftId);
 
