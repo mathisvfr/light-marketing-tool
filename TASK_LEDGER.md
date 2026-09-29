@@ -21,6 +21,8 @@ useful for the next agent picking up work. Move fully-completed rows below the
 | 4 | Child G: Dashboard role-specific widgets | `main` | done | `backend/src/routes/dashboard.js`, `frontend/src/pages/Dashboard.jsx`, `frontend/src/pages/dashboard.css`, `backend/src/middleware/auth.js`, `backend/src/db/migrations/020_activity_log_and_manager_role.sql` | claude (agent-afb5496e) | Added activity_log table, manager role, role-specific dashboard widgets (recruiter drafts/week summary, owner/manager team weekly, viewer recent publications) |
 | 3 | Analytics & Rapportage — metric_snapshot table, snapshotters, /rapportage page | `main` | in-progress | `backend/src/db/migrations/018_metric_snapshot.sql`, `backend/src/services/metrics/`, `backend/src/routes/rapportage.js`, `frontend/src/pages/Rapportage.jsx`, `frontend/src/pages/rapportage.css`, `frontend/src/components/layout/AppShell.jsx` (nav item only), `frontend/src/App.jsx` (route only), `backend/src/index.js` (cron + route registration only) | claude | Design doc: `docs/designs/analytics-rapportage-loop.md` |
 
+| 5 | #7 URL fetching for blog/marketing generation | `main` | done | `backend/src/services/url-fetcher.js`, `backend/src/routes/drafts.js`, `backend/prompts/blog.md`, `backend/prompts/marketing-post.md`, `backend/test/url-fetcher.test.js`, `backend/package.json` | claude (agent-a0640425) | GitHub issue #7. All 28 new tests pass, 90/90 total backend tests green. |
+
 ## Archive
 
 <!-- Move completed rows here once older than a week. Nothing yet. -->

@@ -10,6 +10,7 @@ const { validateVacatureForApproval } = require('../services/vacatureValidation'
 const unsplash = require('../services/unsplash');
 const { triggerBlogTranslations } = require('../services/blogTranslations');
 const { logActivity } = require('../services/activityLog');
+const { enrichFormDataWithUrls, UrlFetchError } = require('../services/url-fetcher');
 
 // Whitelist of safe HTML tags for blog content. Strips scripts, iframes,
 // event handlers, and anything not explicitly listed.
@@ -517,8 +518,30 @@ router.post('/:id/generate', async (req, res, next) => {
       draft.form_data = updatedDraft.form_data;
     }
 
+    // URL enrichment for blog and marketing-post types
+    let enrichedFormData = draft.form_data;
+    let fetchWarnings = [];
+    if (['blog', 'marketing-post'].includes(draft.type)) {
+      try {
+        const enrichResult = await enrichFormDataWithUrls(draft.form_data);
+        // Save cache to DB for regenerate reuse
+        if (enrichResult._cached_articles) {
+          const cachedForm = { ...(draft.form_data || {}), _cached_articles: enrichResult._cached_articles };
+          await supabase.from('drafts').update({ form_data: cachedForm }).eq('id', draft.id);
+          draft.form_data = cachedForm;
+        }
+        enrichedFormData = enrichResult;
+        fetchWarnings = enrichResult.warnings || [];
+      } catch (err) {
+        if (err instanceof UrlFetchError) {
+          return res.status(422).json({ error: err.message });
+        }
+        throw err;
+      }
+    }
+
     const t0 = Date.now();
-    const generated = await generate(draft.type, draft.form_data);
+    const generated = await generate(draft.type, enrichedFormData);
     console.log(`[timing] generate(${draft.type}) ${Date.now() - t0}ms`);
 
     // Save generated content immediately (criticus_passed = null signals "pending")
@@ -668,6 +691,7 @@ router.post('/:id/generate', async (req, res, next) => {
       draft: formatDraftForResponse(updatedDraft),
       unsplash_suggestions: unsplashSuggestions,
       image_search_terms: searchTerms,
+      warnings: fetchWarnings.length > 0 ? fetchWarnings : undefined,
     });
 
     // Run criticus + image render in background (don't block the response).
