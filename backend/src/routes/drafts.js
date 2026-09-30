@@ -257,10 +257,6 @@ router.get('/:id', async (req, res, next) => {
       return res.status(404).json({ error: 'Concept niet gevonden.' });
     }
 
-    if (req.user.role === 'recruiter' && data.created_by !== req.user.id) {
-      return res.status(403).json({ error: 'Je hebt geen toegang tot dit concept.' });
-    }
-
     return res.json({ draft: formatDraftForResponse(data) });
   } catch (error) {
     return next(error);

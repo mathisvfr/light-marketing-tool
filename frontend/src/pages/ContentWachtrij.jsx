@@ -6,6 +6,7 @@ import { api } from '../lib/api';
 import StatusBadge, { getStatusLabel as getSharedStatusLabel } from '../components/shared/StatusBadge';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import FormMessage from '../components/shared/FormMessage';
+import DraftDetailModal from '../components/shared/DraftDetailModal';
 import '../components/shared/status-strip.css';
 import '../components/shared/modal.css';
 import '../components/shared/toast.css';
@@ -59,6 +60,7 @@ export default function ContentWachtrij() {
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [error, setError] = useState('');
   const [confirm, setConfirm] = useState(null);
+  const [viewDraftId, setViewDraftId] = useState(null);
 
   const draftsQuery = useQuery({
     queryKey: ['drafts-queue', statusFilter, typeFilter, authorFilter],
@@ -522,7 +524,15 @@ export default function ContentWachtrij() {
                     <td>
                       <span className={getTypeBadgeClass(draft.type)}>{getTypeLabel(draft.type)}</span>
                     </td>
-                    <td>{draft.title}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="queue-title-link"
+                        onClick={() => setViewDraftId(draft.id)}
+                      >
+                        {draft.title || 'Zonder titel'}
+                      </button>
+                    </td>
                     <td>{draft.authorName}</td>
                     <td>
                       <StatusBadge status={draft.status} />
@@ -531,6 +541,13 @@ export default function ContentWachtrij() {
                     <td>{formatChannels(draft.channels)}</td>
                     <td>
                       <div className="queue-actions">
+                        <button
+                          type="button"
+                          onClick={() => setViewDraftId(draft.id)}
+                        >
+                          Bekijken
+                        </button>
+
                         {isOwner ? (
                           <>
                             {['draft', 'pending_approval'].includes(draft.status) && (
@@ -605,6 +622,11 @@ export default function ContentWachtrij() {
           </tbody>
         </table>
       </div>
+
+      <DraftDetailModal
+        draftId={viewDraftId}
+        onClose={() => setViewDraftId(null)}
+      />
 
       <ConfirmDialog
         open={Boolean(confirm)}
