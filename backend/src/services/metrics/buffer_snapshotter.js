@@ -24,7 +24,7 @@ async function getBufferToken() {
 async function fetchPostMetrics(externalId, token) {
   const query = `
     query BufferPostMetrics {
-      post(id: ${JSON.stringify(externalId)}) {
+      post(input: { id: ${JSON.stringify(externalId)} }) {
         id
         metrics { name value }
         sentAt
@@ -92,17 +92,18 @@ async function run() {
       apiCalls++;
 
       if (post?.metrics) {
+        // Buffer returns capitalized names (Reactions, Comments, Impressions, etc.)
         const metrics = {};
         for (const m of post.metrics) {
           if (m?.name && typeof m.value !== 'undefined') {
-            metrics[m.name] = Number(m.value) || 0;
+            metrics[m.name.toLowerCase()] = Number(m.value) || 0;
           }
         }
 
         // Accumulate totals
-        totals.likes += metrics.likes || metrics.reactions || 0;
+        totals.likes += metrics.reactions || metrics.likes || 0;
         totals.comments += metrics.comments || 0;
-        totals.reach += metrics.reach || metrics.impressions || 0;
+        totals.reach += metrics.impressions || metrics.reach || 0;
         totals.clicks += metrics.clicks || 0;
         totals.shares += metrics.shares || metrics.reposts || 0;
 
@@ -111,9 +112,9 @@ async function run() {
         if (!perChannel[ch]) {
           perChannel[ch] = { likes: 0, comments: 0, reach: 0, clicks: 0, shares: 0 };
         }
-        perChannel[ch].likes += metrics.likes || metrics.reactions || 0;
+        perChannel[ch].likes += metrics.reactions || metrics.likes || 0;
         perChannel[ch].comments += metrics.comments || 0;
-        perChannel[ch].reach += metrics.reach || metrics.impressions || 0;
+        perChannel[ch].reach += metrics.impressions || metrics.reach || 0;
         perChannel[ch].clicks += metrics.clicks || 0;
         perChannel[ch].shares += metrics.shares || metrics.reposts || 0;
 

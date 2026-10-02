@@ -27,7 +27,7 @@ async function getBufferToken() {
 async function fetchBufferPost(externalId, token) {
   const query = `
     query BufferPost {
-      post(id: ${JSON.stringify(externalId)}) {
+      post(input: { id: ${JSON.stringify(externalId)} }) {
         id
         status
         sentAt
