@@ -17,17 +17,6 @@ const { supabase } = require('../../db/client');
 async function upsertMetric({ metric_key, dimensions = {}, value = null, value_json = null, source, captured_at }) {
   const capturedAt = captured_at || new Date();
 
-  // Supabase JS doesn't support ON CONFLICT with generated columns directly,
-  // so we use an RPC-style raw upsert via .rpc or fall back to a two-step
-  // select+insert/update. The simplest reliable approach: use the Postgres
-  // function via supabase.rpc, but since we may not have that function, we
-  // do insert with onConflict.
-  //
-  // Actually, Supabase JS .upsert() supports onConflict columns. The unique
-  // index is on (metric_key, bucket_date, md5(dimensions::text)) which
-  // involves expressions, so .upsert() can't target it directly.
-  //
-  // Safest: try insert, catch unique violation, then update.
   const row = {
     metric_key,
     dimensions,
@@ -40,20 +29,24 @@ async function upsertMetric({ metric_key, dimensions = {}, value = null, value_j
   const { error: insertError } = await supabase.from('metric_snapshot').insert(row);
 
   if (insertError) {
-    // 23505 = unique_violation — row already exists for this key+date+dims
+    // 23505 = unique_violation — row already exists for this key+date+dims.
+    // Delete the old row and re-insert. Supabase JS can't reliably .eq() on
+    // JSONB dimensions, and the unique index uses md5(dimensions::text) which
+    // we can't target from the client. Delete+insert is safe because the
+    // unique index guarantees at most one row per key+date+dims.
     if (insertError.code === '23505') {
-      // Update existing row. We need to match on the same key+date+dims.
-      // Use a raw filter to match the bucket_date and dimensions hash.
       const bucketDate = toBucketDate(capturedAt);
-      const { error: updateError } = await supabase
+      const { error: deleteError } = await supabase
         .from('metric_snapshot')
-        .update({ value, value_json, captured_at: capturedAt.toISOString() })
+        .delete()
         .eq('metric_key', metric_key)
         .eq('bucket_date', bucketDate)
-        // dimensions match via equality (JSONB =)
-        .eq('dimensions', dimensions);
+        .filter('dimensions', 'eq', JSON.stringify(dimensions));
 
-      if (updateError) throw updateError;
+      if (deleteError) throw deleteError;
+
+      const { error: reinsertError } = await supabase.from('metric_snapshot').insert(row);
+      if (reinsertError) throw reinsertError;
       return 'updated';
     }
     throw insertError;
