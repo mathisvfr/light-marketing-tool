@@ -107,6 +107,13 @@ export default function ContentWachtrij() {
     },
   });
 
+  const publishSingleMutation = useMutation({
+    mutationFn: (id) => api(`/publish/${id}`, { method: 'POST', body: JSON.stringify({}) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['drafts-queue'] });
+    },
+  });
+
   // Bulk mutations. All follow the same succeeded/skipped shape so the
   // handler code below can share result-reporting logic.
   const bulkApproveMutation = useMutation({
@@ -291,16 +298,45 @@ export default function ContentWachtrij() {
 
   function handleApprove(draft) {
     setError('');
+    const isMarketingOrBlog = draft.type === 'marketing-post' || draft.type === 'blog';
     setConfirm({
-      title: 'Goedkeuren',
-      message: `Weet je zeker dat je "${draft.title || 'dit concept'}" wilt goedkeuren?${draft.type === 'vacature' ? ' De vacature wordt direct actief in de XML feed.' : ''}`,
-      confirmLabel: 'Goedkeuren',
+      title: isMarketingOrBlog ? 'Goedkeuren en publiceren' : 'Goedkeuren',
+      message: isMarketingOrBlog
+        ? `Weet je zeker dat je "${draft.title || 'dit concept'}" wilt goedkeuren en direct publiceren naar de gekoppelde kanalen?`
+        : `Weet je zeker dat je "${draft.title || 'dit concept'}" wilt goedkeuren?${draft.type === 'vacature' ? ' De vacature wordt direct actief in de XML feed.' : ''}`,
+      confirmLabel: isMarketingOrBlog ? 'Goedkeuren en publiceren' : 'Goedkeuren',
       variant: 'normal',
       onConfirm: async () => {
         try {
           await approveMutation.mutateAsync(draft.id);
         } catch (err) {
           setError(err.message || 'Goedkeuren mislukt.');
+          throw err;
+        }
+        if (isMarketingOrBlog) {
+          try {
+            await publishSingleMutation.mutateAsync(draft.id);
+          } catch (err) {
+            setError(`Goedgekeurd, maar publiceren mislukt: ${err.message || 'Onbekende fout.'}`);
+            throw err;
+          }
+        }
+      },
+    });
+  }
+
+  function handlePublish(draft) {
+    setError('');
+    setConfirm({
+      title: 'Publiceren',
+      message: `Weet je zeker dat je "${draft.title || 'dit concept'}" wilt publiceren naar de gekoppelde kanalen?`,
+      confirmLabel: 'Publiceren',
+      variant: 'normal',
+      onConfirm: async () => {
+        try {
+          await publishSingleMutation.mutateAsync(draft.id);
+        } catch (err) {
+          setError(err.message || 'Publiceren mislukt.');
           throw err;
         }
       },
@@ -366,7 +402,8 @@ export default function ContentWachtrij() {
     bulkRejectMutation.isPending ||
     bulkDeleteMutation.isPending ||
     bulkExpireMutation.isPending ||
-    bulkPublishMutation.isPending;
+    bulkPublishMutation.isPending ||
+    publishSingleMutation.isPending;
 
   const selectionStatusLabel = selectionStatus ? getSharedStatusLabel(selectionStatus) : '';
 
@@ -556,7 +593,16 @@ export default function ContentWachtrij() {
                                 disabled={isMutating}
                                 onClick={() => handleApprove(draft)}
                               >
-                                Goedkeuren
+                                {(draft.type === 'marketing-post' || draft.type === 'blog') ? 'Goedkeuren en publiceren' : 'Goedkeuren'}
+                              </button>
+                            )}
+                            {draft.status === 'approved' && (draft.type === 'marketing-post' || draft.type === 'blog') && (
+                              <button
+                                type="button"
+                                disabled={isMutating}
+                                onClick={() => handlePublish(draft)}
+                              >
+                                Publiceren
                               </button>
                             )}
                             {['draft', 'pending_approval'].includes(draft.status) && (
