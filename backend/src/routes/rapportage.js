@@ -87,9 +87,39 @@ router.get('/', async (req, res, next) => {
     };
 
     // --- Section 2: Marketing ---
+    // Read engagement live from publications.metrics (updated every 15 min by
+    // bufferSync) instead of from the nightly snapshot — gives near-real-time data.
+    const { data: pubRows, error: pubErr } = await supabase
+      .from('publications')
+      .select('channel, status, metrics')
+      .eq('status', 'success');
+    if (pubErr) throw pubErr;
+
+    const liveEngagement = { likes: 0, comments: 0, reach: 0, clicks: 0, shares: 0 };
+    for (const pub of pubRows || []) {
+      if (pub.metrics && typeof pub.metrics === 'object') {
+        // Buffer metric names are capitalized: Reactions, Comments, Impressions, Reach, Shares
+        const m = {};
+        for (const [k, v] of Object.entries(pub.metrics)) {
+          m[k.toLowerCase()] = Number(v) || 0;
+        }
+        liveEngagement.likes += m.reactions || m.likes || 0;
+        liveEngagement.comments += m.comments || 0;
+        liveEngagement.reach += m.impressions || m.reach || 0;
+        liveEngagement.clicks += m.clicks || 0;
+        liveEngagement.shares += m.shares || m.reposts || 0;
+      }
+    }
+
+    // Fall back to snapshot if no live metrics exist yet
+    const hasLiveMetrics = (pubRows || []).some((p) => p.metrics);
+    const engagement = hasLiveMetrics
+      ? liveEngagement
+      : (getValue('buffer.engagement.totals') || { likes: 0, comments: 0, reach: 0, clicks: 0, shares: 0 });
+
     const marketing = {
-      postsGepubliceerd: getValue('publications.buffer.success.count') ?? 0,
-      engagement: getValue('buffer.engagement.totals') || { likes: 0, comments: 0, reach: 0, clicks: 0, shares: 0 },
+      postsGepubliceerd: (pubRows || []).length,
+      engagement,
       channelBreakdown: getWithDimensions('publications.by_channel').map((entry) => ({
         channel: entry.dimensions?.channel || 'unknown',
         ...entry.value_json,

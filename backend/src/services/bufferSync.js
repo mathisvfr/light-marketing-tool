@@ -154,27 +154,72 @@ async function reconcileRow(row, token) {
   return { row, action: nextStatus || 'metrics-only' };
 }
 
+async function loadSentPublicationsForMetrics(limit) {
+  // Refresh metrics for sent posts — oldest refresh first, cap per pass.
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from('publications')
+    .select('id, external_id, channel')
+    .eq('status', 'success')
+    .not('external_id', 'is', null)
+    .gte('published_at', thirtyDaysAgo)
+    .order('metrics_updated_at', { ascending: true, nullsFirst: true })
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+}
+
+async function refreshMetrics(row, token) {
+  let bufferPost;
+  try {
+    bufferPost = await fetchBufferPost(row.external_id, token);
+  } catch (err) {
+    return { row, action: 'error', error: err.message };
+  }
+  if (!bufferPost) return { row, action: 'missing' };
+
+  const metrics = extractMetrics(bufferPost.metrics);
+  if (!metrics) return { row, action: 'noop' };
+
+  const { error: updateErr } = await supabase
+    .from('publications')
+    .update({ metrics, metrics_updated_at: new Date().toISOString() })
+    .eq('id', row.id);
+  if (updateErr) return { row, action: 'error', error: updateErr.message };
+  return { row, action: 'metrics-only' };
+}
+
 async function runOnce() {
   const token = await getBufferToken();
   if (!token) {
     return { attempted: 0, reason: 'no-token' };
   }
 
+  // Pass 1: reconcile scheduled → success/failed
   const rows = await loadScheduledPublications(POLL_MAX_ROWS);
-  if (rows.length === 0) return { attempted: 0, reason: 'no-rows' };
-
   const results = [];
   for (const row of rows) {
     const result = await reconcileRow(row, token);
     results.push(result);
-    // Space out to stay well under Buffer's rate limits.
     await new Promise((r) => setTimeout(r, POLL_SPACING_MS));
+  }
+
+  // Pass 2: refresh engagement metrics for sent posts (oldest first)
+  const remaining = POLL_MAX_ROWS - rows.length;
+  let metricsRefreshed = 0;
+  if (remaining > 0) {
+    const sentRows = await loadSentPublicationsForMetrics(remaining);
+    for (const row of sentRows) {
+      const result = await refreshMetrics(row, token);
+      if (result.action === 'metrics-only') metricsRefreshed++;
+      await new Promise((r) => setTimeout(r, POLL_SPACING_MS));
+    }
   }
 
   return {
     attempted: rows.length,
     updated: results.filter((r) => r.action === 'success' || r.action === 'failed').length,
-    metricsOnly: results.filter((r) => r.action === 'metrics-only').length,
+    metricsOnly: results.filter((r) => r.action === 'metrics-only').length + metricsRefreshed,
     errors: results.filter((r) => r.action === 'error').length,
   };
 }
