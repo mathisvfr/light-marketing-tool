@@ -119,7 +119,7 @@ async function run({ from, to } = {}) {
     const weekBuckets = {};
     for (const row of recentDrafts || []) {
       const d = new Date(row.updated_at);
-      const weekKey = getISOWeekLabel(d);
+      const weekKey = getWeekLabel(d);
       if (!weekBuckets[weekKey]) {
         weekBuckets[weekKey] = { vacature: 0, marketing: 0 };
       }
@@ -145,12 +145,20 @@ async function run({ from, to } = {}) {
   return results;
 }
 
-function getISOWeekLabel(date) {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  const weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
-  return `W${String(weekNo).padStart(2, '0')}`;
+/** Returns a readable week label like "2 sep - 8 sep" for the Monday-Sunday
+ *  week containing the given date. */
+function getWeekLabel(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  // Monday = start of week (ISO); shift Sunday (0) to 7
+  const diffToMonday = (day === 0 ? 6 : day - 1);
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - diffToMonday);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+
+  const fmt = (dt) => `${dt.getDate()} ${dt.toLocaleString('nl-NL', { month: 'short' })}`;
+  return `${fmt(monday)} - ${fmt(sunday)}`;
 }
 
 module.exports = { run };
