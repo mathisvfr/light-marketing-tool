@@ -24,6 +24,20 @@ const BLOG_CATEGORIES = [
   'Wet- en regelgeving',
 ];
 
+// Blog translations auto-trigger on publish for all these languages.
+const BLOG_TRANSLATION_LANGS = [
+  { code: 'pl', label: 'Pools', native: 'Polski' },
+  { code: 'bg', label: 'Bulgaars', native: 'Български' },
+  { code: 'sk', label: 'Slowaaks', native: 'Slovenčina' },
+  { code: 'lv', label: 'Lets', native: 'Latviešu' },
+  { code: 'en', label: 'Engels', native: 'English' },
+  { code: 'hu', label: 'Hongaars', native: 'Magyar' },
+  { code: 'ro', label: 'Roemeens', native: 'Română' },
+  { code: 'uk', label: 'Oekraïens', native: 'Українська' },
+  { code: 'de', label: 'Duits', native: 'Deutsch' },
+  { code: 'es', label: 'Spaans', native: 'Español' },
+];
+
 const DEFAULT_FORM = {
   onderwerp: '',
   categorie: 'Uitzendwerk',
@@ -81,24 +95,47 @@ export default function BlogAanmaken() {
 
   const effectiveDraftId = draftId || draftIdParam;
 
-  // Poll for background criticus + image
+  // Determine which blog translations are still missing (only relevant after publish).
+  const isPublished = loadedDraft?.status === 'published';
+  const missingBlogTranslations = isPublished
+    ? BLOG_TRANSLATION_LANGS.filter((lang) => {
+        const entry = loadedDraft?.translations?.[lang.code];
+        return !entry || !(entry.blog_titel || entry.blog_html);
+      }).map((l) => l.code)
+    : [];
+
+  const completedBlogTranslations = isPublished
+    ? BLOG_TRANSLATION_LANGS.filter((lang) => {
+        const entry = loadedDraft?.translations?.[lang.code];
+        return entry && (entry.blog_titel || entry.blog_html);
+      }).map((l) => l.code)
+    : [];
+
+  // Poll for background criticus + image + blog translations
   const pollCountRef = useRef(0);
   useEffect(() => {
     const needsCriticus = criticusPassed === null;
     const needsImage = !imagePath;
-    if ((!needsCriticus && !needsImage) || !effectiveDraftId || isGenerating) {
+    const needsTranslations = missingBlogTranslations.length > 0;
+    if ((!needsCriticus && !needsImage && !needsTranslations) || !effectiveDraftId || isGenerating) {
       pollCountRef.current = 0;
       return;
     }
     const interval = setInterval(() => {
       pollCountRef.current += 1;
-      if (pollCountRef.current > 8) { clearInterval(interval); return; }
+      // Cap at ~5 minutes for translations (100 * 3s).
+      if (pollCountRef.current > 100) { clearInterval(interval); return; }
       if (!draftIdParam) return;
       existingDraftQuery.refetch();
-    }, 2000);
+    }, 3000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [criticusPassed, imagePath, effectiveDraftId, isGenerating, draftIdParam]);
+  }, [criticusPassed, imagePath, effectiveDraftId, isGenerating, draftIdParam, missingBlogTranslations.length]);
+
+  function refreshBlogTranslationsNow() {
+    pollCountRef.current = 0;
+    existingDraftQuery.refetch();
+  }
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -269,6 +306,40 @@ export default function BlogAanmaken() {
       {loadedDraft?.status === 'published' && (
         <div className="criticus-result pass">
           <strong>Je bewerkt een gepubliceerd blogartikel.</strong> Wijzigingen worden opgeslagen zonder de status te wijzigen.
+        </div>
+      )}
+
+      {isPublished && (
+        <div className="blog-translations-status">
+          <h3 className="blog-translations-heading">
+            Website-vertalingen
+            <span className="blog-translations-count">
+              {completedBlogTranslations.length}/{BLOG_TRANSLATION_LANGS.length} klaar
+            </span>
+          </h3>
+          <div className="blog-translations-grid">
+            {BLOG_TRANSLATION_LANGS.map((lang) => {
+              const done = completedBlogTranslations.includes(lang.code);
+              return (
+                <span
+                  key={lang.code}
+                  className={`blog-translation-chip ${done ? 'done' : 'pending'}`}
+                  title={done ? `${lang.label} vertaling klaar` : `${lang.label} vertaling wordt gegenereerd...`}
+                >
+                  {done ? '✓' : '…'} {lang.native}
+                </span>
+              );
+            })}
+          </div>
+          {missingBlogTranslations.length > 0 && (
+            <button
+              type="button"
+              className="blog-translations-refresh"
+              onClick={refreshBlogTranslationsNow}
+            >
+              ↻ Ververs vertalingen
+            </button>
+          )}
         </div>
       )}
 

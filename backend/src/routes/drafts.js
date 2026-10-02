@@ -9,6 +9,7 @@ const { notifyAfterCommit } = require('../services/notifications');
 const { validateVacatureForApproval } = require('../services/vacatureValidation');
 const unsplash = require('../services/unsplash');
 const { triggerBlogTranslations } = require('../services/blogTranslations');
+const { triggerVacatureTranslations } = require('../services/vacatureTranslations');
 const { logActivity } = require('../services/activityLog');
 const { enrichFormDataWithUrls, UrlFetchError } = require('../services/url-fetcher');
 
@@ -1046,6 +1047,11 @@ router.post('/bulk-approve', async (req, res, next) => {
       }
       for (const id of vacatureIds) {
         succeeded.push({ id, status: 'actief' });
+
+        // Auto-translate to all website languages (fire-and-forget).
+        triggerVacatureTranslations(id).catch((err) =>
+          console.error('[vacature-translate] bulk achtergrond-fout:', err.message || err)
+        );
       }
     }
 
@@ -1408,6 +1414,11 @@ router.post('/:id/approve', async (req, res, next) => {
     // draft.published so the dashboard "Gepubliceerd" counter is accurate.
     if (currentDraft.type === 'vacature') {
       logActivity(req.user.id, req.user.name, 'draft.published', 'draft', draftId, { title: getDraftTitle(data.form_data), channels: ['xml-feed'] });
+
+      // Auto-translate to all website languages (fire-and-forget).
+      triggerVacatureTranslations(draftId).catch((err) =>
+        console.error('[vacature-translate] achtergrond-fout na activering:', err.message || err)
+      );
     }
 
     // Notify the creator (post-commit). Suppress if the owner is the creator
