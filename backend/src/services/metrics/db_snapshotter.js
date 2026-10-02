@@ -47,7 +47,6 @@ async function run({ from, to } = {}) {
     const { count: marketingPublished, error: e3 } = await supabase
       .from('publications')
       .select('*', { count: 'exact', head: true })
-      .eq('via', 'buffer')
       .eq('status', 'success');
     if (e3) throw e3;
 

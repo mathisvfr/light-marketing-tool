@@ -64,7 +64,6 @@ async function run() {
   const { data: posts, error } = await supabase
     .from('publications')
     .select('id, external_id, channel, metrics_updated_at')
-    .eq('via', 'buffer')
     .eq('status', 'success')
     .not('external_id', 'is', null)
     .gte('published_at', thirtyDaysAgo.toISOString())
