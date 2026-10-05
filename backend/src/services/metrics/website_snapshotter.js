@@ -1,10 +1,10 @@
-// Website snapshotter — pulls daily stats from the self-hosted Umami instance
+// Website snapshotter — pulls stats from the self-hosted Umami instance
 // and writes them to metric_snapshot. Runs nightly alongside the other
 // snapshotters. No-ops gracefully when Umami isn't configured yet.
 //
 // Required env vars (all optional — snapshotter skips when missing):
 //   UMAMI_API_URL       — e.g. http://umami:3000 (internal Docker URL)
-//   UMAMI_API_TOKEN     — Bearer token (generated in Umami → Settings → API)
+//   UMAMI_API_TOKEN     — Bearer token (generated in Umami → Settings → API keys)
 //   UMAMI_WEBSITE_ID    — UUID of the tracked website in Umami
 
 const { upsertMetric } = require('./upsert');
@@ -37,27 +37,24 @@ async function run() {
   }
 
   const now = new Date();
-  // Snapshot yesterday's full-day stats (complete data, no partial day)
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const startAt = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate()).getTime();
-  const endAt = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-
+  // Pull last 24 hours so data is always fresh (not just yesterday)
+  const startAt = now.getTime() - 24 * 60 * 60 * 1000;
+  const endAt = now.getTime();
   const range = `startAt=${startAt}&endAt=${endAt}`;
 
   try {
-    // 1. Overall stats: pageviews, visitors, bounces, totaltime
+    // 1. Overall stats — Umami v3.4 returns flat values (not { value: N })
     const stats = await umamiGet(`/stats?${range}`);
     await upsertMetric({
       metric_key: 'website.stats.daily',
       source: 'website',
       value_json: {
-        pageviews: stats.pageviews?.value ?? 0,
-        visitors: stats.visitors?.value ?? 0,
-        bounces: stats.bounces?.value ?? 0,
-        totaltime: stats.totaltime?.value ?? 0,
+        pageviews: stats.pageviews ?? 0,
+        visitors: stats.visitors ?? 0,
+        bounces: stats.bounces ?? 0,
+        totaltime: stats.totaltime ?? 0,
       },
-      captured_at: yesterday,
+      captured_at: now,
     });
     results.written++;
   } catch (err) {
@@ -65,13 +62,13 @@ async function run() {
   }
 
   try {
-    // 2. Top pages
-    const pages = await umamiGet(`/metrics?type=url&${range}&limit=20`);
+    // 2. Top pages — Umami v3.4 changed type=url to type=path
+    const pages = await umamiGet(`/metrics?type=path&${range}&limit=20`);
     await upsertMetric({
       metric_key: 'website.pages.top',
       source: 'website',
       value_json: (pages || []).map((p) => ({ url: p.x, views: p.y })),
-      captured_at: yesterday,
+      captured_at: now,
     });
     results.written++;
   } catch (err) {
@@ -85,7 +82,7 @@ async function run() {
       metric_key: 'website.referrers.top',
       source: 'website',
       value_json: (referrers || []).map((r) => ({ referrer: r.x, visits: r.y })),
-      captured_at: yesterday,
+      captured_at: now,
     });
     results.written++;
   } catch (err) {
@@ -93,13 +90,13 @@ async function run() {
   }
 
   try {
-    // 4. Devices / browsers (useful for Sandra's reader)
+    // 4. Devices
     const devices = await umamiGet(`/metrics?type=device&${range}&limit=10`);
     await upsertMetric({
       metric_key: 'website.devices',
       source: 'website',
       value_json: (devices || []).map((d) => ({ device: d.x, count: d.y })),
-      captured_at: yesterday,
+      captured_at: now,
     });
     results.written++;
   } catch (err) {
