@@ -103,6 +103,29 @@ async function run() {
     results.errors.push(`devices: ${err.message}`);
   }
 
+  try {
+    // 5. Weekly pageviews (last 8 weeks) for trend chart
+    const eightWeeksAgo = now.getTime() - 8 * 7 * 24 * 60 * 60 * 1000;
+    const weeklyData = await umamiGet(`/pageviews?unit=week&startAt=${eightWeeksAgo}&endAt=${endAt}`);
+    // Umami returns { pageviews: [{ x: "date", y: N }], visitors: [{ x, y }] }
+    const pvArr = weeklyData?.pageviews || [];
+    const visArr = weeklyData?.visitors || [];
+    const weekly = pvArr.map((pv, i) => ({
+      date: pv.x,
+      pageviews: pv.y || 0,
+      visitors: visArr[i]?.y || 0,
+    }));
+    await upsertMetric({
+      metric_key: 'website.pageviews.weekly',
+      source: 'website',
+      value_json: weekly,
+      captured_at: now,
+    });
+    results.written++;
+  } catch (err) {
+    results.errors.push(`weekly: ${err.message}`);
+  }
+
   return results;
 }
 

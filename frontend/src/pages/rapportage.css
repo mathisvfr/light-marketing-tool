@@ -171,9 +171,70 @@
   background: #f8fafc;
 }
 
+/* #1 Trend badges */
+.rapportage-trend {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.rapportage-trend-up {
+  color: #16a34a;
+}
+
+.rapportage-trend-down {
+  color: #dc2626;
+}
+
+/* #2 Compact engagement row */
+.rapportage-engagement-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  padding: 0.25rem 0;
+}
+
+.rapportage-engagement-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 70px;
+  flex: 1;
+}
+
+.rapportage-engagement-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text, #1e293b);
+  line-height: 1.2;
+}
+
+.rapportage-engagement-label {
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #64748b);
+  margin-top: 0.15rem;
+}
+
+/* #4 Per-section updated timestamp */
+.rapportage-updated {
+  font-style: italic;
+  opacity: 0.8;
+}
+
 @media (max-width: 980px) {
   .rapportage-tiles,
   .rapportage-charts {
     grid-template-columns: 1fr;
+  }
+
+  .rapportage-engagement-row {
+    gap: 0.75rem;
+  }
+
+  .rapportage-engagement-stat {
+    min-width: 60px;
   }
 }

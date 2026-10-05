@@ -8,9 +8,27 @@ const router = express.Router();
 
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || '';
 
-// GET /api/rapportage -- main data endpoint. Any authenticated user.
-// Reads exclusively from metric_snapshot. Structured as 3 sections:
-// vacatures, marketing, website.
+function normalizeMetrics(pub) {
+  if (!pub.metrics || typeof pub.metrics !== 'object') return null;
+  const m = {};
+  for (const [k, v] of Object.entries(pub.metrics)) {
+    m[k.toLowerCase()] = Number(v) || 0;
+  }
+  return {
+    likes: m.reactions || m.likes || 0,
+    comments: m.comments || 0,
+    reach: m.impressions || m.reach || 0,
+    clicks: m.clicks || 0,
+    shares: m.shares || m.reposts || 0,
+  };
+}
+
+function trendPct(current, previous) {
+  if (!previous || previous === 0) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
+// GET /api/rapportage
 router.get('/', async (req, res, next) => {
   try {
     const { range } = req.query;
@@ -26,6 +44,11 @@ router.get('/', async (req, res, next) => {
     if (req.query.from) {
       from = new Date(req.query.from);
     }
+
+    // Previous period (same length, for trend calculation)
+    const rangeDuration = to.getTime() - from.getTime();
+    const prevFrom = new Date(from.getTime() - rangeDuration);
+    const prevTo = from;
 
     // Check freshness -- refresh on demand if stale
     const { data: latestDb } = await supabase
@@ -46,10 +69,8 @@ router.get('/', async (req, res, next) => {
       .from('metric_snapshot')
       .select('metric_key, dimensions, value, value_json, captured_at, source, bucket_date')
       .order('captured_at', { ascending: false });
-
     if (error) throw error;
 
-    // Group by metric_key, take latest per key+dimensions
     const latest = {};
     for (const row of snapshots || []) {
       const dimKey = JSON.stringify(row.dimensions || {});
@@ -74,80 +95,166 @@ router.get('/', async (req, res, next) => {
       return entries;
     };
 
-    // Sum up website application counts from metric_snapshot
-    const websiteAppEntries = getWithDimensions('website.applications');
-    const sollicitatiesWebsite = websiteAppEntries.reduce((sum, e) => sum + (e.value || 0), 0);
-
-    // --- Section 1: Vacatures ---
-    const vacatures = {
-      actief: getValue('drafts.actief.count') ?? 0,
-      nieuwDezeWeek: getValue('drafts.vacature.new_this_week') ?? 0,
-      sollicitatiesJobit: getValue('jobit.applications.count') ?? 0,
-      sollicitatiesWebsite,
-    };
-
-    // --- Section 2: Marketing ---
-    // Read engagement live from publications.metrics (updated every 15 min by
-    // bufferSync) instead of from the nightly snapshot — gives near-real-time data.
-    const { data: pubRows, error: pubErr } = await supabase
+    // --- Fetch publications with date filter (#6) ---
+    const { data: pubRowsCurrent, error: pubErr } = await supabase
       .from('publications')
-      .select('channel, status, metrics')
-      .eq('status', 'success');
+      .select('channel, status, metrics, published_at, metrics_updated_at')
+      .eq('status', 'success')
+      .gte('published_at', from.toISOString());
     if (pubErr) throw pubErr;
 
-    const liveEngagement = { likes: 0, comments: 0, reach: 0, clicks: 0, shares: 0 };
-    for (const pub of pubRows || []) {
-      if (pub.metrics && typeof pub.metrics === 'object') {
-        // Buffer metric names are capitalized: Reactions, Comments, Impressions, Reach, Shares
-        const m = {};
-        for (const [k, v] of Object.entries(pub.metrics)) {
-          m[k.toLowerCase()] = Number(v) || 0;
-        }
-        liveEngagement.likes += m.reactions || m.likes || 0;
-        liveEngagement.comments += m.comments || 0;
-        liveEngagement.reach += m.impressions || m.reach || 0;
-        liveEngagement.clicks += m.clicks || 0;
-        liveEngagement.shares += m.shares || m.reposts || 0;
+    // Previous period publications for trends
+    const { data: pubRowsPrev } = await supabase
+      .from('publications')
+      .select('channel, status, metrics')
+      .eq('status', 'success')
+      .gte('published_at', prevFrom.toISOString())
+      .lt('published_at', prevTo.toISOString());
+
+    // --- Aggregate engagement (current + previous + per-channel) ---
+    function aggregateEngagement(rows) {
+      const total = { likes: 0, comments: 0, reach: 0, clicks: 0, shares: 0 };
+      const byChannel = {};
+      for (const pub of rows || []) {
+        const m = normalizeMetrics(pub);
+        if (!m) continue;
+        total.likes += m.likes;
+        total.comments += m.comments;
+        total.reach += m.reach;
+        total.clicks += m.clicks;
+        total.shares += m.shares;
+        const ch = pub.channel || 'unknown';
+        if (!byChannel[ch]) byChannel[ch] = { likes: 0, comments: 0, reach: 0, clicks: 0, shares: 0 };
+        byChannel[ch].likes += m.likes;
+        byChannel[ch].comments += m.comments;
+        byChannel[ch].reach += m.reach;
+        byChannel[ch].clicks += m.clicks;
+        byChannel[ch].shares += m.shares;
+      }
+      return { total, byChannel };
+    }
+
+    const current = aggregateEngagement(pubRowsCurrent);
+    const prev = aggregateEngagement(pubRowsPrev || []);
+
+    // Engagement trends
+    const engagementTrend = {};
+    for (const key of Object.keys(current.total)) {
+      engagementTrend[key] = trendPct(current.total[key], prev.total[key]);
+    }
+
+    // Channel breakdown from live data (#3 -- filtered to date range)
+    const channelBreakdown = {};
+    for (const pub of pubRowsCurrent || []) {
+      const ch = pub.channel || 'unknown';
+      if (!channelBreakdown[ch]) channelBreakdown[ch] = { success: 0, pending: 0, scheduled: 0, failed: 0 };
+      channelBreakdown[ch].success++;
+    }
+    // Also count non-success in range
+    const { data: allPubsInRange } = await supabase
+      .from('publications')
+      .select('channel, status')
+      .gte('published_at', from.toISOString());
+    for (const pub of allPubsInRange || []) {
+      const ch = pub.channel || 'unknown';
+      if (!channelBreakdown[ch]) channelBreakdown[ch] = { success: 0, pending: 0, scheduled: 0, failed: 0 };
+      if (pub.status !== 'success' && channelBreakdown[ch][pub.status] !== undefined) {
+        channelBreakdown[ch][pub.status]++;
       }
     }
 
-    // Fall back to snapshot if no live metrics exist yet
-    const hasLiveMetrics = (pubRows || []).some((p) => p.metrics);
-    const engagement = hasLiveMetrics
-      ? liveEngagement
-      : (getValue('buffer.engagement.totals') || { likes: 0, comments: 0, reach: 0, clicks: 0, shares: 0 });
+    // Per-channel engagement (#7)
+    const engagementByChannel = Object.entries(current.byChannel).map(([channel, metrics]) => ({
+      channel,
+      ...metrics,
+    }));
 
-    const marketing = {
-      postsGepubliceerd: (pubRows || []).length,
-      engagement,
-      channelBreakdown: getWithDimensions('publications.by_channel').map((entry) => ({
-        channel: entry.dimensions?.channel || 'unknown',
-        ...entry.value_json,
-      })),
-      contentPerWeek: getValue('content.published_per_week') || {},
-    };
+    // --- Website application counts ---
+    const websiteAppEntries = getWithDimensions('website.applications');
+    const sollicitatiesWebsite = websiteAppEntries.reduce((sum, e) => sum + (e.value || 0), 0);
 
-    // --- Section 3: Website ---
-    const website = {
-      stats: getValue('website.stats.daily') || { pageviews: 0, visitors: 0, bounces: 0, totaltime: 0 },
-      topPages: getValue('website.pages.top') || [],
-      referrers: getValue('website.referrers.top') || [],
-    };
+    // --- Vacature page views from Umami (#5) ---
+    const allTopPages = getValue('website.pages.top') || [];
+    const topVacaturePages = allTopPages
+      .filter((p) => p.url && p.url.startsWith('/vacatures/') && p.url !== '/vacatures')
+      .slice(0, 10);
 
-    // --- Charts (cross-section) ---
-    const charts = {
-      statusDistribution: getValue('drafts.status_distribution') || {},
-    };
+    // --- Trend calculations for DB metrics (#1) ---
+    // Compare latest snapshot vs second-latest for the same key
+    function getSnapshotTrend(key) {
+      const rows = (snapshots || []).filter((r) => r.metric_key === key && JSON.stringify(r.dimensions || {}) === '{}');
+      if (rows.length < 2) return 0;
+      const curr = rows[0].value ?? 0;
+      const prev2 = rows[1].value ?? 0;
+      return trendPct(curr, prev2);
+    }
 
-    const oldestDbSnapshot = latestDb?.captured_at || null;
+    const actiefCount = getValue('drafts.actief.count') ?? 0;
+    const nieuwDezeWeek = getValue('drafts.vacature.new_this_week') ?? 0;
+
+    // --- Website stats + trend (#1) ---
+    const websiteStats = getValue('website.stats.daily') || { pageviews: 0, visitors: 0, bounces: 0, totaltime: 0 };
+    // For website trends, fetch Umami comparison if available
+    // The snapshotter stores daily stats; compare today vs yesterday from snapshots
+    const websiteRows = (snapshots || []).filter((r) => r.metric_key === 'website.stats.daily');
+    let websiteStatsTrend = { pageviews: 0, visitors: 0, bounces: 0 };
+    if (websiteRows.length >= 2) {
+      const currWs = websiteRows[0].value_json || {};
+      const prevWs = websiteRows[1].value_json || {};
+      websiteStatsTrend = {
+        pageviews: trendPct(currWs.pageviews || 0, prevWs.pageviews || 0),
+        visitors: trendPct(currWs.visitors || 0, prevWs.visitors || 0),
+        bounces: trendPct(currWs.bounces || 0, prevWs.bounces || 0),
+      };
+    }
+
+    // --- Per-section timestamps (#4) ---
+    const latestDbCaptured = latestDb?.captured_at || null;
+    const latestMarketingUpdated = (pubRowsCurrent || [])
+      .map((p) => p.metrics_updated_at)
+      .filter(Boolean)
+      .sort()
+      .pop() || null;
+    const latestWebsite = websiteRows.length > 0 ? websiteRows[0].captured_at : null;
+
+    // --- Weekly pageviews (#8) ---
+    const pageviewsWeekly = getValue('website.pageviews.weekly') || [];
 
     return res.json({
-      vacatures,
-      marketing,
-      website,
-      charts,
+      vacatures: {
+        actief: actiefCount,
+        actief_trend: getSnapshotTrend('drafts.actief.count'),
+        nieuwDezeWeek,
+        nieuwDezeWeek_trend: getSnapshotTrend('drafts.vacature.new_this_week'),
+        sollicitatiesJobit: getValue('jobit.applications.count') ?? 0,
+        sollicitatiesWebsite,
+        topVacaturePages,
+      },
+      marketing: {
+        postsGepubliceerd: (pubRowsCurrent || []).length,
+        postsGepubliceerd_trend: trendPct((pubRowsCurrent || []).length, (pubRowsPrev || []).length),
+        engagement: current.total,
+        engagement_trend: engagementTrend,
+        engagementByChannel,
+        channelBreakdown: Object.entries(channelBreakdown).map(([channel, counts]) => ({
+          channel,
+          ...counts,
+        })),
+        contentPerWeek: getValue('content.published_per_week') || {},
+      },
+      website: {
+        stats: websiteStats,
+        stats_trend: websiteStatsTrend,
+        topPages: allTopPages,
+        referrers: getValue('website.referrers.top') || [],
+        pageviewsWeekly,
+      },
       meta: {
-        lastDbSnapshot: oldestDbSnapshot,
+        lastUpdated: {
+          vacatures: latestDbCaptured,
+          marketing: latestMarketingUpdated,
+          website: latestWebsite,
+        },
         range: { from: from.toISOString(), to: to.toISOString() },
       },
     });
@@ -156,12 +263,9 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// POST /api/rapportage/application -- internal endpoint for the website to
-// report a successful application. Validated via shared secret (INTERNAL_API_SECRET).
-// Fire-and-forget from the website; never blocks the applicant's response.
+// POST /api/rapportage/application
 router.post('/application', async (req, res, next) => {
   try {
-    // Validate shared secret if configured
     if (INTERNAL_API_SECRET) {
       const provided = req.headers['x-internal-secret'] || '';
       if (provided !== INTERNAL_API_SECRET) {
@@ -182,9 +286,6 @@ router.post('/application', async (req, res, next) => {
       captured_at: new Date(),
     });
 
-    // For cumulative counting: increment instead of upsert.
-    // Since upsertMetric does upsert-per-day, we need to add to existing value.
-    // Read current value for today and increment.
     const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Amsterdam' });
     const { data: existing } = await supabase
       .from('metric_snapshot')
@@ -207,7 +308,7 @@ router.post('/application', async (req, res, next) => {
   }
 });
 
-// POST /api/rapportage/refresh -- owner-only force-refresh of DB snapshots
+// POST /api/rapportage/refresh
 router.post('/refresh', requireRole(['owner', 'manager']), async (req, res, next) => {
   try {
     const result = await dbSnapshotter.run();
