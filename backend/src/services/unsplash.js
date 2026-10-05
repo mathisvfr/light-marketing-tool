@@ -1,6 +1,11 @@
 const APP_NAME = 'light_marketing_tool';
 const BASE_URL = 'https://api.unsplash.com';
 
+// In-memory cache: same query → same results for 15 minutes.
+// Prevents the 50 req/hour demo limit from being burned by repeated searches.
+const cache = new Map();
+const CACHE_TTL = 15 * 60 * 1000;
+
 function isAvailable() {
   return Boolean(process.env.UNSPLASH_ACCESS_KEY);
 }
@@ -15,6 +20,12 @@ function headers() {
 async function search(query, { orientation, page = 1, perPage = 12 } = {}) {
   if (!isAvailable()) return { available: false, results: [], total: 0, total_pages: 0 };
 
+  const cacheKey = `${query.toLowerCase().trim()}|${orientation || ''}|${page}|${perPage}`;
+  const cached = cache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < CACHE_TTL) {
+    return cached.data;
+  }
+
   const params = new URLSearchParams({
     query,
     page: String(page),
@@ -28,7 +39,6 @@ async function search(query, { orientation, page = 1, perPage = 12 } = {}) {
   });
 
   if (response.status === 403) {
-    // Rate limit exceeded — return empty results instead of crashing.
     return { available: true, results: [], total: 0, total_pages: 0, rateLimited: true };
   }
 
@@ -38,12 +48,24 @@ async function search(query, { orientation, page = 1, perPage = 12 } = {}) {
   }
 
   const data = await response.json();
-  return {
+  const result = {
     available: true,
     results: (data.results || []).map(formatPhoto),
     total: data.total || 0,
     total_pages: data.total_pages || 0,
   };
+
+  cache.set(cacheKey, { data: result, ts: Date.now() });
+
+  // Evict old entries to avoid unbounded growth
+  if (cache.size > 200) {
+    const now = Date.now();
+    for (const [k, v] of cache) {
+      if (now - v.ts > CACHE_TTL) cache.delete(k);
+    }
+  }
+
+  return result;
 }
 
 function formatPhoto(photo) {

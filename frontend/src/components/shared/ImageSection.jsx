@@ -130,7 +130,7 @@ function ImagePickerModal({ onSelect, onClose, suggestions, searchTerms, disable
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       if (value.trim()) doSearch(value, 1);
-    }, 400);
+    }, 800);
   }
 
   async function handleUnsplashSelect(photo) {
