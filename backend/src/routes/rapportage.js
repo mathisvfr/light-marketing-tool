@@ -95,21 +95,20 @@ router.get('/', async (req, res, next) => {
       return entries;
     };
 
-    // --- Fetch publications with date filter (#6) ---
-    const { data: pubRowsCurrent, error: pubErr } = await supabase
+    // --- Fetch ALL successful publications (engagement totals are cumulative) ---
+    const { data: pubRowsAll, error: pubErr } = await supabase
       .from('publications')
       .select('channel, status, metrics, published_at, metrics_updated_at')
-      .eq('status', 'success')
-      .gte('published_at', from.toISOString());
+      .eq('status', 'success');
     if (pubErr) throw pubErr;
 
-    // Previous period publications for trends
-    const { data: pubRowsPrev } = await supabase
-      .from('publications')
-      .select('channel, status, metrics')
-      .eq('status', 'success')
-      .gte('published_at', prevFrom.toISOString())
-      .lt('published_at', prevTo.toISOString());
+    // Filter to date range for charts + trends
+    const pubRowsCurrent = (pubRowsAll || []).filter(
+      (p) => p.published_at && new Date(p.published_at) >= from
+    );
+    const pubRowsPrev = (pubRowsAll || []).filter(
+      (p) => p.published_at && new Date(p.published_at) >= prevFrom && new Date(p.published_at) < prevTo
+    );
 
     // --- Aggregate engagement (current + previous + per-channel) ---
     function aggregateEngagement(rows) {
@@ -134,8 +133,11 @@ router.get('/', async (req, res, next) => {
       return { total, byChannel };
     }
 
+    // Cumulative totals (all-time) for the engagement card
+    const allTime = aggregateEngagement(pubRowsAll);
+    // Current period + previous period for trends
     const current = aggregateEngagement(pubRowsCurrent);
-    const prev = aggregateEngagement(pubRowsPrev || []);
+    const prev = aggregateEngagement(pubRowsPrev);
 
     // Engagement trends
     const engagementTrend = {};
@@ -164,7 +166,8 @@ router.get('/', async (req, res, next) => {
     }
 
     // Per-channel engagement (#7)
-    const engagementByChannel = Object.entries(current.byChannel).map(([channel, metrics]) => ({
+    // Per-channel: all-time totals (#7)
+    const engagementByChannel = Object.entries(allTime.byChannel).map(([channel, metrics]) => ({
       channel,
       ...metrics,
     }));
@@ -210,7 +213,7 @@ router.get('/', async (req, res, next) => {
 
     // --- Per-section timestamps (#4) ---
     const latestDbCaptured = latestDb?.captured_at || null;
-    const latestMarketingUpdated = (pubRowsCurrent || [])
+    const latestMarketingUpdated = (pubRowsAll || [])
       .map((p) => p.metrics_updated_at)
       .filter(Boolean)
       .sort()
@@ -231,9 +234,9 @@ router.get('/', async (req, res, next) => {
         topVacaturePages,
       },
       marketing: {
-        postsGepubliceerd: (pubRowsCurrent || []).length,
+        postsGepubliceerd: (pubRowsAll || []).length,
         postsGepubliceerd_trend: trendPct((pubRowsCurrent || []).length, (pubRowsPrev || []).length),
-        engagement: current.total,
+        engagement: allTime.total,
         engagement_trend: engagementTrend,
         engagementByChannel,
         channelBreakdown: Object.entries(channelBreakdown).map(([channel, counts]) => ({
