@@ -27,6 +27,11 @@ async function search(query, { orientation, page = 1, perPage = 12 } = {}) {
     headers: headers(),
   });
 
+  if (response.status === 403) {
+    // Rate limit exceeded — return empty results instead of crashing.
+    return { available: true, results: [], total: 0, total_pages: 0, rateLimited: true };
+  }
+
   if (!response.ok) {
     const body = await response.text().catch(() => '');
     throw new Error(`Unsplash zoeken mislukt (${response.status}): ${body.slice(0, 200)}`);

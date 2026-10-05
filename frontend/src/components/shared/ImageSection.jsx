@@ -107,6 +107,10 @@ function ImagePickerModal({ onSelect, onClose, suggestions, searchTerms, disable
     try {
       const params = new URLSearchParams({ query: query.trim(), page: String(page), orientation: 'landscape' });
       const data = await api(`/unsplash/search?${params.toString()}`);
+      if (data.rateLimited) {
+        setLocalError(data.error || 'Unsplash limiet bereikt. Probeer het later opnieuw.');
+        return;
+      }
       if (page === 1) {
         setUnsplashResults(data.results || []);
       } else {

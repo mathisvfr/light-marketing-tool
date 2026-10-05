@@ -25,6 +25,17 @@ router.get('/search', async (req, res, next) => {
       return res.json({ available: false, results: [], total: 0, total_pages: 0 });
     }
 
+    if (result.rateLimited) {
+      return res.json({
+        available: true,
+        results: [],
+        total: 0,
+        total_pages: 0,
+        rateLimited: true,
+        error: 'Unsplash limiet bereikt. Probeer het over een uur opnieuw, of kies een foto uit de bibliotheek.',
+      });
+    }
+
     return res.json(result);
   } catch (err) {
     return next(err);
