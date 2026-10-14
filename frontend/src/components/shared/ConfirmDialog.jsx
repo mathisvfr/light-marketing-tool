@@ -26,6 +26,7 @@ export default function ConfirmDialog({
   onOpenChange,
   title,
   message,
+  children,
   confirmLabel = 'Bevestigen',
   cancelLabel = 'Annuleren',
   variant = 'normal',
@@ -60,6 +61,7 @@ export default function ConfirmDialog({
       size="sm"
     >
       <p className="confirm-dialog-message">{message}</p>
+      {children}
       <ModalFooter>
         {/* Focus start op cancel — destructive-veilig per missing-states matrix.
             autoFocus zet keyboard-focus na open. */}

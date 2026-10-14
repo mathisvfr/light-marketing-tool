@@ -48,6 +48,116 @@ function formatChannels(channels) {
   return channels.join(', ');
 }
 
+/**
+ * Build a pre-publish checklist for a vacature draft.
+ * Each item has: label, passed (bool), detail (string).
+ * Returns null for non-vacature drafts.
+ */
+function buildVacatureChecklist(draft) {
+  if (draft.type !== 'vacature') return null;
+
+  const fd = draft.form_data || {};
+  const items = [];
+
+  // Content
+  const hasDescription = Boolean(draft.omschrijving_nl || fd.omschrijving_nl);
+  items.push({
+    label: 'Nederlandse omschrijving',
+    passed: hasDescription,
+    detail: hasDescription ? 'Aanwezig' : 'Ontbreekt — verplicht voor alle platforms',
+  });
+
+  // Criticus
+  const criticusDone = draft.criticus_passed !== null && draft.criticus_passed !== undefined;
+  items.push({
+    label: 'Criticus-check',
+    passed: draft.criticus_passed === true,
+    detail: !criticusDone ? 'Nog niet uitgevoerd' : draft.criticus_passed ? 'Akkoord' : (draft.criticus_notes || 'Aandacht nodig'),
+  });
+
+  // Contract + dates
+  const contract = String(fd.contract || draft.contract || '').trim();
+  items.push({
+    label: 'Contractvorm',
+    passed: Boolean(contract),
+    detail: contract || 'Ontbreekt — verplicht voor Werk.nl, Jobsonline',
+  });
+
+  const isTemp = contract.toLowerCase() !== 'onbepaalde tijd';
+  if (isTemp) {
+    items.push({
+      label: 'Startdatum',
+      passed: Boolean(fd.startdatum),
+      detail: fd.startdatum || 'Ontbreekt — Werk.nl en Jobsonline wijzen vacatures zonder startdatum af',
+    });
+  }
+  if (contract.toLowerCase() === 'bepaalde tijd') {
+    items.push({
+      label: 'Einddatum',
+      passed: Boolean(fd.einddatum),
+      detail: fd.einddatum || 'Ontbreekt — Werk.nl vereist einddatum bij bepaalde tijd',
+    });
+  }
+
+  // Structured fields
+  items.push({
+    label: 'Dienstverband',
+    passed: Boolean(fd.dienstverband),
+    detail: fd.dienstverband || 'Ontbreekt',
+  });
+
+  items.push({
+    label: 'Uren per week',
+    passed: Boolean(fd.urenPerWeek || fd.uren || draft.uren),
+    detail: fd.urenPerWeek || fd.uren || draft.uren || 'Ontbreekt',
+  });
+
+  items.push({
+    label: 'Functiecategorie',
+    passed: Boolean(fd.functiecategorie || fd.functie),
+    detail: fd.functiecategorie || fd.functie || 'Ontbreekt — nodig voor matching op vacatureboards',
+  });
+
+  items.push({
+    label: 'Opleidingsniveau',
+    passed: Boolean(fd.opleiding),
+    detail: fd.opleiding || 'Niet ingesteld (default: Geen vereiste)',
+  });
+
+  items.push({
+    label: 'E-mail sollicitaties',
+    passed: Boolean(fd.email),
+    detail: fd.email || 'Niet ingesteld (default: vacature@lightpersoneelsdiensten.nl)',
+  });
+
+  return items;
+}
+
+function PrePublishChecklist({ items }) {
+  if (!items || items.length === 0) return null;
+
+  const failCount = items.filter((i) => !i.passed).length;
+
+  return (
+    <div className="prepublish-checklist">
+      <p className="prepublish-summary">
+        {failCount === 0
+          ? 'Alle platformvereisten zijn ingevuld.'
+          : `${failCount} ${failCount === 1 ? 'veld vereist' : 'velden vereisen'} aandacht:`}
+      </p>
+      <ul className="prepublish-items">
+        {items.map((item) => (
+          <li key={item.label} className={item.passed ? 'prepublish-pass' : 'prepublish-fail'}>
+            <span className="prepublish-icon">{item.passed ? '✓' : '✗'}</span>
+            <span className="prepublish-label">{item.label}</span>
+            <span className="prepublish-detail">{item.detail}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function ContentWachtrij() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -299,6 +409,7 @@ export default function ContentWachtrij() {
   function handleApprove(draft) {
     setError('');
     const isMarketingOrBlog = draft.type === 'marketing-post' || draft.type === 'blog';
+    const checklist = buildVacatureChecklist(draft);
     setConfirm({
       title: isMarketingOrBlog ? 'Goedkeuren en publiceren' : 'Goedkeuren',
       message: isMarketingOrBlog
@@ -306,6 +417,7 @@ export default function ContentWachtrij() {
         : `Weet je zeker dat je "${draft.title || 'dit concept'}" wilt goedkeuren?${draft.type === 'vacature' ? ' De vacature wordt direct actief in de XML feed.' : ''}`,
       confirmLabel: isMarketingOrBlog ? 'Goedkeuren en publiceren' : 'Goedkeuren',
       variant: 'normal',
+      checklist,
       onConfirm: async () => {
         try {
           await approveMutation.mutateAsync(draft.id);
@@ -682,7 +794,9 @@ export default function ContentWachtrij() {
         confirmLabel={confirm?.confirmLabel}
         variant={confirm?.variant}
         onConfirm={confirm?.onConfirm}
-      />
+      >
+        {confirm?.checklist ? <PrePublishChecklist items={confirm.checklist} /> : null}
+      </ConfirmDialog>
     </div>
   );
 }
