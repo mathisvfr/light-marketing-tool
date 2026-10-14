@@ -69,12 +69,22 @@ function mapChannel(ch) {
 }
 
 /**
- * Filter out channels that are disabled or no longer relevant.
- * Disabled channels clutter the UI — they mean the platform was turned off
- * in Multiposter and won't process the vacancy.
+ * Filter out channels that are disabled or stale-pending.
+ * - disabled: platform was turned off in Multiposter, won't process.
+ * - stale pending: queued but never processed and no scheduled date —
+ *   these are dead channels from platforms that were removed.
  */
+const STALE_PENDING_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+
 function isRelevantChannel(ch) {
-  return ch.status !== 'disabled';
+  if (ch.status === 'disabled') return false;
+
+  // Pending channel with no publish date and no scheduled date = dead
+  if (ch.status === 'pending' && !ch.publishedAt && !ch.scheduledAt) {
+    return false;
+  }
+
+  return true;
 }
 
 /**
