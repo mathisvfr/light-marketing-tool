@@ -78,6 +78,18 @@ before(async () => {
     created_by: USERS.owner.id,
     omschrijving_nl: 'NL tekst',
     sollicitatie_url: 'https://light-personeelsdiensten.nl/solliciteren/test',
+    form_data: {
+      functietitel: 'Heftruckchauffeur',
+      locatie: 'Rotterdam',
+      contract: 'Bepaalde tijd',
+      dienstverband: 'Fulltime',
+      urenPerWeek: '40',
+      startdatum: '2026-11-01',
+      einddatum: '2027-05-01',
+      functiecategorie: 'Logistiek',
+      opleiding: 'Geen vereiste',
+      email: 'vacature@lightpersoneelsdiensten.nl',
+    },
   });
   seedDraft(store, { id: MARKETING_WITH_IMAGE_ID, type: 'marketing-post', status: 'draft', created_by: USERS.owner.id, image_path: '/uploads/social/mine.png', form_data: { onderwerp: 'Eigen foto', kanalen: ['instagram'] } });
 

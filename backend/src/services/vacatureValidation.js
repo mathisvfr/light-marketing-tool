@@ -2,6 +2,9 @@
  * Shared validation for vacature approval.
  * Used by both /drafts/:id/approve and /dashboard/queue/:id/approve
  * to ensure vacatures cannot be activated without required fields.
+ *
+ * These checks prevent placement errors on downstream boards like
+ * Werk.nl, Jobsonline, and Nationale Vacaturebank via Multiposter.
  */
 
 /**
@@ -16,15 +19,56 @@ function validateVacatureForApproval(draft) {
     return null;
   }
 
-  const omschrijvingNl = String(
-    draft.omschrijving_nl || draft.form_data?.omschrijving_nl || ''
-  ).trim();
+  const formData = draft.form_data || {};
+  const errors = [];
 
+  // Dutch description is required by Jobit for NL boards
+  const omschrijvingNl = String(
+    draft.omschrijving_nl || formData.omschrijving_nl || ''
+  ).trim();
   if (!omschrijvingNl) {
-    return 'Nederlandse omschrijving ontbreekt; Jobit vereist een NL-omschrijving.';
+    errors.push('Nederlandse omschrijving ontbreekt');
   }
 
-  return null;
+  // Contract type
+  const contract = String(draft.contract || formData.contract || '').trim();
+  if (!contract) {
+    errors.push('Contractvorm ontbreekt (bepaalde/onbepaalde tijd)');
+  }
+
+  // Dates — Werk.nl and Jobsonline require start/end dates for temporary contracts
+  const isTemporary = contract.toLowerCase() !== 'onbepaalde tijd';
+  const startdatum = String(formData.startdatum || '').trim();
+  const einddatum = String(formData.einddatum || '').trim();
+
+  if (isTemporary && !startdatum) {
+    errors.push('Startdatum ontbreekt (verplicht bij tijdelijk contract, anders Werk.nl/Jobsonline fout)');
+  }
+  if (contract.toLowerCase() === 'bepaalde tijd' && !einddatum) {
+    errors.push('Einddatum ontbreekt (verplicht bij contract voor bepaalde tijd)');
+  }
+
+  // Dienstverband
+  if (!formData.dienstverband) {
+    errors.push('Dienstverband ontbreekt (fulltime/parttime)');
+  }
+
+  // Uren
+  const uren = String(draft.uren || formData.uren || formData.urenPerWeek || '').trim();
+  if (!uren) {
+    errors.push('Uren per week ontbreekt');
+  }
+
+  // Functiecategorie — needed for matching on most platforms
+  if (!formData.functiecategorie && !formData.functie) {
+    errors.push('Functiecategorie ontbreekt (nodig voor matching op vacatureboards)');
+  }
+
+  if (errors.length === 0) {
+    return null;
+  }
+
+  return errors.join('; ') + '.';
 }
 
 module.exports = { validateVacatureForApproval };

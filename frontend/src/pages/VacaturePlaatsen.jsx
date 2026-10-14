@@ -22,12 +22,36 @@ const DEFAULT_FORM = {
   locatie: 'Rotterdam',
   urenPerWeek: '',
   startdatum: '',
+  einddatum: '',
   korteOmschrijving: '',
   talen: [],
-  contract: '',
+  contract: 'Bepaalde tijd',
+  dienstverband: 'Fulltime',
+  opleiding: 'Geen vereiste',
+  functiecategorie: '',
   email: 'vacature@lightpersoneelsdiensten.nl',
   template: 'vacancy',
 };
+
+const OPLEIDING_OPTIONS = [
+  'Geen vereiste',
+  'Basisonderwijs',
+  'VMBO / LBO',
+  'MBO',
+  'HBO',
+  'WO',
+];
+
+const FUNCTIECATEGORIE_OPTIONS = [
+  { value: '', label: 'Kies een categorie...' },
+  { value: 'Productie', label: 'Productie' },
+  { value: 'Logistiek', label: 'Logistiek' },
+  { value: 'Schoonmaak', label: 'Schoonmaak' },
+  { value: 'Food', label: 'Food / voedingsindustrie' },
+  { value: 'Techniek', label: 'Techniek' },
+  { value: 'Agrarisch', label: 'Agrarisch' },
+  { value: 'Overig', label: 'Overig' },
+];
 
 const TEMPLATE_OPTIONS = [
   { key: 'vacancy', label: 'Vacaturekaart (feed)' },
@@ -328,8 +352,12 @@ export default function VacaturePlaatsen() {
         locatie: 'locatie',
         urenPerWeek: 'uren per week',
         contract: 'contract',
+        dienstverband: 'dienstverband',
+        opleiding: 'opleiding',
+        functiecategorie: 'functiecategorie',
         salaris: 'salaris',
         startdatum: 'startdatum',
+        einddatum: 'einddatum',
       };
       for (const [key, label] of Object.entries(FIELD_LABELS)) {
         if (extracted[key] !== undefined && isEmpty(form[key])) {
@@ -375,7 +403,22 @@ export default function VacaturePlaatsen() {
     }
 
     if (!form.contract) {
-      setError('Contract is verplicht.');
+      setError('Contractvorm is verplicht.');
+      return;
+    }
+
+    if (!form.functiecategorie) {
+      setError('Functiecategorie is verplicht.');
+      return;
+    }
+
+    if (form.contract !== 'Onbepaalde tijd' && !form.startdatum) {
+      setError('Startdatum is verplicht bij een contract voor bepaalde tijd.');
+      return;
+    }
+
+    if (form.contract === 'Bepaalde tijd' && !form.einddatum) {
+      setError('Einddatum is verplicht bij een contract voor bepaalde tijd.');
       return;
     }
 
@@ -624,21 +667,71 @@ export default function VacaturePlaatsen() {
             </label>
 
             <label className="vacature-field">
-              Contract <span className="vacature-required">*</span>
-              <input
+              Contractvorm <span className="vacature-required">*</span>
+              <select
                 value={form.contract}
                 onChange={(event) => updateField('contract', event.target.value)}
-                placeholder="Bijv. Fulltime"
                 required
-              />
+              >
+                <option value="Bepaalde tijd">Bepaalde tijd</option>
+                <option value="Onbepaalde tijd">Onbepaalde tijd</option>
+              </select>
             </label>
 
             <label className="vacature-field">
-              Startdatum
+              Dienstverband <span className="vacature-required">*</span>
+              <select
+                value={form.dienstverband}
+                onChange={(event) => updateField('dienstverband', event.target.value)}
+                required
+              >
+                <option value="Fulltime">Fulltime</option>
+                <option value="Parttime">Parttime</option>
+              </select>
+            </label>
+
+            <label className="vacature-field">
+              Opleidingsniveau
+              <select
+                value={form.opleiding || 'Geen vereiste'}
+                onChange={(event) => updateField('opleiding', event.target.value)}
+              >
+                {OPLEIDING_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="vacature-field">
+              Functiecategorie <span className="vacature-required">*</span>
+              <select
+                value={form.functiecategorie || ''}
+                onChange={(event) => updateField('functiecategorie', event.target.value)}
+                required
+              >
+                {FUNCTIECATEGORIE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="vacature-field">
+              Startdatum {form.contract !== 'Onbepaalde tijd' && <span className="vacature-required">*</span>}
               <input
                 type="date"
                 value={form.startdatum}
                 onChange={(event) => updateField('startdatum', event.target.value)}
+                required={form.contract !== 'Onbepaalde tijd'}
+              />
+            </label>
+
+            <label className="vacature-field">
+              Einddatum {form.contract === 'Bepaalde tijd' && <span className="vacature-required">*</span>}
+              <input
+                type="date"
+                value={form.einddatum || ''}
+                onChange={(event) => updateField('einddatum', event.target.value)}
+                required={form.contract === 'Bepaalde tijd'}
               />
             </label>
 

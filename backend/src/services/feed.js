@@ -1,11 +1,38 @@
 const { supabase } = require('../db/client');
 
 const REQUIRED_FIELDS = ['nummer', 'datum', 'titel', 'plaats', 'omschrijving'];
+// Fields that platforms like Werk.nl and Jobsonline require for successful placement.
+// Not blocking the feed (unlike REQUIRED_FIELDS) but will emit diagnostics.
+const PLATFORM_RECOMMENDED_FIELDS = [
+  'dienstverband', 'contract', 'uren', 'opleiding', 'functiecategorie', 'email',
+];
 const FEED_PULL_STATE_KEY = 'feed_last_pulled_at';
 
 function toCdata(value) {
   const text = String(value ?? '');
   return `<![CDATA[${text.replace(/\]\]>/g, ']]]]><![CDATA[>')}]]>`;
+}
+
+/**
+ * Format a date value to YYYY-MM-DD for the feed.
+ * Handles ISO timestamps, YYYY-MM-DD strings, and Date objects.
+ */
+function formatDate(value) {
+  if (!value) return '';
+  const str = String(value).trim();
+  if (!str) return '';
+
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+  // ISO timestamp or other parseable date
+  const parsed = new Date(str);
+  if (Number.isNaN(parsed.getTime())) return str;
+
+  const yyyy = parsed.getFullYear();
+  const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+  const dd = String(parsed.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 function isSinglePlaceName(value) {
@@ -35,32 +62,65 @@ function pickFirst(...values) {
   return '';
 }
 
+/**
+ * Derive a startdatum when the form doesn't have one.
+ * For 'Onbepaalde tijd' contracts we use today's date (platforms accept this
+ * as "per direct"). For temporary contracts the date should have been provided
+ * by the user — if it's missing we return '' and let diagnostics flag it.
+ */
+function deriveStartdatum(formData) {
+  const explicit = pickFirst(formData.startdatum);
+  if (explicit) return formatDate(explicit);
+
+  const contract = pickFirst(formData.contract);
+  if (contract === 'Onbepaalde tijd') {
+    return formatDate(new Date().toISOString());
+  }
+  return '';
+}
+
+/**
+ * Map "Bepaalde tijd" / "Onbepaalde tijd" to standardised values that
+ * Multiposter can reliably map across all downstream boards.
+ */
+function normalizeContract(value) {
+  const v = String(value || '').trim().toLowerCase();
+  if (v === 'onbepaalde tijd') return 'Onbepaalde tijd';
+  if (v === 'bepaalde tijd' || v === 'tijdelijk') return 'Bepaalde tijd';
+  if (v === 'fulltime' || v === 'parttime') {
+    // Old data had contract = "Fulltime" (confused with dienstverband)
+    return 'Bepaalde tijd';
+  }
+  return value || 'Bepaalde tijd';
+}
+
 function mapDraftToFeedItem(draft) {
   const formData = draft.form_data || {};
   const plaatsCandidate = pickFirst(draft.plaats, formData.locatie);
   const plaats = isSinglePlaceName(plaatsCandidate) ? plaatsCandidate : 'Rotterdam';
 
+  const contract = normalizeContract(pickFirst(draft.contract, formData.contract));
+
   // Jobit distribueert naar Nederlandse boards. Altijd de NL-tekst gebruiken.
-  // Als alleen PL bestaat, laten we het veld leeg en emit een diagnostic in
-  // evaluateItemQuality — Polish text on Dutch boards zou afgekeurd worden of
-  // matching schaden.
   return {
     nummer: draft.id,
-    datum: draft.created_at,
+    datum: formatDate(draft.created_at),
     titel: pickFirst(draft.titel, formData.functietitel, formData.titel, formData.title, 'Vacature'),
     plaats,
-    omschrijving: pickFirst(draft.omschrijving_nl, ''),
-    functie: pickFirst(formData.functie, ''),
+    omschrijving: pickFirst(draft.omschrijving_nl, formData.omschrijving_nl, formData.omschrijving, ''),
+    functiecategorie: pickFirst(formData.functiecategorie, formData.functie, ''),
     functieEisen: pickFirst(draft.functie_eisen, ''),
     watWijBieden: pickFirst(draft.wat_wij_bieden, ''),
-    opleiding: pickFirst(formData.opleiding, ''),
-    carriereNiveau: pickFirst(formData.carriereNiveau, ''),
-    dienstverband: pickFirst(formData.dienstverband, draft.contract, ''),
+    opleiding: pickFirst(formData.opleiding, 'Geen vereiste'),
+    carriereNiveau: pickFirst(formData.carriereNiveau, 'Starter'),
+    dienstverband: pickFirst(formData.dienstverband, 'Fulltime'),
     salaris: pickFirst(draft.salaris, formData.salaris, 'conform CAO'),
     uren: pickFirst(draft.uren, formData.uren, formData.urenPerWeek, ''),
-    contract: pickFirst(draft.contract, formData.contract, ''),
+    contract,
+    startdatum: deriveStartdatum(formData),
+    einddatum: formatDate(pickFirst(formData.einddatum, '')),
     sollicitatieUrl: pickFirst(draft.sollicitatie_url, formData.sollicitatie_url, ''),
-    email: pickFirst(formData.email, ''),
+    email: pickFirst(formData.email, 'vacature@lightpersoneelsdiensten.nl'),
   };
 }
 
@@ -111,6 +171,42 @@ function evaluateItemQuality(draft, item) {
     }
   }
 
+  // Date validation: platforms require start/end dates for temporary contracts
+  const contract = normalizeContract(pickFirst(draft.contract, formData.contract));
+  if (contract !== 'Onbepaalde tijd') {
+    if (!item.startdatum) {
+      issues.push(
+        createIssue(
+          'missing_startdatum',
+          'Startdatum ontbreekt. Werk.nl en Jobsonline vereisen een startdatum bij tijdelijke contracten.',
+          'startdatum'
+        )
+      );
+    }
+    if (contract === 'Bepaalde tijd' && !item.einddatum) {
+      issues.push(
+        createIssue(
+          'missing_einddatum',
+          'Einddatum ontbreekt. Werk.nl vereist een einddatum bij contracten voor bepaalde tijd.',
+          'einddatum'
+        )
+      );
+    }
+  }
+
+  // Check recommended fields (non-blocking, diagnostic only)
+  for (const field of PLATFORM_RECOMMENDED_FIELDS) {
+    if (!item[field] || String(item[field]).trim() === '') {
+      issues.push(
+        createIssue(
+          'missing_recommended',
+          `Aanbevolen veld '${field}' is leeg. Sommige platforms plaatsen de vacature mogelijk niet correct.`,
+          field
+        )
+      );
+    }
+  }
+
   const missingRequired = REQUIRED_FIELDS.filter(
     (field) => item[field] === undefined || item[field] === null || String(item[field]).trim() === ''
   );
@@ -132,7 +228,7 @@ function toJobXml(item) {
     `    <Titel>${toCdata(item.titel)}</Titel>`,
     `    <Plaats>${toCdata(item.plaats)}</Plaats>`,
     `    <Omschrijving>${toCdata(item.omschrijving)}</Omschrijving>`,
-    `    <Functie>${toCdata(item.functie)}</Functie>`,
+    `    <Functie>${toCdata(item.functiecategorie)}</Functie>`,
     `    <FunctieEisen>${toCdata(item.functieEisen)}</FunctieEisen>`,
     `    <WatWijBieden>${toCdata(item.watWijBieden)}</WatWijBieden>`,
     `    <Opleiding>${toCdata(item.opleiding)}</Opleiding>`,
@@ -141,6 +237,8 @@ function toJobXml(item) {
     `    <LoonSalaris>${toCdata(item.salaris)}</LoonSalaris>`,
     `    <AantalUur>${toCdata(item.uren)}</AantalUur>`,
     `    <Contract>${toCdata(item.contract)}</Contract>`,
+    `    <Startdatum>${toCdata(item.startdatum)}</Startdatum>`,
+    `    <Einddatum>${toCdata(item.einddatum)}</Einddatum>`,
     `    <SollicitatieUrl>${toCdata(item.sollicitatieUrl)}</SollicitatieUrl>`,
     `    <Email>${toCdata(item.email)}</Email>`,
     '  </job>',
@@ -217,11 +315,16 @@ async function buildJobsFeedData() {
     const item = mapDraftToFeedItem(draft);
     const issues = evaluateItemQuality(draft, item);
 
-    items.push(item);
+    const hasMissingRequired = issues.some((i) => i.code === 'missing_required');
+
+    if (!hasMissingRequired) {
+      items.push(item);
+    }
 
     if (issues.length > 0) {
       diagnostics.push({
         draftId: draft.id,
+        excluded: hasMissingRequired,
         issues,
       });
     }
@@ -247,9 +350,12 @@ async function getJobsFeedStatus() {
     return accumulator;
   }, {});
 
+  const excluded = diagnostics.filter((d) => d.excluded).length;
+
   return {
     generatedAt: new Date().toISOString(),
     totalItems: items.length,
+    excludedItems: excluded,
     itemsWithIssues: diagnostics.length,
     issueCounts,
     diagnostics,
