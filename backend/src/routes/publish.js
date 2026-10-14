@@ -645,6 +645,27 @@ router.post('/:id/expire', requireRole(['owner', 'manager']), async (req, res, n
 
     logActivity(req.user.id, req.user.name, 'draft.expired', 'draft', draftId, { title: getDraftTitle(draft.form_data) });
 
+    // Also deactivate in Jobit so platforms take it offline immediately,
+    // rather than waiting for the next feed pull to notice the vacancy is gone.
+    setImmediate(async () => {
+      try {
+        const statuses = await jobit.getChannelStatuses();
+        const jobitInfo = statuses.drafts?.[draftId];
+        if (!jobitInfo?.jobitId) return;
+
+        const apiKey = process.env.JOBIT_API_KEY;
+        if (!apiKey) return;
+
+        await fetch(`https://app.jobit.nl/api/vacancies/${jobitInfo.jobitId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' },
+        });
+        jobit.invalidateCache();
+      } catch {
+        // Best-effort — feed removal is the primary mechanism
+      }
+    });
+
     return res.json({ success: true });
   } catch (error) {
     return next(error);
@@ -658,6 +679,97 @@ router.post('/jobit-sync', requireRole(['owner', 'manager']), async (_req, res, 
     const result = await jobit.syncErrorNotifications();
     jobit.invalidateCache();
     return res.json(result);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// Trigger a republish for a vacancy via the Jobit API. Sends a PUT with the
+// current vacancy data + enriched fields (education, career_level) which
+// causes Jobit to re-distribute to all assigned channels.
+router.post('/jobit-republish/:id', requireRole(['owner', 'manager']), async (req, res, next) => {
+  try {
+    const draftId = req.params.id;
+
+    // Look up the Jobit vacancy ID for this draft
+    const statuses = await jobit.getChannelStatuses();
+    const jobitInfo = statuses.drafts?.[draftId];
+
+    if (!jobitInfo) {
+      return res.status(404).json({ error: 'Vacature niet gevonden in Jobit.' });
+    }
+
+    // Fetch current vacancy data from Jobit
+    const apiKey = process.env.JOBIT_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'JOBIT_API_KEY niet geconfigureerd.' });
+    }
+
+    const getResp = await fetch(`https://app.jobit.nl/api/vacancies/${jobitInfo.jobitId}`, {
+      headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' },
+    });
+
+    if (!getResp.ok) {
+      return res.status(502).json({ error: `Jobit API fout: ${getResp.status}` });
+    }
+
+    const current = (await getResp.json()).vacancy;
+
+    // Also fetch our draft for enrichment
+    const { data: draft } = await supabase
+      .from('drafts')
+      .select('form_data')
+      .eq('id', draftId)
+      .maybeSingle();
+
+    const fd = draft?.form_data || {};
+
+    // Build PUT payload — keep all existing data, enrich empty fields
+    const payload = {
+      number: current.number,
+      title: current.title,
+      position: current.position,
+      vacancy_date: current.date,
+      city: current.city,
+      description: current.description || '',
+      requirements: current.requirements || '',
+      offer: current.offer || '',
+      full_text: current.full_text || '',
+      employment: current.employment || fd.dienstverband || 'Fulltime',
+      hours: current.hours || fd.urenPerWeek || fd.uren || '',
+      salary: current.salary || fd.salaris || '',
+      education: current.education || fd.opleiding || 'Basisonderwijs',
+      career_level: current.career_level || 'Starter',
+      email: current.email || fd.email || '',
+    };
+    // Note: contract is NOT sent — Jobit rejects "Bepaalde tijd" via API.
+    // The contract value remains from the XML feed mapping.
+
+    const putResp = await fetch(`https://app.jobit.nl/api/vacancies/${jobitInfo.jobitId}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!putResp.ok) {
+      const errBody = await putResp.text().catch(() => '');
+      return res.status(502).json({ error: `Jobit herpublicatie mislukt: ${errBody.slice(0, 300)}` });
+    }
+
+    const updated = await putResp.json();
+    jobit.invalidateCache();
+
+    return res.json({
+      success: true,
+      channels: (updated.vacancy?.channels || []).map((ch) => ({
+        name: ch.name,
+        status: ch.status,
+      })),
+    });
   } catch (error) {
     return next(error);
   }

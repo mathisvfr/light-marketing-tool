@@ -87,6 +87,14 @@ export default function Gepubliceerd() {
     onError: (err) => setError(err?.message || 'Opnieuw proberen mislukt.'),
   });
 
+  const republishMutation = useMutation({
+    mutationFn: (draftId) => api(`/publish/jobit-republish/${draftId}`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['published-items'] });
+    },
+    onError: (err) => setError(err?.message || 'Herpubliceren mislukt.'),
+  });
+
   // Sync Jobit errors into notifications when the vacatures tab is active.
   // Fire-and-forget — result doesn't affect the UI directly.
   useEffect(() => {
@@ -309,88 +317,106 @@ export default function Gepubliceerd() {
           {vacatureItems.length === 0 ? (
             <p className="published-empty">Geen actieve vacatures.</p>
           ) : (
-            <div className="published-table-wrap">
-              <table className="published-table">
-                <thead>
-                  <tr>
-                    <th>Titel</th>
-                    <th>Status</th>
-                    <th>Platforms</th>
-                    <th>Laatst bijgewerkt</th>
-                    <th>Acties</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {vacatureItems.map((item) => {
-                    const channels = item.channels || [];
-                    const failedChannels = channels.filter((ch) => ch.status === 'failed');
-                    const publishedCount = channels.filter((ch) => ch.status === 'published').length;
-                    const totalCount = channels.length;
+            <div className="jobit-cards">
+              {vacatureItems.map((item) => {
+                const channels = item.channels || [];
+                const live = channels.filter((ch) => ch.status === 'published');
+                const failed = channels.filter((ch) => ch.status === 'failed');
+                const pending = channels.filter((ch) => ch.status === 'pending' || ch.status === 'scheduled');
+                const disabled = channels.filter((ch) => ch.status === 'disabled');
+                const hasFailed = failed.length > 0;
 
-                    return (
-                      <tr key={item.id}>
-                        <td className="published-title-cell">{item.title}</td>
-                        <td><StatusBadge status="actief" /></td>
-                        <td>
-                          {totalCount === 0 ? (
-                            <span className="jobit-no-channels">Niet in Jobit</span>
-                          ) : (
-                            <div className="jobit-channel-summary">
-                              <span className="jobit-channel-count">
-                                {publishedCount}/{totalCount} live
-                              </span>
-                              {failedChannels.length > 0 && (
-                                <details className="jobit-errors-detail">
-                                  <summary className="jobit-errors-summary">
-                                    {failedChannels.length} {failedChannels.length === 1 ? 'fout' : 'fouten'}
-                                  </summary>
-                                  <ul className="jobit-errors-list">
-                                    {failedChannels.map((ch) => (
-                                      <li key={ch.name}>
-                                        <strong>{ch.name}</strong>
-                                        {ch.errors.map((err, i) => (
-                                          <span key={i} className="jobit-error-msg">{err.message}</span>
-                                        ))}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </details>
-                              )}
-                              <div className="jobit-channel-dots">
-                                {channels.map((ch) => (
-                                  <span
-                                    key={ch.name}
-                                    className={`jobit-dot jobit-dot-${ch.status}`}
-                                    title={`${ch.name}: ${ch.status}${ch.errors?.length ? ' — ' + ch.errors.map((e) => e.message).join('; ') : ''}`}
-                                  />
-                                ))}
-                              </div>
+                return (
+                  <div key={item.id} className={`jobit-card${hasFailed ? ' jobit-card-error' : ''}`}>
+                    <div className="jobit-card-header">
+                      <div>
+                        <Link to={`/vacature-plaatsen?draftId=${item.id}`} className="jobit-card-title">
+                          {item.title}
+                        </Link>
+                        <span className="jobit-card-date">Bijgewerkt {formatDate(item.updatedAt)}</span>
+                      </div>
+                      <div className="jobit-card-actions">
+                        {(role === 'owner' || role === 'manager') && channels.length > 0 && (
+                          <button
+                            type="button"
+                            className="published-btn"
+                            onClick={() => republishMutation.mutate(item.id)}
+                            disabled={republishMutation.isPending}
+                            title="Verzendt de vacature opnieuw naar alle platforms via Jobit"
+                          >
+                            {republishMutation.isPending ? 'Bezig...' : 'Herpubliceren'}
+                          </button>
+                        )}
+                        {(role === 'owner' || role === 'manager') && (
+                          <button
+                            type="button"
+                            className="published-btn destructive"
+                            onClick={() => handleExpire(item.id)}
+                            disabled={expireMutation.isPending}
+                          >
+                            Sluiten
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {channels.length === 0 ? (
+                      <p className="jobit-no-channels">Niet gevonden in Jobit — wacht tot Multiposter de feed ophaalt.</p>
+                    ) : (
+                      <div className="jobit-card-channels">
+                        {/* Live platforms */}
+                        {live.length > 0 && (
+                          <div className="jobit-group">
+                            <span className="jobit-group-label jobit-group-live">Live ({live.length})</span>
+                            <div className="jobit-chips">
+                              {live.map((ch) => (
+                                <span key={ch.name} className="jobit-chip jobit-chip-live">{ch.name}</span>
+                              ))}
                             </div>
-                          )}
-                        </td>
-                        <td>{formatDate(item.updatedAt)}</td>
-                        <td>
-                          <div className="published-actions">
-                            <Link to={`/vacature-plaatsen?draftId=${item.id}`} className="published-btn">
-                              Bewerken
-                            </Link>
-                            {(role === 'owner' || role === 'manager') && (
-                              <button
-                                type="button"
-                                className="published-btn destructive"
-                                onClick={() => handleExpire(item.id)}
-                                disabled={expireMutation.isPending}
-                              >
-                                Sluiten
-                              </button>
-                            )}
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        )}
+
+                        {/* Failed platforms */}
+                        {failed.length > 0 && (
+                          <div className="jobit-group">
+                            <span className="jobit-group-label jobit-group-failed">Mislukt ({failed.length})</span>
+                            <div className="jobit-chips">
+                              {failed.map((ch) => (
+                                <div key={ch.name} className="jobit-chip-error">
+                                  <strong>{ch.name}</strong>
+                                  {(ch.errors || []).map((err, i) => (
+                                    <span key={i}>{err.message}</span>
+                                  ))}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Pending platforms */}
+                        {pending.length > 0 && (
+                          <div className="jobit-group">
+                            <span className="jobit-group-label jobit-group-pending">In afwachting ({pending.length})</span>
+                            <div className="jobit-chips">
+                              {pending.map((ch) => (
+                                <span key={ch.name} className="jobit-chip jobit-chip-pending">{ch.name}</span>
+                              ))}
+                            </div>
+                            <small className="jobit-pending-hint">Wacht op verwerking door het platform of handmatige actie in Multiposter.</small>
+                          </div>
+                        )}
+
+                        {/* Disabled (only show if no other channels) */}
+                        {disabled.length > 0 && live.length === 0 && failed.length === 0 && (
+                          <div className="jobit-group">
+                            <span className="jobit-group-label">Uitgeschakeld ({disabled.length})</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>

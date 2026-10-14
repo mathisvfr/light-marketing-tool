@@ -253,38 +253,125 @@
   }
 }
 
-/* ---- Jobit channel status ---- */
-.jobit-channel-summary {
+/* ---- Jobit channel status (card layout) ---- */
+.jobit-cards {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.75rem;
 }
 
-.jobit-channel-count {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--color-text-muted, #64748b);
+.jobit-card {
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-md, 10px);
+  background: #fff;
+  padding: 1rem 1.25rem;
 }
 
-.jobit-channel-dots {
+.jobit-card-error {
+  border-left: 3px solid #dc2626;
+}
+
+.jobit-card-header {
   display: flex;
-  gap: 3px;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.jobit-card-title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--color-text, #1e293b);
+  text-decoration: none;
+}
+
+.jobit-card-title:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.jobit-card-date {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #94a3b8);
+  margin-top: 0.15rem;
+}
+
+.jobit-card-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.jobit-card-channels {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.jobit-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.jobit-group-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.jobit-group-live { color: #16a34a; }
+.jobit-group-failed { color: #dc2626; }
+.jobit-group-pending { color: #d97706; }
+
+.jobit-chips {
+  display: flex;
   flex-wrap: wrap;
+  gap: 0.3rem;
 }
 
-.jobit-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-  cursor: help;
+.jobit-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
-.jobit-dot-published { background: #16a34a; }
-.jobit-dot-failed { background: #dc2626; }
-.jobit-dot-pending { background: #f59e0b; }
-.jobit-dot-scheduled { background: #3b82f6; }
-.jobit-dot-disabled { background: #94a3b8; }
+.jobit-chip-live {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.jobit-chip-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.jobit-chip-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.jobit-chip-error strong {
+  display: block;
+  color: #991b1b;
+  font-size: 0.82rem;
+}
+
+.jobit-chip-error span {
+  display: block;
+  color: #b91c1c;
+  font-size: 0.78rem;
+  margin-top: 0.1rem;
+}
 
 .jobit-no-channels {
   font-size: 0.82rem;
@@ -292,37 +379,25 @@
   font-style: italic;
 }
 
-.jobit-errors-detail {
-  font-size: 0.8rem;
+.jobit-pending-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #94a3b8);
+  font-style: italic;
 }
 
-.jobit-errors-summary {
-  color: #dc2626;
-  font-weight: 600;
-  cursor: pointer;
-  user-select: none;
-}
+@media (max-width: 768px) {
+  .jobit-card-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 
-.jobit-errors-list {
-  margin: 0.3rem 0 0;
-  padding: 0.4rem 0.6rem;
-  list-style: none;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: var(--radius-sm, 6px);
-  font-size: 0.78rem;
-}
+  .jobit-card-actions {
+    width: 100%;
+  }
 
-.jobit-errors-list li {
-  padding: 0.2rem 0;
-}
-
-.jobit-errors-list strong {
-  color: #991b1b;
-}
-
-.jobit-error-msg {
-  display: block;
-  color: #b91c1c;
-  margin-left: 0.5rem;
+  .jobit-card-actions .published-btn {
+    flex: 1;
+    justify-content: center;
+    min-height: 44px;
+  }
 }
