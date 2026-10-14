@@ -336,6 +336,9 @@ export default function Gepubliceerd() {
                         <span className="jobit-card-date">Bijgewerkt {formatDate(item.updatedAt)}</span>
                       </div>
                       <div className="jobit-card-actions">
+                        <Link to={`/vacature-plaatsen?draftId=${item.id}`} className="published-btn">
+                          Bewerken
+                        </Link>
                         {(role === 'owner' || role === 'manager') && channels.length > 0 && (
                           <button
                             type="button"
