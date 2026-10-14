@@ -69,6 +69,15 @@ function mapChannel(ch) {
 }
 
 /**
+ * Filter out channels that are disabled or no longer relevant.
+ * Disabled channels clutter the UI — they mean the platform was turned off
+ * in Multiposter and won't process the vacancy.
+ */
+function isRelevantChannel(ch) {
+  return ch.status !== 'disabled';
+}
+
+/**
  * Get channel statuses for all active vacatures, matched to our draft IDs.
  * Uses a 5-minute cache to avoid hammering the Jobit API.
  *
@@ -95,7 +104,7 @@ async function getChannelStatuses() {
       jobitId: v.id,
       jobitTitle: v.title,
       active: Boolean(v.active),
-      channels: (v.channels || []).map(mapChannel),
+      channels: (v.channels || []).map(mapChannel).filter(isRelevantChannel),
     };
   }
 
