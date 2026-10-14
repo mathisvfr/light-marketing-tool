@@ -252,3 +252,77 @@
     justify-content: center;
   }
 }
+
+/* ---- Jobit channel status ---- */
+.jobit-channel-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.jobit-channel-count {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #64748b);
+}
+
+.jobit-channel-dots {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+
+.jobit-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  cursor: help;
+}
+
+.jobit-dot-published { background: #16a34a; }
+.jobit-dot-failed { background: #dc2626; }
+.jobit-dot-pending { background: #f59e0b; }
+.jobit-dot-scheduled { background: #3b82f6; }
+.jobit-dot-disabled { background: #94a3b8; }
+
+.jobit-no-channels {
+  font-size: 0.82rem;
+  color: var(--color-text-muted, #94a3b8);
+  font-style: italic;
+}
+
+.jobit-errors-detail {
+  font-size: 0.8rem;
+}
+
+.jobit-errors-summary {
+  color: #dc2626;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.jobit-errors-list {
+  margin: 0.3rem 0 0;
+  padding: 0.4rem 0.6rem;
+  list-style: none;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.78rem;
+}
+
+.jobit-errors-list li {
+  padding: 0.2rem 0;
+}
+
+.jobit-errors-list strong {
+  color: #991b1b;
+}
+
+.jobit-error-msg {
+  display: block;
+  color: #b91c1c;
+  margin-left: 0.5rem;
+}

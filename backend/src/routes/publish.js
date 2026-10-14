@@ -6,6 +6,7 @@ const publishGateway = require('../services/publishGateway');
 const { getCredential } = require('../services/integrations');
 const { triggerBlogTranslations } = require('../services/blogTranslations');
 const { logActivity } = require('../services/activityLog');
+const jobit = require('../services/jobit');
 
 // The frontend datetime-local input returns a wall-clock string with no
 // timezone (e.g. "2026-09-01T09:00"). new Date() interprets that in the
@@ -138,13 +139,26 @@ router.get('/', async (_req, res, next) => {
       });
     }
 
-    const vacatureItems = (activeVacatures || []).map((draft) => ({
-      id: draft.id,
-      title: getDraftTitle(draft.form_data),
-      status: 'actief',
-      updatedAt: draft.updated_at,
-      stats: 'Nog niet beschikbaar',
-    }));
+    // Fetch Jobit channel statuses (cached, non-blocking on failure)
+    let jobitStatuses = {};
+    try {
+      const jobitData = await jobit.getChannelStatuses();
+      jobitStatuses = jobitData.drafts || {};
+    } catch {
+      // Jobit API unavailable — show vacatures without channel data
+    }
+
+    const vacatureItems = (activeVacatures || []).map((draft) => {
+      const jobitInfo = jobitStatuses[draft.id];
+      return {
+        id: draft.id,
+        title: getDraftTitle(draft.form_data),
+        status: 'actief',
+        updatedAt: draft.updated_at,
+        channels: jobitInfo?.channels || [],
+        jobitActive: jobitInfo?.active ?? null,
+      };
+    });
 
     const blogItems = (blogDrafts || []).map((draft) => ({
       id: draft.id,
@@ -632,6 +646,18 @@ router.post('/:id/expire', requireRole(['owner', 'manager']), async (req, res, n
     logActivity(req.user.id, req.user.name, 'draft.expired', 'draft', draftId, { title: getDraftTitle(draft.form_data) });
 
     return res.json({ success: true });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// Sync Jobit channel errors and create notifications for new failures.
+// Called by the frontend on the Gepubliceerd page load (owner/manager).
+router.post('/jobit-sync', requireRole(['owner', 'manager']), async (_req, res, next) => {
+  try {
+    const result = await jobit.syncErrorNotifications();
+    jobit.invalidateCache();
+    return res.json(result);
   } catch (error) {
     return next(error);
   }

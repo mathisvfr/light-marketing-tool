@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -86,6 +86,13 @@ export default function Gepubliceerd() {
     },
     onError: (err) => setError(err?.message || 'Opnieuw proberen mislukt.'),
   });
+
+  // Sync Jobit errors into notifications when the vacatures tab is active.
+  // Fire-and-forget — result doesn't affect the UI directly.
+  useEffect(() => {
+    if (activeTab !== 'vacatures' || (role !== 'owner' && role !== 'manager')) return;
+    api('/publish/jobit-sync', { method: 'POST' }).catch(() => {});
+  }, [activeTab, role]);
 
   function openReschedule(scheduledRow, title) {
     setError('');
@@ -308,35 +315,80 @@ export default function Gepubliceerd() {
                   <tr>
                     <th>Titel</th>
                     <th>Status</th>
+                    <th>Platforms</th>
                     <th>Laatst bijgewerkt</th>
                     <th>Acties</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {vacatureItems.map((item) => (
-                    <tr key={item.id}>
-                      <td className="published-title-cell">{item.title}</td>
-                      <td><StatusBadge status="actief" /></td>
-                      <td>{formatDate(item.updatedAt)}</td>
-                      <td>
-                        <div className="published-actions">
-                          <Link to={`/vacature-plaatsen?draftId=${item.id}`} className="published-btn">
-                            Bewerken
-                          </Link>
-                          {(role === 'owner' || role === 'manager') && (
-                            <button
-                              type="button"
-                              className="published-btn destructive"
-                              onClick={() => handleExpire(item.id)}
-                              disabled={expireMutation.isPending}
-                            >
-                              Sluiten
-                            </button>
+                  {vacatureItems.map((item) => {
+                    const channels = item.channels || [];
+                    const failedChannels = channels.filter((ch) => ch.status === 'failed');
+                    const publishedCount = channels.filter((ch) => ch.status === 'published').length;
+                    const totalCount = channels.length;
+
+                    return (
+                      <tr key={item.id}>
+                        <td className="published-title-cell">{item.title}</td>
+                        <td><StatusBadge status="actief" /></td>
+                        <td>
+                          {totalCount === 0 ? (
+                            <span className="jobit-no-channels">Niet in Jobit</span>
+                          ) : (
+                            <div className="jobit-channel-summary">
+                              <span className="jobit-channel-count">
+                                {publishedCount}/{totalCount} live
+                              </span>
+                              {failedChannels.length > 0 && (
+                                <details className="jobit-errors-detail">
+                                  <summary className="jobit-errors-summary">
+                                    {failedChannels.length} {failedChannels.length === 1 ? 'fout' : 'fouten'}
+                                  </summary>
+                                  <ul className="jobit-errors-list">
+                                    {failedChannels.map((ch) => (
+                                      <li key={ch.name}>
+                                        <strong>{ch.name}</strong>
+                                        {ch.errors.map((err, i) => (
+                                          <span key={i} className="jobit-error-msg">{err.message}</span>
+                                        ))}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </details>
+                              )}
+                              <div className="jobit-channel-dots">
+                                {channels.map((ch) => (
+                                  <span
+                                    key={ch.name}
+                                    className={`jobit-dot jobit-dot-${ch.status}`}
+                                    title={`${ch.name}: ${ch.status}${ch.errors?.length ? ' — ' + ch.errors.map((e) => e.message).join('; ') : ''}`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
                           )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td>{formatDate(item.updatedAt)}</td>
+                        <td>
+                          <div className="published-actions">
+                            <Link to={`/vacature-plaatsen?draftId=${item.id}`} className="published-btn">
+                              Bewerken
+                            </Link>
+                            {(role === 'owner' || role === 'manager') && (
+                              <button
+                                type="button"
+                                className="published-btn destructive"
+                                onClick={() => handleExpire(item.id)}
+                                disabled={expireMutation.isPending}
+                              >
+                                Sluiten
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
