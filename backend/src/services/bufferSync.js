@@ -11,8 +11,8 @@ const { notifyAfterCommit } = require('./notifications');
 // query as of probe (see plan risks section for the probe result).
 
 const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://api.buffer.com';
-const POLL_MAX_ROWS = 5;
-const POLL_SPACING_MS = 2000;
+const POLL_MAX_ROWS = 3;
+const POLL_SPACING_MS = 3000;
 
 async function getBufferToken() {
   // Prefer stored credential; fall back to env. Matches buffer.js pattern.
@@ -204,19 +204,9 @@ async function runOnce() {
     await new Promise((r) => setTimeout(r, POLL_SPACING_MS));
   }
 
-  // Pass 2: refresh engagement metrics for sent posts (oldest first).
-  // Only run if pass 1 used fewer than half the budget — metrics are
-  // nice-to-have and we must stay within Buffer's rate limit.
-  const remaining = POLL_MAX_ROWS - rows.length;
-  let metricsRefreshed = 0;
-  if (remaining > 0 && rows.length <= Math.floor(POLL_MAX_ROWS / 2)) {
-    const sentRows = await loadSentPublicationsForMetrics(Math.min(remaining, 3));
-    for (const row of sentRows) {
-      const result = await refreshMetrics(row, token);
-      if (result.action === 'metrics-only') metricsRefreshed++;
-      await new Promise((r) => setTimeout(r, POLL_SPACING_MS));
-    }
-  }
+  // Pass 2: metrics refresh DISABLED to preserve Buffer API budget.
+  // Metrics are pulled only by the nightly buffer_snapshotter (10 calls/night).
+  const metricsRefreshed = 0;
 
   return {
     attempted: rows.length,
@@ -227,10 +217,10 @@ async function runOnce() {
 }
 
 // Called by index.js at boot. No-op in tests via NODE_ENV check.
-// Run every 2 hours instead of 15 min — Buffer Free tier has a 3000 req/30d
-// rolling limit. At 5 rows * 2 passes = ~10 req/run, 12 runs/day = ~120 req/day
-// = ~3600/month — tight but workable if metrics pass is small.
-function startCron(intervalMs = 2 * 60 * 60 * 1000) {
+// Run twice a day (every 12h). Only checks scheduled posts (max 3 per run).
+// Budget: ~6 calls/day from sync + ~10/night from snapshotter = ~500/month,
+// leaving ~2500/month for actual posting, retries, and channel refreshes.
+function startCron(intervalMs = 12 * 60 * 60 * 1000) {
   if (process.env.NODE_ENV === 'test') return null;
   const handle = setInterval(() => {
     runOnce().catch((err) => console.error('[bufferSync] pass failed:', err.message));
