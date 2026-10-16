@@ -132,6 +132,12 @@ app.use(
 );
 app.use(express.json({ limit: '15mb' }));
 app.use(cookieParser());
+
+// Attach a short request ID for structured logging and error correlation.
+app.use((req, _res, next) => {
+  req.requestId = crypto.randomUUID().slice(0, 8);
+  next();
+});
 // Serve uploaded images with security hardening:
 // - Only allow known image extensions (prevents HTML/script execution)
 // - nosniff prevents MIME-type guessing
@@ -203,8 +209,31 @@ const feedLimiter = rateLimit({
   message: 'Te veel feed-verzoeken.',
 });
 
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok' });
+app.get('/api/health', async (_req, res) => {
+  const checks = {};
+
+  // Supabase: lightweight query
+  try {
+    const { error } = await supabase.from('brand_settings').select('key').limit(1);
+    checks.database = error ? 'down' : 'ok';
+  } catch {
+    checks.database = 'down';
+  }
+
+  // AI provider: check if the key is configured (no live ping — too expensive)
+  const aiProvider = String(process.env.AI_PROVIDER || '').trim().toLowerCase()
+    || (process.env.GREENPT_API_KEY ? 'greenpt' : process.env.GOOGLE_AI_STUDIO_API_KEY ? 'gemini' : 'anthropic');
+  const aiKeyPresent = aiProvider === 'anthropic' ? Boolean(process.env.ANTHROPIC_API_KEY)
+    : aiProvider === 'gemini' ? Boolean(process.env.GOOGLE_AI_STUDIO_API_KEY)
+    : Boolean(process.env.GREENPT_API_KEY);
+  checks.ai = aiKeyPresent ? 'ok' : 'no_key';
+  checks.ai_provider = aiProvider;
+
+  // Buffer: check if key is set
+  checks.buffer = Boolean(process.env.BUFFER_API_KEY) ? 'ok' : 'no_key';
+
+  const allOk = checks.database === 'ok' && checks.ai === 'ok' && checks.buffer === 'ok';
+  res.json({ status: allOk ? 'ok' : 'degraded', checks });
 });
 
 app.use('/feeds', feedLimiter, requireFeedAuth, feedsRoutes);

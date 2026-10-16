@@ -121,11 +121,16 @@ after(async () => {
   await new Promise((resolve) => server.close(resolve));
 });
 
-test('GET /api/health returns ok', async () => {
+test('GET /api/health returns 200 with checks', async () => {
   const response = await fetch(`${baseUrl}/api/health`);
   assert.equal(response.status, 200);
   const body = await response.json();
-  assert.deepEqual(body, { status: 'ok' });
+  // In test env, database may show 'down' (fake Supabase has no brand_settings table).
+  // We just verify the response shape is correct.
+  assert.ok(['ok', 'degraded'].includes(body.status));
+  assert.ok(body.checks);
+  assert.ok(body.checks.ai);
+  assert.ok(body.checks.buffer);
 });
 
 test('login with seeded owner succeeds and sets an auth cookie', async () => {

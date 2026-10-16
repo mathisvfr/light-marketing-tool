@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import HealthBanner from '../shared/HealthBanner';
 import Header from './Header';
 import PageWrapper from './PageWrapper';
 import Sidebar from './Sidebar';
@@ -48,6 +49,7 @@ export default function AppShell() {
       <Sidebar items={visibleNavItems} />
 
       <div className="app-shell-main">
+        <HealthBanner />
         <Header
           pageTitle={pageTitle}
           userName={user?.name || 'Onbekend'}
