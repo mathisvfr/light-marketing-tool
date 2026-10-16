@@ -112,31 +112,59 @@
 }
 
 /* ----------------------------------------------------------------
-   Global branded button utilities
-   .btn-primary  → brand red, white text  (main actions)
-   .btn-secondary → outlined, muted       (secondary/cancel)
-   .btn-danger    → muted red outline     (delete/reject)
-   All action buttons in .form-actions, .dashboard-actions,
-   .marketing-actions, .queue-actions, .users-toolbar,
-   .users-modal-actions inherit these via descendant selectors
-   in each page CSS.
+   Unified button primitive
+   Base:     .btn (shared)
+   Sizes:    .btn-sm, (default md), .btn-lg
+   Variants: .btn-primary, .btn-secondary, .btn-ghost, .btn-danger
+   Usage:    <button class="btn-primary btn-lg">Go</button>
+             <button class="btn-ghost btn-sm">Cancel</button>
    ---------------------------------------------------------------- */
+
+/* Base — shared by all buttons (applied via each variant selector) */
 .btn-primary,
 .btn-secondary,
+.btn-ghost,
 .btn-danger {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
   border-radius: 8px;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 1rem;      /* md (default) */
   font: inherit;
   font-weight: 600;
   font-size: 0.92rem;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: background var(--dur-fast, 0.15s) var(--ease-out, ease-out),
+              border-color var(--dur-fast, 0.15s) var(--ease-out, ease-out),
+              color var(--dur-fast, 0.15s) var(--ease-out, ease-out);
   white-space: nowrap;
+  text-decoration: none;
+  line-height: 1.4;
 }
 
+/* Size modifiers */
+.btn-sm {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.btn-lg {
+  padding: 0.65rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* Disabled — universal */
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-ghost:disabled,
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- Variant: Primary (brand red, filled) ---- */
 .btn-primary {
   background: var(--color-primary);
   color: var(--color-on-primary);
@@ -150,13 +178,10 @@
   background: var(--color-primary-press);
   border-color: var(--color-primary-press);
 }
-.btn-primary:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
 
+/* ---- Variant: Secondary (outlined, neutral) ---- */
 .btn-secondary {
-  background: #ffffff;
+  background: var(--color-bg);
   color: var(--color-text);
   border: 1.5px solid var(--color-border-strong);
 }
@@ -164,23 +189,27 @@
   background: var(--grey-50);
   border-color: var(--grey-400);
 }
-.btn-secondary:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+
+/* ---- Variant: Ghost (transparent, minimal) ---- */
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1.5px solid transparent;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--grey-100);
+  color: var(--color-text);
 }
 
+/* ---- Variant: Danger (outlined red) ---- */
 .btn-danger {
-  background: #ffffff;
+  background: var(--color-bg);
   color: var(--light-red);
   border: 1.5px solid var(--light-red-300);
 }
 .btn-danger:hover:not(:disabled) {
   background: var(--light-red-50);
   border-color: var(--light-red);
-}
-.btn-danger:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 
 @layer base {
