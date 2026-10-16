@@ -110,15 +110,24 @@ async function callBuffer(query, accessToken) {
 
       const payload = await response.json().catch(() => ({}));
 
-      // Rate limited — respect Retry-After header if present, else use backoff
-      if (response.status === 429 && attempt < RETRY_DELAYS.length) {
+      // Rate limited — check Retry-After header
+      if (response.status === 429) {
         const retryAfterSec = parseInt(response.headers.get('retry-after'), 10);
-        const delay = retryAfterSec > 0
-          ? retryAfterSec * 1000
-          : RETRY_DELAYS[attempt];
-        console.log(`[Buffer] Rate limited (429), retry-after=${retryAfterSec || 'n/a'}, waiting ${delay}ms (poging ${attempt + 2}/${RETRY_DELAYS.length + 1}). Response: ${JSON.stringify(payload)}`);
-        await new Promise((r) => setTimeout(r, delay));
-        continue;
+        const window = payload?.errors?.[0]?.extensions?.window || '';
+        console.log(`[Buffer] Rate limited (429), retry-after=${retryAfterSec || 'n/a'}, window=${window}. Response: ${JSON.stringify(payload)}`);
+
+        // If Buffer says the window is days/months, don't retry — fail immediately
+        // with a clear message. Also bail if retry-after > 5 minutes.
+        if (retryAfterSec > 300 || /\d+d/.test(window)) {
+          throw new Error(`Buffer rate limit bereikt (${window || 'langdurig'}). Het Free-tier limiet is waarschijnlijk op. Probeer het later opnieuw of upgrade het Buffer-abonnement.`);
+        }
+
+        if (attempt < RETRY_DELAYS.length) {
+          const delay = retryAfterSec > 0 ? retryAfterSec * 1000 : RETRY_DELAYS[attempt];
+          console.log(`[Buffer] Retrying in ${delay}ms (poging ${attempt + 2}/${RETRY_DELAYS.length + 1})`);
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
       }
 
       if (!response.ok) {
