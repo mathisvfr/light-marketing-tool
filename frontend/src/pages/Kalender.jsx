@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import FormMessage from '../components/shared/FormMessage';
+import { CardLoading } from '../components/shared/Card';
 import './kalender.css';
 
 const APP_TIMEZONE = 'Europe/Amsterdam';
@@ -129,7 +130,7 @@ export default function Kalender() {
   const totalItems = buckets.reduce((sum, b) => sum + b.length, 0);
 
   if (publishedQuery.isLoading) {
-    return <div className="kal-layout"><p className="kal-loading">Laden...</p></div>;
+    return <div className="kal-layout"><CardLoading message="Kalender wordt geladen..." rows={4} /></div>;
   }
   if (publishedQuery.isError) {
     return <div className="kal-layout"><FormMessage variant="error">Kon kalender niet laden.</FormMessage></div>;

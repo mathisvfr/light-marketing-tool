@@ -66,12 +66,14 @@ export function CardFooter({ className = '', children }) {
   return <div className={classNames('card-footer', className)}>{children}</div>;
 }
 
-// Loading placeholder — vervangt losse `<p>Laden...</p>` op Dashboard etc.
-// Skeleton-styling gedeeld met vacature-plaatsen `.skeleton` (dashed border).
-export function CardLoading({ message = 'Laden...', className = '' }) {
+// Loading placeholder — skeleton shimmer replaces plain "Laden..." text.
+export function CardLoading({ message = 'Laden...', rows = 3, className = '' }) {
   return (
     <div className={classNames('card-loading', className)} role="status" aria-live="polite">
       <div className="card-loading-skeleton">{message}</div>
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="card-loading-row" />
+      ))}
     </div>
   );
 }

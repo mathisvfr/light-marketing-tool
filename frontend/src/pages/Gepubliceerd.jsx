@@ -8,6 +8,7 @@ import ChannelStatus from '../components/shared/ChannelStatus';
 import Modal, { ModalFooter } from '../components/shared/Modal';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import FormMessage from '../components/shared/FormMessage';
+import { CardLoading } from '../components/shared/Card';
 import '../components/shared/status-strip.css';
 import '../components/shared/modal.css';
 import '../components/shared/toast.css';
@@ -158,7 +159,7 @@ export default function Gepubliceerd() {
   }
 
   if (publishedQuery.isLoading) {
-    return <p>Gepubliceerde items worden geladen...</p>;
+    return <CardLoading message="Gepubliceerde items worden geladen..." rows={5} />;
   }
 
   if (publishedQuery.isError) {

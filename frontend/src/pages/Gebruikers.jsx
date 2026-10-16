@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
-import Card from '../components/shared/Card';
+import Card, { CardLoading } from '../components/shared/Card';
 import Modal, { ModalFooter } from '../components/shared/Modal';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import FormMessage from '../components/shared/FormMessage';
@@ -80,7 +80,7 @@ export default function Gebruikers() {
   }
 
   if (usersQuery.isLoading) {
-    return <p>Gebruikers worden geladen...</p>;
+    return <CardLoading message="Gebruikers worden geladen..." rows={4} />;
   }
 
   if (usersQuery.isError) {

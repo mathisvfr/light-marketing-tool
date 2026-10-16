@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
-import Card, { CardHeader } from '../components/shared/Card';
+import Card, { CardHeader, CardLoading } from '../components/shared/Card';
 import ChannelStatus from '../components/shared/ChannelStatus';
 import FormMessage from '../components/shared/FormMessage';
 import '../components/shared/card.css';
@@ -143,7 +143,7 @@ export default function MerkInstellingen() {
   }
 
   if (brandQuery.isLoading) {
-    return <p>Merk instellingen worden geladen...</p>;
+    return <CardLoading message="Merk instellingen worden geladen..." rows={6} />;
   }
 
   if (brandQuery.isError) {

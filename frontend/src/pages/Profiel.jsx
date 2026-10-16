@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../components/shared/Toast';
-import Card, { CardHeader, CardBody } from '../components/shared/Card';
+import Card, { CardHeader, CardBody, CardLoading } from '../components/shared/Card';
 import RoleBadge from '../components/shared/RoleBadge';
 import '../components/shared/card.css';
 
@@ -267,7 +267,7 @@ export default function Profiel() {
   }
 
   if (profileQuery.isLoading) {
-    return <p style={{ padding: '2rem', color: '#6b7280' }}>Laden...</p>;
+    return <CardLoading message="Profiel wordt geladen..." rows={4} />;
   }
 
   if (!profile) {

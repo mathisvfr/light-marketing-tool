@@ -6,6 +6,7 @@ import { api } from '../lib/api';
 import StatusBadge, { getStatusLabel as getSharedStatusLabel } from '../components/shared/StatusBadge';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import FormMessage from '../components/shared/FormMessage';
+import { CardLoading } from '../components/shared/Card';
 import DraftDetailModal from '../components/shared/DraftDetailModal';
 import '../components/shared/status-strip.css';
 import '../components/shared/modal.css';
@@ -498,7 +499,7 @@ export default function ContentWachtrij() {
   }
 
   if (draftsQuery.isLoading) {
-    return <p>Wachtrij wordt geladen...</p>;
+    return <CardLoading message="Wachtrij wordt geladen..." rows={5} />;
   }
 
   if (draftsQuery.isError) {
