@@ -1067,6 +1067,7 @@ export default function VacaturePlaatsen() {
           <StickyFooter
             autosaveLabel={autosave.isSaving ? 'Opslaan...' : formatSavedAt(autosave.savedAt)}
             autosaveError={autosave.error}
+            onManualSave={autosave.forceSave}
           >
             <button type="button" onClick={handleSaveDraft} disabled={isBusy}>
               {['actief', 'approved', 'published'].includes(loadedDraft?.status) ? 'Wijzigingen opslaan' : 'Opslaan als concept'}

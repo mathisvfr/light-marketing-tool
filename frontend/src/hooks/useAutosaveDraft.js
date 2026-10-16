@@ -73,7 +73,26 @@ export function useAutosaveDraft(draftId, form, { delay = 1500 } = {}) {
     };
   }, [draftId, formJson, delay]);
 
-  return { savedAt, isSaving, error };
+  const forceSave = async () => {
+    if (!draftId || isSaving) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setIsSaving(true);
+    setError('');
+    try {
+      await api(`/drafts/${draftId}/form-data`, {
+        method: 'PATCH',
+        body: JSON.stringify({ formData: JSON.parse(formJson) }),
+      });
+      lastSavedRef.current = formJson;
+      setSavedAt(new Date());
+    } catch (err) {
+      setError(err?.message || 'Handmatig opslaan mislukt.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return { savedAt, isSaving, error, forceSave };
 }
 
 export function formatSavedAt(date) {

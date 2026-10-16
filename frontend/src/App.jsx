@@ -2,7 +2,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AppShell from './components/layout/AppShell';
-import ErrorBoundary from './components/shared/ErrorBoundary';
+import ErrorBoundary, { PageErrorBoundary } from './components/shared/ErrorBoundary';
 import { ToastProvider } from './components/shared/Toast';
 import './components/shared/toast.css';
 import { AuthProvider } from './contexts/AuthContext';
@@ -63,11 +63,11 @@ function App() {
               }
             >
               <Route path="/" element={<Dashboard />} />
-              <Route path="/vacature-plaatsen" element={<VacaturePlaatsen />} />
-              <Route path="/marketing-post" element={<MarketingPost />} />
-              <Route path="/blog-aanmaken" element={<BlogAanmaken />} />
-              <Route path="/content-wachtrij" element={<ContentWachtrij />} />
-              <Route path="/gepubliceerd" element={<Gepubliceerd />} />
+              <Route path="/vacature-plaatsen" element={<PageErrorBoundary label="VacaturePlaatsen" title="Vacature plaatsen kon niet worden geladen"><VacaturePlaatsen /></PageErrorBoundary>} />
+              <Route path="/marketing-post" element={<PageErrorBoundary label="MarketingPost" title="Marketing post kon niet worden geladen"><MarketingPost /></PageErrorBoundary>} />
+              <Route path="/blog-aanmaken" element={<PageErrorBoundary label="BlogAanmaken" title="Blog aanmaken kon niet worden geladen"><BlogAanmaken /></PageErrorBoundary>} />
+              <Route path="/content-wachtrij" element={<PageErrorBoundary label="ContentWachtrij" title="Content wachtrij kon niet worden geladen"><ContentWachtrij /></PageErrorBoundary>} />
+              <Route path="/gepubliceerd" element={<PageErrorBoundary label="Gepubliceerd" title="Gepubliceerd kon niet worden geladen"><Gepubliceerd /></PageErrorBoundary>} />
               <Route path="/kalender" element={<Kalender />} />
               <Route path="/rapportage" element={<Rapportage />} />
               <Route path="/profiel" element={<Profiel />} />

@@ -444,7 +444,11 @@ export default function BlogAanmaken() {
             disabled={isBusy}
           />
 
-          <StickyFooter>
+          <StickyFooter
+            autosaveLabel={autosave.isSaving ? 'Opslaan...' : formatSavedAt(autosave.savedAt)}
+            autosaveError={autosave.error}
+            onManualSave={autosave.forceSave}
+          >
             <button type="button" className="btn-secondary" onClick={handleSaveDraft} disabled={isBusy}>
               {['actief', 'approved', 'published'].includes(draftStatus) ? 'Wijzigingen opslaan' : 'Opslaan als concept'}
             </button>
