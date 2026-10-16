@@ -204,9 +204,17 @@ async function runOnce() {
     await new Promise((r) => setTimeout(r, POLL_SPACING_MS));
   }
 
-  // Pass 2: metrics refresh DISABLED to preserve Buffer API budget.
-  // Metrics are pulled only by the nightly buffer_snapshotter (10 calls/night).
-  const metricsRefreshed = 0;
+  // Pass 2: refresh engagement metrics for a few sent posts (oldest first).
+  // Capped at 3 to stay within budget — nightly snapshotter handles the rest.
+  let metricsRefreshed = 0;
+  if (rows.length < POLL_MAX_ROWS) {
+    const sentRows = await loadSentPublicationsForMetrics(3);
+    for (const row of sentRows) {
+      const result = await refreshMetrics(row, token);
+      if (result.action === 'metrics-only') metricsRefreshed++;
+      await new Promise((r) => setTimeout(r, POLL_SPACING_MS));
+    }
+  }
 
   return {
     attempted: rows.length,
