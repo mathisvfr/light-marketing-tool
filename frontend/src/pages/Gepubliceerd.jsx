@@ -79,22 +79,26 @@ export default function Gepubliceerd() {
     onError: (err) => setError(err?.message || 'Annuleren mislukt.'),
   });
 
-  const [retryingChannel, setRetryingChannel] = useState(null); // "draftId:channel"
-  const retryFailedMutation = useMutation({
-    mutationFn: ({ draftId, channel }) =>
-      api(`/publish/${draftId}/retry-failed`, {
+  const [retryingChannels, setRetryingChannels] = useState(new Set());
+  async function handleRetryChannel(draftId, channel) {
+    const key = `${draftId}:${channel}`;
+    setRetryingChannels((prev) => new Set(prev).add(key));
+    try {
+      await api(`/publish/${draftId}/retry-failed`, {
         method: 'POST',
         body: JSON.stringify({ channel }),
-      }),
-    onSuccess: () => {
+      });
       queryClient.invalidateQueries({ queryKey: ['published-items'] });
-      setRetryingChannel(null);
-    },
-    onError: (err) => {
+    } catch (err) {
       setError(err?.message || 'Opnieuw proberen mislukt.');
-      setRetryingChannel(null);
-    },
-  });
+    } finally {
+      setRetryingChannels((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  }
 
   const republishMutation = useMutation({
     mutationFn: (draftId) => api(`/publish/jobit-republish/${draftId}`, { method: 'POST' }),
@@ -302,17 +306,14 @@ export default function Gepubliceerd() {
                                     .filter((c) => c.status === 'failed')
                                     .map((c) => {
                                       const key = `${item.id}:${c.channel}`;
-                                      const isRetrying = retryingChannel === key && retryFailedMutation.isPending;
+                                      const isRetrying = retryingChannels.has(key);
                                       return (
                                         <button
                                           key={key}
                                           type="button"
                                           className="published-btn"
-                                          onClick={() => {
-                                            setRetryingChannel(key);
-                                            retryFailedMutation.mutate({ draftId: item.id, channel: c.channel });
-                                          }}
-                                          disabled={retryFailedMutation.isPending}
+                                          onClick={() => handleRetryChannel(item.id, c.channel)}
+                                          disabled={isRetrying}
                                         >
                                           {isRetrying ? `${c.channel}...` : `${c.channel} opnieuw`}
                                         </button>
