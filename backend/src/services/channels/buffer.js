@@ -110,15 +110,19 @@ async function callBuffer(query, accessToken) {
 
       const payload = await response.json().catch(() => ({}));
 
-      // Rate limited — retry with backoff
+      // Rate limited — respect Retry-After header if present, else use backoff
       if (response.status === 429 && attempt < RETRY_DELAYS.length) {
-        const delay = RETRY_DELAYS[attempt];
-        console.log(`[Buffer] Rate limited (429), retrying in ${delay}ms (poging ${attempt + 2}/${RETRY_DELAYS.length + 1})`);
+        const retryAfterSec = parseInt(response.headers.get('retry-after'), 10);
+        const delay = retryAfterSec > 0
+          ? retryAfterSec * 1000
+          : RETRY_DELAYS[attempt];
+        console.log(`[Buffer] Rate limited (429), retry-after=${retryAfterSec || 'n/a'}, waiting ${delay}ms (poging ${attempt + 2}/${RETRY_DELAYS.length + 1}). Response: ${JSON.stringify(payload)}`);
         await new Promise((r) => setTimeout(r, delay));
         continue;
       }
 
       if (!response.ok) {
+        console.log(`[Buffer] HTTP ${response.status}: ${JSON.stringify(payload)}`);
         const rawMsg = payload?.errors?.[0]?.message || `Buffer API fout (${response.status})`;
         throw new Error(translateBufferError(rawMsg));
       }
