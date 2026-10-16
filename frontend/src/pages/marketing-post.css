@@ -325,10 +325,10 @@
 }
 
 .autosave-indicator.error {
-  color: #b91c1c;
+  color: var(--color-error-text);
   font-weight: 600;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: var(--color-error-soft);
+  border: 1px solid var(--color-error-border);
   border-radius: 6px;
   padding: 6px 12px;
 }
@@ -361,7 +361,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 0.65rem;
-  background: #fff;
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
 }
@@ -393,13 +393,13 @@
   font-size: 0.78rem;
   font-weight: 600;
   border-radius: 6px;
-  background: #e2e8f0;
-  color: #334155;
+  background: var(--color-border);
+  color: var(--color-text);
   transition: background 0.15s;
 }
 
 .schedule-preset-btn:hover:not(:disabled) {
-  background: #cbd5e1;
+  background: var(--color-border-strong);
 }
 
 .schedule-preset-btn:disabled {
@@ -416,7 +416,7 @@
   all: unset;
   cursor: pointer;
   font-size: 1.1rem;
-  color: #94a3b8;
+  color: var(--color-text-subtle);
   padding: 0.1rem 0.3rem;
   border-radius: 4px;
 }
@@ -462,5 +462,5 @@
   cursor: pointer;
   font-family: var(--font-display);
   font-weight: 700;
-  color: #991b1b;
+  color: var(--color-error-text);
 }

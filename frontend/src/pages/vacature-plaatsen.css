@@ -152,7 +152,7 @@
   cursor: pointer;
   font-family: var(--font-display);
   font-weight: 700;
-  color: #991b1b;
+  color: var(--color-error-text);
 }
 
 .vacature-field {
@@ -639,10 +639,10 @@
 }
 
 .autosave-indicator.error {
-  color: #b91c1c;
+  color: var(--color-error-text);
   font-weight: 600;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: var(--color-error-soft);
+  border: 1px solid var(--color-error-border);
   border-radius: 6px;
   padding: 6px 12px;
 }
