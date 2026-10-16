@@ -8,7 +8,7 @@ export default function Sidebar({ items, isOpen, onClose }) {
         <div className="sidebar-backdrop" onClick={onClose} aria-hidden="true" />
       )}
 
-      <aside className={`app-sidebar${isOpen ? ' app-sidebar--open' : ''}`}>
+      <aside className={`app-sidebar${isOpen ? ' app-sidebar--open' : ''}`} aria-label="Hoofdnavigatie">
         <div className="app-sidebar-brand">
           <div className="app-sidebar-logo">LP</div>
           <div>

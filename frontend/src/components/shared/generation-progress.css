@@ -39,3 +39,10 @@
   color: var(--color-text-muted);
   min-height: 1.2rem;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .generation-progress-fill {
+    animation: none;
+    width: 60%;
+  }
+}
