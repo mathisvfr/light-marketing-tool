@@ -26,11 +26,6 @@ function addDays(date, days) {
   return d;
 }
 
-function isoDay(date) {
-  const day = date.getDay();
-  return day === 0 ? 7 : day;
-}
-
 function isToday(date) {
   const now = new Date();
   return date.getDate() === now.getDate() &&

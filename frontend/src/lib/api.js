@@ -36,7 +36,9 @@ export async function api(path, options = {}) {
       clearTimeout(timer);
 
       if (err.name === 'AbortError') {
-        throw new Error('De server reageert niet. Controleer je internetverbinding en probeer opnieuw.');
+        const timeoutErr = new Error('De server reageert niet. Controleer je internetverbinding en probeer opnieuw.');
+        timeoutErr.isTimeout = true;
+        throw timeoutErr;
       }
 
       throw err;
@@ -48,7 +50,7 @@ export async function api(path, options = {}) {
   } catch (err) {
     // Retry once on 5xx or network error, but only for safe (idempotent) methods
     const isServerError = err.status >= 500;
-    const isNetworkError = !err.status && err.name !== 'AbortError';
+    const isNetworkError = !err.status && err.name !== 'AbortError' && !err.isTimeout;
 
     if (canRetry && (isServerError || isNetworkError)) {
       // Brief pause before retry

@@ -14,8 +14,6 @@ const EXTENSIONS = [
 ];
 
 function MenuBar({ editor }) {
-  if (!editor) return null;
-
   const setLink = useCallback(() => {
     const prev = editor.getAttributes('link').href;
     const url = window.prompt('URL', prev || 'https://');
@@ -26,6 +24,8 @@ function MenuBar({ editor }) {
       editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
     }
   }, [editor]);
+
+  if (!editor) return null;
 
   return (
     <div className="rte-toolbar">
