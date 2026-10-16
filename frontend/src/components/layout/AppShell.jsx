@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import HealthBanner from '../shared/HealthBanner';
@@ -37,6 +38,10 @@ const routeTitles = {
 export default function AppShell() {
   const location = useLocation();
   const { user, role, logout } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   const visibleNavItems = navItems.filter((item) =>
     item.ownerOnly ? role === 'owner' : true
@@ -46,7 +51,7 @@ export default function AppShell() {
 
   return (
     <div className="app-shell">
-      <Sidebar items={visibleNavItems} />
+      <Sidebar items={visibleNavItems} isOpen={sidebarOpen} onClose={closeSidebar} />
 
       <div className="app-shell-main">
         <HealthBanner />
@@ -56,10 +61,11 @@ export default function AppShell() {
           role={role}
           onLogout={logout}
           avatarPath={user?.avatar_path}
+          onMenuToggle={toggleSidebar}
         />
 
         <main className="app-shell-content">
-          <PageWrapper title={pageTitle}>
+          <PageWrapper>
             <Outlet />
           </PageWrapper>
         </main>
