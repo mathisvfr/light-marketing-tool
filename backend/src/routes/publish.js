@@ -524,15 +524,25 @@ router.post('/:id/retry-failed', requireRole(['owner', 'manager']), async (req, 
       }
     }
 
-    const failedChannels = [];
+    const allFailedChannels = [];
     for (const [channel, pub] of latestByChannel) {
       if (pub.status === 'failed') {
-        failedChannels.push(channel);
+        allFailedChannels.push(channel);
       }
     }
 
-    if (failedChannels.length === 0) {
+    if (allFailedChannels.length === 0) {
       return res.status(400).json({ error: 'Er zijn geen mislukte kanalen om opnieuw te proberen.' });
+    }
+
+    // If a specific channel was requested, only retry that one
+    const requestedChannel = req.body?.channel;
+    const failedChannels = requestedChannel
+      ? allFailedChannels.filter((ch) => ch === requestedChannel)
+      : allFailedChannels;
+
+    if (requestedChannel && failedChannels.length === 0) {
+      return res.status(400).json({ error: `Kanaal '${requestedChannel}' is niet mislukt of bestaat niet.` });
     }
 
     // Verify Buffer connection
