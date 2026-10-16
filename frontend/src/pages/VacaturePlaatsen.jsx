@@ -15,6 +15,7 @@ import { api } from '../lib/api';
 import ImageSection from '../components/shared/ImageSection';
 import '../components/shared/status-strip.css';
 import '../components/shared/toast.css';
+import '../components/shared/draft-common.css';
 import './vacature-plaatsen.css';
 
 const DEFAULT_FORM = {

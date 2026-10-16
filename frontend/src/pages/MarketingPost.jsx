@@ -16,6 +16,7 @@ import StickyFooter from '../components/shared/StickyFooter';
 import FormMessage from '../components/shared/FormMessage';
 import '../components/shared/status-strip.css';
 import '../components/shared/toast.css';
+import '../components/shared/draft-common.css';
 import './marketing-post.css';
 
 const CHANNEL_OPTIONS = [
