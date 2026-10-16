@@ -17,7 +17,7 @@
   border-radius: var(--radius-sm, 6px);
   font: inherit;
   font-size: 0.88rem;
-  background: #fff;
+  background: var(--color-bg);
   cursor: pointer;
   transition: border-color var(--dur-fast, 0.15s);
 }
@@ -37,7 +37,7 @@
   border-radius: 7px;
   font: inherit;
   font-size: 0.82rem;
-  background: #fff;
+  background: var(--color-bg);
   cursor: pointer;
   color: var(--color-text-muted, #64748b);
   transition: border-color var(--dur-fast, 0.15s), background var(--dur-fast, 0.15s);
@@ -45,7 +45,7 @@
 
 .rapportage-controls button:hover {
   border-color: var(--color-primary);
-  background: #f8fafc;
+  background: var(--grey-50);
 }
 
 .rapportage-section {
@@ -119,7 +119,7 @@
   border-radius: var(--radius-sm, 6px);
   font: inherit;
   font-size: 0.78rem;
-  background: #fff;
+  background: var(--color-bg);
   cursor: pointer;
   color: var(--color-text-muted, #64748b);
   transition: border-color var(--dur-fast, 0.15s), background var(--dur-fast, 0.15s);
@@ -127,14 +127,14 @@
 
 .rapportage-expand-btn:hover {
   border-color: var(--color-primary);
-  background: #f8fafc;
+  background: var(--grey-50);
 }
 
 .rapportage-table-wrap {
   overflow-x: auto;
   border: 1px solid var(--color-border, #e2e8f0);
   border-radius: 12px;
-  background: #fff;
+  background: var(--color-bg);
 }
 
 .rapportage-table {
@@ -159,7 +159,7 @@
 }
 
 .rapportage-table tbody tr:hover {
-  background: #fafbfc;
+  background: var(--grey-50);
 }
 
 .rapportage-table th {
@@ -168,7 +168,7 @@
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  background: #f8fafc;
+  background: var(--grey-50);
 }
 
 /* #1 Trend badges */
@@ -182,11 +182,11 @@
 }
 
 .rapportage-trend-up {
-  color: #16a34a;
+  color: var(--color-success-text);
 }
 
 .rapportage-trend-down {
-  color: #dc2626;
+  color: var(--light-red);
 }
 
 /* #2 Compact engagement row */
