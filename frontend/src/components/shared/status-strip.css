@@ -219,7 +219,7 @@
   box-shadow: var(--shadow-xs);
 }
 
-@media (min-width: 900px) {
+@media (min-width: 769px) {
   .sticky-footer {
     position: sticky;
     bottom: var(--space-4);

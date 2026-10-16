@@ -162,7 +162,7 @@
   border-color: var(--color-primary);
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1024px) {
   .integration-grid {
     grid-template-columns: 1fr;
   }

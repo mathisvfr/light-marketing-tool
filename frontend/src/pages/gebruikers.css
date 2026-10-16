@@ -127,7 +127,7 @@
   color: var(--color-primary);
 }
 
-@media (max-width: 860px) {
+@media (max-width: 768px) {
   .users-toolbar {
     flex-direction: column;
     align-items: flex-start;

@@ -416,7 +416,7 @@
 }
 
 /* ---- Responsive ---- */
-@media (max-width: 980px) {
+@media (max-width: 1024px) {
   .dash-metrics {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -431,7 +431,7 @@
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .dash-metrics {
     grid-template-columns: 1fr;
   }

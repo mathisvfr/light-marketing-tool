@@ -224,7 +224,7 @@
   opacity: 0.8;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1024px) {
   .rapportage-tiles,
   .rapportage-charts {
     grid-template-columns: 1fr;

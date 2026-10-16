@@ -606,7 +606,7 @@
   color: var(--color-primary);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .vacature-grid {
     grid-template-columns: 1fr;
   }

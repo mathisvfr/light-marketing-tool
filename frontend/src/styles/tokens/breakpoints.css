@@ -1,0 +1,10 @@
+/* ============================================================
+   Light Personeelsdiensten — Responsive breakpoints
+   ============================================================
+   CSS media queries cannot use custom properties, so breakpoints
+   are documented here as the single source of truth.
+
+   Mobile:  max-width: 640px   (phones)
+   Tablet:  max-width: 768px   (tablets, small laptops)
+   Desktop: max-width: 1024px  (desktop adjustments)
+   ============================================================ */
