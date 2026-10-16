@@ -46,7 +46,6 @@ export default function Header({ pageTitle, userName, role, onLogout, avatarPath
           <HamburgerIcon />
         </button>
         <div className="app-header-title">
-          <p className="app-header-breadcrumb">Overzicht</p>
           <h1 className="app-header-heading">{pageTitle}</h1>
         </div>
       </div>

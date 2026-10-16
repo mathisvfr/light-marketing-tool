@@ -1,6 +1,8 @@
 // Lightweight health banner that polls /api/health every 60s.
 // Only renders when something is degraded — invisible when everything is ok.
+// Dismissible per session: dismissed problems are remembered in sessionStorage.
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 const LABELS = {
@@ -9,7 +11,19 @@ const LABELS = {
   buffer: 'Buffer (social)',
 };
 
+const DISMISSED_KEY = 'health-banner-dismissed';
+
+function getDismissed() {
+  try {
+    return JSON.parse(sessionStorage.getItem(DISMISSED_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
 export default function HealthBanner() {
+  const [dismissed, setDismissed] = useState(getDismissed);
+
   const healthQuery = useQuery({
     queryKey: ['system-health'],
     queryFn: async () => {
@@ -26,6 +40,7 @@ export default function HealthBanner() {
 
   const problems = Object.entries(data.checks || {})
     .filter(([key, val]) => val !== 'ok' && key !== 'ai_provider')
+    .filter(([key]) => !dismissed.includes(key))
     .map(([key, val]) => ({
       key,
       label: LABELS[key] || key,
@@ -34,26 +49,34 @@ export default function HealthBanner() {
 
   if (problems.length === 0) return null;
 
+  function handleDismiss() {
+    const keys = problems.map((p) => p.key);
+    const next = [...new Set([...dismissed, ...keys])];
+    setDismissed(next);
+    try { sessionStorage.setItem(DISMISSED_KEY, JSON.stringify(next)); } catch { /* storage full or private mode */ }
+  }
+
   return (
     <div
       role="alert"
-      style={{
-        background: '#fef3c7',
-        borderBottom: '1px solid #f59e0b',
-        padding: '6px 16px',
-        fontSize: '0.85rem',
-        color: '#92400e',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-      }}
+      className="health-banner"
     >
-      <span style={{ fontWeight: 600 }}>⚠ Systeemstatus:</span>
-      {problems.map((p) => (
-        <span key={p.key}>
-          {p.label} ({p.detail})
-        </span>
-      ))}
+      <div className="health-banner-content">
+        <span className="health-banner-label">Systeemstatus:</span>
+        {problems.map((p) => (
+          <span key={p.key}>
+            {p.label} ({p.detail})
+          </span>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="health-banner-dismiss"
+        onClick={handleDismiss}
+        aria-label="Melding sluiten"
+      >
+        &times;
+      </button>
     </div>
   );
 }

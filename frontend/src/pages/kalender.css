@@ -306,8 +306,10 @@
   }
 
   .kal-chip {
-    padding: 0.15rem 0.25rem;
-    font-size: 0.65rem;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.7rem;
+    min-height: 44px;
+    min-width: 44px;
   }
 
   .kal-chip-title {

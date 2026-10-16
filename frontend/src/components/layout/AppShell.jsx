@@ -51,6 +51,10 @@ export default function AppShell() {
 
   return (
     <div className="app-shell">
+      <a href="#main-content" className="skip-link">
+        Ga naar inhoud
+      </a>
+
       <Sidebar items={visibleNavItems} isOpen={sidebarOpen} onClose={closeSidebar} />
 
       <div className="app-shell-main">
@@ -64,7 +68,7 @@ export default function AppShell() {
           onMenuToggle={toggleSidebar}
         />
 
-        <main className="app-shell-content">
+        <main id="main-content" className="app-shell-content" tabIndex={-1}>
           <PageWrapper>
             <Outlet />
           </PageWrapper>

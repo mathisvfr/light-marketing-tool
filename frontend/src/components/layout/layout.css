@@ -1,6 +1,27 @@
 /* ============================================================
    App Shell — desktop: sidebar + main; mobile: drawer overlay
    ============================================================ */
+
+/* Skip-to-content link (WCAG 2.4.1 Bypass Blocks) */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: var(--space-4);
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: top var(--dur-fast) var(--ease-out);
+}
+
+.skip-link:focus {
+  top: var(--space-4);
+}
+
 .app-shell {
   min-height: 100vh;
   display: grid;
@@ -90,6 +111,47 @@
   display: none;
 }
 
+/* ---- Health Banner ---- */
+.health-banner {
+  background: var(--color-warning-soft);
+  border-bottom: 1px solid var(--color-warning-border);
+  padding: 6px var(--space-4);
+  font-size: 0.85rem;
+  color: var(--color-warning-text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.health-banner-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.health-banner-label {
+  font-weight: 600;
+}
+
+.health-banner-dismiss {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: var(--color-warning-text);
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.health-banner-dismiss:hover {
+  opacity: 1;
+}
+
 /* ---- Header ---- */
 .app-header {
   background: var(--white, #fff);
@@ -124,12 +186,6 @@
 
 .app-header-hamburger:hover {
   background: var(--color-bg-soft, #f6f7f8);
-}
-
-.app-header-breadcrumb {
-  margin: 0;
-  color: var(--color-text-muted, #5f6365);
-  font-size: 0.875rem;
 }
 
 .app-header-heading {
@@ -231,10 +287,6 @@
 
   /* Compact header on mobile */
   .app-header-user-info {
-    display: none;
-  }
-
-  .app-header-breadcrumb {
     display: none;
   }
 
