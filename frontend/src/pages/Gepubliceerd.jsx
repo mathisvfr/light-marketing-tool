@@ -79,22 +79,18 @@ export default function Gepubliceerd() {
     onError: (err) => setError(err?.message || 'Annuleren mislukt.'),
   });
 
-  const [retryingChannels, setRetryingChannels] = useState(new Set());
-  async function handleRetryChannel(draftId, channel) {
-    const key = `${draftId}:${channel}`;
-    setRetryingChannels((prev) => new Set(prev).add(key));
+  const [retryingDrafts, setRetryingDrafts] = useState(new Set());
+  async function handleRetryFailed(draftId) {
+    setRetryingDrafts((prev) => new Set(prev).add(draftId));
     try {
-      await api(`/publish/${draftId}/retry-failed`, {
-        method: 'POST',
-        body: JSON.stringify({ channel }),
-      });
+      await api(`/publish/${draftId}/retry-failed`, { method: 'POST' });
       queryClient.invalidateQueries({ queryKey: ['published-items'] });
     } catch (err) {
       setError(err?.message || 'Opnieuw proberen mislukt.');
     } finally {
-      setRetryingChannels((prev) => {
+      setRetryingDrafts((prev) => {
         const next = new Set(prev);
-        next.delete(key);
+        next.delete(draftId);
         return next;
       });
     }
@@ -301,25 +297,14 @@ export default function Gepubliceerd() {
                           {(role === 'owner' || role === 'manager') ? (
                             <td>
                               {hasFailed ? (
-                                <div className="published-actions">
-                                  {(item.channels || [])
-                                    .filter((c) => c.status === 'failed')
-                                    .map((c) => {
-                                      const key = `${item.id}:${c.channel}`;
-                                      const isRetrying = retryingChannels.has(key);
-                                      return (
-                                        <button
-                                          key={key}
-                                          type="button"
-                                          className="published-btn"
-                                          onClick={() => handleRetryChannel(item.id, c.channel)}
-                                          disabled={isRetrying}
-                                        >
-                                          {isRetrying ? `${c.channel}...` : `${c.channel} opnieuw`}
-                                        </button>
-                                      );
-                                    })}
-                                </div>
+                                <button
+                                  type="button"
+                                  className="published-btn"
+                                  onClick={() => handleRetryFailed(item.id)}
+                                  disabled={retryingDrafts.has(item.id)}
+                                >
+                                  {retryingDrafts.has(item.id) ? 'Bezig...' : 'Opnieuw proberen'}
+                                </button>
                               ) : null}
                             </td>
                           ) : null}
