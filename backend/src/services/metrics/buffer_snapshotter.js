@@ -9,8 +9,9 @@ const { supabase } = require('../../db/client');
 const { upsertMetric } = require('./upsert');
 
 const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://api.buffer.com';
-const MAX_API_CALLS = 100;
-const CALL_SPACING_MS = 200;
+// Buffer Free tier: 3000 requests / 30 days. Keep nightly snapshot budget low.
+const MAX_API_CALLS = 10;
+const CALL_SPACING_MS = 2000;
 
 async function getBufferToken() {
   const { data } = await supabase
