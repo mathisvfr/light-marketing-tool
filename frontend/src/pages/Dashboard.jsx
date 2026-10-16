@@ -102,14 +102,14 @@ export default function Dashboard() {
           <p>Nog geen content in de tool. Begin met een van deze stappen:</p>
           <div className="dash-welcome-actions">
             <Link to="/vacature-plaatsen" className="dash-welcome-btn">
-              <span className="dash-welcome-icon">📋</span>
+              <svg className="dash-welcome-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
               <span>
                 <strong>Eerste vacature</strong>
                 <small>Publiceer via de XML feed naar Multiposter</small>
               </span>
             </Link>
             <Link to="/marketing-post" className="dash-welcome-btn">
-              <span className="dash-welcome-icon">📣</span>
+              <svg className="dash-welcome-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg>
               <span>
                 <strong>Eerste marketingpost</strong>
                 <small>Publiceer via Buffer naar social media</small>
@@ -117,7 +117,7 @@ export default function Dashboard() {
             </Link>
             {role === 'owner' && (
               <Link to="/merk-instellingen" className="dash-welcome-btn">
-                <span className="dash-welcome-icon">⚙️</span>
+                <svg className="dash-welcome-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
                 <span>
                   <strong>Merkinstellingen</strong>
                   <small>Bepaalt hoe de AI schrijft</small>

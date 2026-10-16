@@ -7,7 +7,7 @@
 .dash-loading,
 .dash-error {
   text-align: center;
-  color: #64748b;
+  color: var(--color-text-muted);
   padding: 2rem;
 }
 
@@ -22,12 +22,12 @@
 .dash-welcome h2 {
   margin: 0 0 0.25rem;
   font-size: 1.15rem;
-  color: #1e293b;
+  color: var(--color-text);
 }
 
 .dash-welcome > p {
   margin: 0 0 0.75rem;
-  color: #64748b;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
 }
 
@@ -43,10 +43,10 @@
   gap: 0.6rem;
   padding: 0.65rem 0.85rem;
   border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
   text-decoration: none;
-  color: #1e293b;
+  color: var(--color-text);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
@@ -63,13 +63,13 @@
 .dash-welcome-btn small {
   display: block;
   font-size: 0.78rem;
-  color: #64748b;
+  color: var(--color-text-muted);
   font-weight: 400;
 }
 
 .dash-welcome-icon {
-  font-size: 1.4rem;
   flex-shrink: 0;
+  color: var(--color-primary, #be1e2d);
 }
 
 /* ---- Metric cards ---- */
@@ -80,8 +80,8 @@
 }
 
 .dash-metric {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 1rem 1.1rem;
   display: flex;
@@ -92,7 +92,7 @@
 .dash-metric-label {
   font-size: 0.82rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
@@ -100,8 +100,10 @@
 .dash-metric-value {
   font-size: 2rem;
   font-weight: 800;
-  color: #1e293b;
+  color: var(--color-text, #1e293b);
   line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-display);
 }
 
 .dash-metric-link {
@@ -118,19 +120,20 @@
 
 .dash-metric-sub {
   font-size: 0.78rem;
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
-.dash-metric-success { border-left: 3px solid #16a34a; }
-.dash-metric-warning { border-left: 3px solid #d97706; }
-.dash-metric-error { border-left: 3px solid #dc2626; }
+/* Status is communicated via the label color + icon, not a left-border accent */
+.dash-metric-success .dash-metric-label { color: var(--color-success, #2f8f4e); }
+.dash-metric-warning .dash-metric-label { color: var(--color-attention, #c9882f); }
+.dash-metric-error .dash-metric-label { color: var(--light-red, #be1e2d); }
 
 /* ---- Team totals ---- */
 .dash-section-title {
   margin: 0;
   font-size: 0.82rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -146,7 +149,7 @@
   gap: 1.5rem;
   padding: 0.65rem 1rem;
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
 }
 
@@ -164,7 +167,7 @@
 
 .dash-team-label {
   font-size: 0.82rem;
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 /* ---- Panels (two-column) ---- */
@@ -175,8 +178,8 @@
 }
 
 .dash-panel {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 1rem;
   display: flex;
@@ -188,7 +191,7 @@
   margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--color-text);
 }
 
 .dash-panel-empty {
@@ -232,7 +235,7 @@
 .dash-queue-title {
   font-weight: 600;
   font-size: 0.88rem;
-  color: #1e293b;
+  color: var(--color-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -240,7 +243,7 @@
 
 .dash-queue-meta {
   font-size: 0.78rem;
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 .dash-queue-actions {
@@ -281,7 +284,7 @@
   display: block;
   font-size: 0.85rem;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--color-text);
 }
 
 .dash-activity-meta {
@@ -317,7 +320,7 @@
 
 .dash-btn.ghost {
   background: transparent;
-  color: #64748b;
+  color: var(--color-text-muted);
   border: 1.5px solid #e2e8f0;
 }
 
@@ -327,7 +330,7 @@
 }
 
 .dash-btn.outline {
-  background: #fff;
+  background: var(--color-bg);
   color: #334155;
   border: 1.5px solid #cbd5e1;
 }
@@ -360,9 +363,9 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.4rem 0.75rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: #fff;
+  background: var(--color-bg);
   font-size: 0.82rem;
 }
 
@@ -394,7 +397,7 @@
 .dash-team-table th {
   text-align: left;
   font-weight: 600;
-  color: #64748b;
+  color: var(--color-text-muted);
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
