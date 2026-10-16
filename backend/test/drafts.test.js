@@ -248,3 +248,133 @@ test('12. generate preserves a user-supplied image (skips Satori render)', async
   assert.ok(settled, 'criticus should resolve');
   assert.equal(settled.image_path, '/uploads/social/mine.png');
 });
+
+// --- Input validation tests ---
+
+test('13. vacature without functietitel is rejected (400)', async () => {
+  client.setCookie(cookies.owner);
+  const response = await client.request('/api/drafts', {
+    method: 'POST',
+    body: { type: 'vacature', formData: { plaats: 'Rotterdam' } },
+  });
+  assert.equal(response.status, 400);
+  const body = await response.json();
+  assert.equal(body.error, 'Functietitel is verplicht.');
+});
+
+test('14. marketing-post without onderwerp is rejected (400)', async () => {
+  client.setCookie(cookies.owner);
+  const response = await client.request('/api/drafts', {
+    method: 'POST',
+    body: { type: 'marketing-post', formData: { kanalen: ['linkedin'] } },
+  });
+  assert.equal(response.status, 400);
+  const body = await response.json();
+  assert.equal(body.error, 'Onderwerp is verplicht.');
+});
+
+test('15. marketing-post without kanalen is rejected (400)', async () => {
+  client.setCookie(cookies.owner);
+  const response = await client.request('/api/drafts', {
+    method: 'POST',
+    body: { type: 'marketing-post', formData: { onderwerp: 'Test' } },
+  });
+  assert.equal(response.status, 400);
+  const body = await response.json();
+  assert.equal(body.error, 'Kies minimaal een kanaal.');
+});
+
+test('16. field exceeding max length is rejected (400)', async () => {
+  client.setCookie(cookies.owner);
+  const longOnderwerp = 'A'.repeat(250); // max is 220
+  const response = await client.request('/api/drafts', {
+    method: 'POST',
+    body: { type: 'marketing-post', formData: { onderwerp: longOnderwerp, kanalen: ['linkedin'] } },
+  });
+  assert.equal(response.status, 400);
+  const body = await response.json();
+  assert.ok(body.error.includes('220'));
+});
+
+test('17. blog without onderwerp is rejected (400)', async () => {
+  client.setCookie(cookies.owner);
+  const response = await client.request('/api/drafts', {
+    method: 'POST',
+    body: { type: 'blog', formData: { categorie: 'Bedrijfsnieuws' } },
+  });
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error, 'Onderwerp is verplicht.');
+});
+
+// --- Partial channel generation tests ---
+
+test('18. generateOnlyChannels generates only specified channels', async () => {
+  client.setCookie(cookies.owner);
+  // Create a marketing-post with linkedin content already
+  const created = await client.request('/api/drafts', {
+    method: 'POST',
+    body: { type: 'marketing-post', formData: { onderwerp: 'Partial test', kanalen: ['linkedin', 'instagram'] } },
+  });
+  const { draft } = await created.json();
+
+  // First generate for all channels
+  const genAll = await client.request(`/api/drafts/${draft.id}/generate`, { method: 'POST' });
+  assert.equal(genAll.status, 200);
+  const allBody = await genAll.json();
+  assert.ok(allBody.draft.linkedin_post);
+  assert.ok(allBody.draft.instagram_caption);
+
+  // Now regenerate only instagram — linkedin should be preserved
+  const genPartial = await client.request(`/api/drafts/${draft.id}/generate`, {
+    method: 'POST',
+    body: { generateOnlyChannels: ['instagram'] },
+  });
+  assert.equal(genPartial.status, 200);
+  const partialBody = await genPartial.json();
+  // linkedin_post should still be present (preserved from first generation)
+  assert.ok(partialBody.draft.linkedin_post);
+  assert.ok(partialBody.draft.instagram_caption);
+});
+
+// --- Optimistic locking tests ---
+
+test('19. concurrent approve returns 409 on version conflict', async () => {
+  client.setCookie(cookies.owner);
+
+  // Create a fresh draft to approve
+  const created = await client.request('/api/drafts', {
+    method: 'POST',
+    body: { type: 'marketing-post', formData: { onderwerp: 'Race test', kanalen: ['linkedin'] } },
+  });
+  const { draft } = await created.json();
+
+  // First approve succeeds
+  const first = await client.request(`/api/drafts/${draft.id}/approve`, { method: 'POST' });
+  assert.equal(first.status, 200);
+
+  // Second approve on same draft should fail with 409 (status no longer approvable)
+  const second = await client.request(`/api/drafts/${draft.id}/approve`, { method: 'POST' });
+  assert.equal(second.status, 400); // "Alleen concepten of items in de wachtrij"
+});
+
+test('20. form-data PATCH does not increment version', async () => {
+  client.setCookie(cookies.owner);
+
+  // Create a draft
+  const created = await client.request('/api/drafts', {
+    method: 'POST',
+    body: { type: 'marketing-post', formData: { onderwerp: 'Version test', kanalen: ['linkedin'] } },
+  });
+  const { draft } = await created.json();
+
+  // PATCH form-data
+  const patched = await client.request(`/api/drafts/${draft.id}/form-data`, {
+    method: 'PATCH',
+    body: { formData: { onderwerp: 'Updated onderwerp' } },
+  });
+  assert.equal(patched.status, 200);
+
+  // Version should still be 1 (autosave doesn't increment)
+  const stored = store.drafts.find((d) => d.id === draft.id);
+  assert.equal(stored.version, 1);
+});

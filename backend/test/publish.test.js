@@ -104,3 +104,81 @@ test('15b. when every channel fails the draft is not published (400)', async () 
   assert.match((await response.json()).error, /Buffer weigerde/);
   assert.equal(stored.status, 'approved');
 });
+
+test('15c. scheduled publish keeps draft as approved (not published)', async () => {
+  connected = true;
+  gatewayResult = { successCount: 0, scheduledCount: 1, failedCount: 0, rows: [{ channel: 'linkedin', status: 'scheduled', scheduledFor: '2099-01-01T10:00:00Z' }] };
+  client.setCookie(cookies.owner);
+
+  const stored = store.drafts.find((d) => d.id === APPROVED_DRAFT_ID);
+  stored.status = 'approved';
+
+  const response = await client.request(`/api/publish/${APPROVED_DRAFT_ID}`, {
+    method: 'POST',
+    body: { schedulePerChannel: { linkedin: '2099-01-01T10:00' } },
+  });
+  assert.equal(response.status, 200);
+  // Draft stays approved when all channels are scheduled (not yet live)
+  assert.equal(stored.status, 'approved');
+});
+
+test('15d. partial channel failure: some succeed, some fail', async () => {
+  connected = true;
+  gatewayResult = {
+    successCount: 1,
+    failedCount: 1,
+    rows: [
+      { channel: 'linkedin', status: 'success', externalId: 'buf2' },
+      { channel: 'facebook', status: 'failed', error: 'Kanaal niet gekoppeld' },
+    ],
+  };
+  client.setCookie(cookies.owner);
+
+  const stored = store.drafts.find((d) => d.id === APPROVED_DRAFT_ID);
+  stored.status = 'approved';
+  stored.form_data = { onderwerp: 'Test', kanalen: ['linkedin', 'facebook'] };
+
+  const response = await client.request(`/api/publish/${APPROVED_DRAFT_ID}`, { method: 'POST' });
+  // Partial success: at least one channel went live
+  assert.equal(response.status, 200);
+  assert.equal(stored.status, 'published');
+});
+
+test('15e. recruiter cannot publish (403)', async () => {
+  const recruiterLogin = await client.login(USERS.recruiter.email);
+  const recruiterCookie = recruiterLogin.headers.get('set-cookie')?.split(';')[0];
+  client.setCookie(recruiterCookie);
+
+  const response = await client.request(`/api/publish/${APPROVED_DRAFT_ID}`, { method: 'POST' });
+  assert.equal(response.status, 403);
+});
+
+test('15f. retry-failed creates new publication rows for failed channels', async () => {
+  connected = true;
+  client.setCookie(cookies.owner);
+
+  // Seed a failed publication row
+  store.publications = store.publications || [];
+  store.publications.push({
+    id: 'pub-fail-1',
+    draft_id: APPROVED_DRAFT_ID,
+    channel: 'linkedin',
+    via: 'buffer',
+    status: 'failed',
+    error_message: 'Rate limited',
+    published_at: null,
+    created_at: new Date().toISOString(),
+  });
+
+  // Reset gateway to succeed on retry
+  gatewayResult = { successCount: 1, failedCount: 0, rows: [{ channel: 'linkedin', status: 'success', externalId: 'buf-retry' }] };
+
+  const stored = store.drafts.find((d) => d.id === APPROVED_DRAFT_ID);
+  stored.status = 'published';
+
+  const response = await client.request(`/api/publish/${APPROVED_DRAFT_ID}/retry-failed`, { method: 'POST' });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.success, true);
+  assert.equal(body.successCount, 1);
+});
