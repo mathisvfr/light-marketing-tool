@@ -49,8 +49,17 @@ async function publishDraft(draft, channels) {
   const scheduledForMap = draft.scheduledForMap || {};
 
   const rows = [];
+  const BUFFER_CHANNELS = new Set(['linkedin', 'facebook', 'instagram', 'facebook_instagram']);
+  const INTER_CHANNEL_DELAY_MS = 2000; // avoid Buffer rate limits between sequential posts
 
-  for (const channel of requestedChannels) {
+  for (let i = 0; i < requestedChannels.length; i++) {
+    const channel = requestedChannels[i];
+
+    // Delay between consecutive Buffer API calls to avoid rate limiting
+    if (i > 0 && BUFFER_CHANNELS.has(channel) && BUFFER_CHANNELS.has(requestedChannels[i - 1])) {
+      await new Promise((r) => setTimeout(r, INTER_CHANNEL_DELAY_MS));
+    }
+
     try {
       // Set per-channel scheduledFor so the Buffer channel reads the right time
       const channelScheduledFor = scheduledForMap[channel] || null;

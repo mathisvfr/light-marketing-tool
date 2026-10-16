@@ -92,7 +92,7 @@ function translateBufferError(msg) {
   return msg;
 }
 
-const RETRY_DELAYS = [2000, 4000, 8000]; // exponential backoff: 2s, 4s, 8s
+const RETRY_DELAYS = [3000, 8000, 15000]; // exponential backoff: 3s, 8s, 15s
 
 async function callBuffer(query, accessToken) {
   let lastError;
@@ -304,8 +304,12 @@ async function publishSingle(channel, draft) {
 async function publish(draft, requestedChannel) {
   if (requestedChannel === 'facebook_instagram') {
     const results = [];
+    const subChannels = ['facebook', 'instagram'];
 
-    for (const channel of ['facebook', 'instagram']) {
+    for (let i = 0; i < subChannels.length; i++) {
+      const channel = subChannels[i];
+      // Delay between sub-channel posts to avoid Buffer rate limits
+      if (i > 0) await new Promise((r) => setTimeout(r, 2000));
       try {
         const result = await publishSingle(channel, draft);
         results.push({ channel, ...result });
