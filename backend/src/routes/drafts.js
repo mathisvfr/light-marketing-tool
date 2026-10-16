@@ -258,6 +258,11 @@ router.get('/:id', async (req, res, next) => {
       return res.status(404).json({ error: 'Concept niet gevonden.' });
     }
 
+    // Recruiters may only read their own drafts; owners/managers can read all.
+    if (!canEditDraft(req.user, data)) {
+      return res.status(403).json({ error: 'Je hebt geen toegang tot dit concept.' });
+    }
+
     return res.json({ draft: formatDraftForResponse(data) });
   } catch (error) {
     return next(error);
@@ -537,8 +542,19 @@ router.post('/:id/generate', async (req, res, next) => {
       }
     }
 
+    // Partial generation: if generateOnlyChannels is set, restrict what Claude
+    // generates and preserve existing content for channels not in the list.
+    const onlyChannels = req.body?.generateOnlyChannels;
+    const isPartialGeneration = draft.type === 'marketing-post'
+      && Array.isArray(onlyChannels) && onlyChannels.length > 0;
+
+    let generationFormData = enrichedFormData;
+    if (isPartialGeneration) {
+      generationFormData = { ...enrichedFormData, kanalen: onlyChannels };
+    }
+
     const t0 = Date.now();
-    const generated = await generate(draft.type, enrichedFormData);
+    const generated = await generate(draft.type, generationFormData);
     console.log(`[timing] generate(${draft.type}) ${Date.now() - t0}ms`);
 
     // Save generated content immediately (criticus_passed = null signals "pending")
@@ -549,20 +565,41 @@ router.post('/:id/generate', async (req, res, next) => {
       if (Array.isArray(generated.image_search_terms) && generated.image_search_terms.length > 0) {
         formData.image_search_terms = generated.image_search_terms;
       }
-      updatePayload = {
-        form_data: formData,
-        linkedin_post: generated.linkedin_post || draft.linkedin_post || null,
-        social_nl: generated.facebook_post || draft.social_nl || null,
-        instagram_caption: generated.instagram_caption || draft.instagram_caption || null,
-        image_path: draft.image_path || null,
-        omschrijving_nl: null,
-        functie_eisen: null,
-        wat_wij_bieden: null,
-        translations: {},
-        criticus_passed: null,
-        criticus_notes: null,
-        updated_at: new Date().toISOString(),
-      };
+
+      if (isPartialGeneration) {
+        // Only update the channels that were just generated; keep existing content
+        updatePayload = {
+          form_data: formData,
+          image_path: draft.image_path || null,
+          criticus_passed: null,
+          criticus_notes: null,
+          updated_at: new Date().toISOString(),
+        };
+        if (onlyChannels.includes('linkedin')) {
+          updatePayload.linkedin_post = generated.linkedin_post || draft.linkedin_post || null;
+        }
+        if (onlyChannels.includes('facebook')) {
+          updatePayload.social_nl = generated.facebook_post || draft.social_nl || null;
+        }
+        if (onlyChannels.includes('instagram')) {
+          updatePayload.instagram_caption = generated.instagram_caption || draft.instagram_caption || null;
+        }
+      } else {
+        updatePayload = {
+          form_data: formData,
+          linkedin_post: generated.linkedin_post || draft.linkedin_post || null,
+          social_nl: generated.facebook_post || draft.social_nl || null,
+          instagram_caption: generated.instagram_caption || draft.instagram_caption || null,
+          image_path: draft.image_path || null,
+          omschrijving_nl: null,
+          functie_eisen: null,
+          wat_wij_bieden: null,
+          translations: {},
+          criticus_passed: null,
+          criticus_notes: null,
+          updated_at: new Date().toISOString(),
+        };
+      }
     } else if (draft.type === 'blog') {
       // Blog: store structured fields in blog_titel/blog_html columns,
       // metadata in form_data. Author derived from created_by user.

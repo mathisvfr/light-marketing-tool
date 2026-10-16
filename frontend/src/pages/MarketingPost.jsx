@@ -267,15 +267,34 @@ export default function MarketingPost() {
         });
       }
 
+      // Detect channels that already have content so we only generate missing ones.
+      // This prevents overwriting a finished LinkedIn post when adding Instagram.
+      const channelContentMap = {
+        linkedin: content.linkedin_post,
+        facebook: content.social_nl,
+        instagram: content.instagram_caption,
+      };
+      const hasAnyContent = Object.values(channelContentMap).some((v) => v && v.trim());
+      const missingChannels = hasAnyContent
+        ? form.kanalen.filter((k) => !channelContentMap[k]?.trim())
+        : [];
+
+      const generateBody = { formData: generationForm };
+      if (missingChannels.length > 0 && missingChannels.length < form.kanalen.length) {
+        // Partial generation: only generate for newly added channels
+        generateBody.generateOnlyChannels = missingChannels;
+      }
+
       const generated = await api(`/drafts/${targetDraftId}/generate`, {
         method: 'POST',
-        body: JSON.stringify({ formData: generationForm }),
+        body: JSON.stringify(generateBody),
       });
 
       setContentEdits({
-        linkedin_post: generated?.draft?.linkedin_post || '',
-        social_nl: generated?.draft?.social_nl || '',
-        instagram_caption: generated?.draft?.instagram_caption || '',
+        // For partial generation, keep existing edits for channels not regenerated
+        linkedin_post: generated?.draft?.linkedin_post || content.linkedin_post || '',
+        social_nl: generated?.draft?.social_nl || content.social_nl || '',
+        instagram_caption: generated?.draft?.instagram_caption || content.instagram_caption || '',
       });
       if (generated?.draft?.image_path) {
         setImagePathOverride(generated.draft.image_path);
@@ -291,11 +310,18 @@ export default function MarketingPost() {
         setCriticusOverride({ passed: undefined, notes: undefined });
       }
       const channelToTab = { linkedin: 'linkedin_post', facebook: 'social_nl', instagram: 'instagram_caption' };
-      const firstTab = form.kanalen.map((k) => channelToTab[k]).find(Boolean) || 'linkedin_post';
+      // Switch to the first newly generated channel so the user sees the new content
+      const tabSource = generateBody.generateOnlyChannels || form.kanalen;
+      const firstTab = tabSource.map((k) => channelToTab[k]).find(Boolean) || 'linkedin_post';
       setActiveTab(firstTab);
       setUnsplashSuggestions(generated?.unsplash_suggestions || []);
       setImageSearchTerms(generated?.image_search_terms || []);
-      setSuccess('Marketingconcept succesvol gegenereerd.');
+      if (generateBody.generateOnlyChannels) {
+        const channelNames = generateBody.generateOnlyChannels.join(', ');
+        setSuccess(`Content voor ${channelNames} bijgegenereerd. Bestaande tekst is behouden.`);
+      } else {
+        setSuccess('Marketingconcept succesvol gegenereerd.');
+      }
       setSteeringNotes('');
     } catch (err) {
       setError(err.message || 'Genereren is mislukt.');

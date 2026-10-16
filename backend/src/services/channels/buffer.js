@@ -69,27 +69,82 @@ function getPublicImageUrl(imagePath, metadata) {
   return `${baseUrl.replace(/\/$/, '')}${imagePath}`;
 }
 
+// Translate common English Buffer error messages to Dutch for end users.
+function translateBufferError(msg) {
+  if (!msg || typeof msg !== 'string') return 'Buffer API fout.';
+  const lower = msg.toLowerCase();
+  if (lower.includes('too many requests')) {
+    return 'Te veel verzoeken naar Buffer. Probeer het over een minuut opnieuw.';
+  }
+  if (lower.includes('unauthorized') || lower.includes('authentication')) {
+    return 'Buffer-authenticatie mislukt. Controleer de API-key in Merk instellingen.';
+  }
+  if (lower.includes('forbidden')) {
+    return 'Geen toegang tot Buffer. Controleer de API-key rechten.';
+  }
+  if (lower.includes('not found')) {
+    return 'Buffer-kanaal of bericht niet gevonden.';
+  }
+  if (lower.includes('network') || lower.includes('econnrefused') || lower.includes('fetch failed')) {
+    return 'Kan geen verbinding maken met Buffer. Controleer de internetverbinding.';
+  }
+  // Return original if no translation matches — it's already Dutch or unknown
+  return msg;
+}
+
+const RETRY_DELAYS = [2000, 4000, 8000]; // exponential backoff: 2s, 4s, 8s
+
 async function callBuffer(query, accessToken) {
-  const response = await fetch(BUFFER_API_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ query }),
-  });
+  let lastError;
 
-  const payload = await response.json().catch(() => ({}));
+  for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
+    try {
+      const response = await fetch(BUFFER_API_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+      });
 
-  if (!response.ok) {
-    throw new Error(payload?.errors?.[0]?.message || `Buffer API fout (${response.status})`);
+      const payload = await response.json().catch(() => ({}));
+
+      // Rate limited — retry with backoff
+      if (response.status === 429 && attempt < RETRY_DELAYS.length) {
+        const delay = RETRY_DELAYS[attempt];
+        console.log(`[Buffer] Rate limited (429), retrying in ${delay}ms (poging ${attempt + 2}/${RETRY_DELAYS.length + 1})`);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+
+      if (!response.ok) {
+        const rawMsg = payload?.errors?.[0]?.message || `Buffer API fout (${response.status})`;
+        throw new Error(translateBufferError(rawMsg));
+      }
+
+      if (Array.isArray(payload?.errors) && payload.errors.length > 0) {
+        throw new Error(translateBufferError(payload.errors[0]?.message));
+      }
+
+      return payload?.data || {};
+    } catch (err) {
+      lastError = err;
+      // Retry on network errors (fetch failures), not on business logic errors
+      const isNetworkError = err.cause?.code === 'ECONNREFUSED'
+        || err.message?.includes('fetch failed')
+        || err.message?.includes('network');
+      if (isNetworkError && attempt < RETRY_DELAYS.length) {
+        const delay = RETRY_DELAYS[attempt];
+        console.log(`[Buffer] Network error, retrying in ${delay}ms (poging ${attempt + 2}/${RETRY_DELAYS.length + 1}): ${err.message}`);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      throw new Error(translateBufferError(err.message));
+    }
   }
 
-  if (Array.isArray(payload?.errors) && payload.errors.length > 0) {
-    throw new Error(payload.errors[0]?.message || 'Buffer API fout.');
-  }
-
-  return payload?.data || {};
+  throw lastError || new Error('Buffer API fout na meerdere pogingen.');
 }
 
 async function createPost({ accessToken, channelId, channel, text, imageUrl, dueAt }) {
@@ -174,7 +229,7 @@ async function createPost({ accessToken, channelId, channel, text, imageUrl, due
     return {
       status: 'failed',
       externalId: null,
-      error: result.message || 'Buffer kon het bericht niet aanmaken.',
+      error: translateBufferError(result.message) || 'Buffer kon het bericht niet aanmaken.',
     };
   }
 
@@ -241,7 +296,7 @@ async function publishSingle(channel, draft) {
     return {
       status: 'failed',
       externalId: null,
-      error: error.message || `Publiceren naar ${channel} via Buffer mislukt.`,
+      error: translateBufferError(error.message) || `Publiceren naar ${channel} via Buffer mislukt.`,
     };
   }
 }
@@ -259,7 +314,7 @@ async function publish(draft, requestedChannel) {
           channel,
           status: 'failed',
           externalId: null,
-          error: error.message || `${channel} publiceren mislukt.`,
+          error: translateBufferError(error.message) || `${channel} publiceren mislukt.`,
         });
       }
     }
