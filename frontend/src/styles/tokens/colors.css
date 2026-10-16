@@ -62,4 +62,21 @@
   --color-success:        var(--green);
   --color-attention:      var(--amber);
   --color-info:           var(--blue);
+
+  /* ---- Status surfaces (badge/banner backgrounds, text, borders) ---- */
+  --color-success-soft:   #ecfdf5;
+  --color-success-text:   #166534;
+  --color-success-border: #bbf7d0;
+
+  --color-error-soft:     #fef2f2;
+  --color-error-text:     #991b1b;
+  --color-error-border:   #fecaca;
+
+  --color-warning-soft:   #fffbeb;
+  --color-warning-text:   #92400e;
+  --color-warning-border: #fef3c7;
+
+  --color-info-soft:      #eff6ff;
+  --color-info-text:      #1e40af;
+  --color-info-border:    #dbeafe;
 }
