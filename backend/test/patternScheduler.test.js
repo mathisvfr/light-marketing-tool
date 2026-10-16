@@ -67,12 +67,12 @@ test('nextSlot with multiple weekdays picks the earliest matching', () => {
 
 test('nextSlot throws when weekdays is empty', () => {
   const pattern = { weekdays: [], time_of_day: '09:00' };
-  assert.throws(() => nextSlot(pattern, new Date()), /no weekdays/i);
+  assert.throws(() => nextSlot(pattern, new Date()), /geen weekdagen/i);
 });
 
 test('nextSlot throws when time_of_day is malformed', () => {
   const pattern = { weekdays: [1], time_of_day: 'nope' };
-  assert.throws(() => nextSlot(pattern, new Date()), /Invalid time_of_day/);
+  assert.throws(() => nextSlot(pattern, new Date()), /Ongeldig tijdstip/);
 });
 
 test('nextSlot accepts HH:MM:SS from Postgres TIME column', () => {

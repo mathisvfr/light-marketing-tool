@@ -107,6 +107,7 @@ function createFakeSupabase(store) {
           const inserted = (Array.isArray(state.payload) ? state.payload : [state.payload]).map((entry) => ({
             id: entry.id || crypto.randomUUID(),
             created_at: entry.created_at || new Date().toISOString(),
+            version: entry.version || 1,
             ...entry,
           }));
           tables[state.table] = rows.concat(inserted);

@@ -112,6 +112,48 @@ function canEditDraft(user, draft) {
 
 const VALID_DRAFT_TYPES = ['vacature', 'marketing-post', 'blog'];
 
+const MAX_FIELD_LENGTHS = {
+  onderwerp: 220,
+  beschrijving: 5000,
+  titel: 200,
+  plaats: 100,
+  uren: 50,
+  salaris: 100,
+  contract: 100,
+};
+
+// Validate form_data fields: required fields per type, length limits.
+function validateFormData(type, formData) {
+  if (!formData || typeof formData !== 'object') {
+    return 'Formuliergegevens ontbreken.';
+  }
+
+  if (type === 'vacature') {
+    if (!formData.functietitel?.trim()) return 'Functietitel is verplicht.';
+  }
+
+  if (type === 'marketing-post') {
+    if (!formData.onderwerp?.trim()) return 'Onderwerp is verplicht.';
+    if (!Array.isArray(formData.kanalen) || formData.kanalen.length === 0) {
+      return 'Kies minimaal een kanaal.';
+    }
+  }
+
+  if (type === 'blog') {
+    if (!formData.onderwerp?.trim()) return 'Onderwerp is verplicht.';
+  }
+
+  // Length checks
+  for (const [field, max] of Object.entries(MAX_FIELD_LENGTHS)) {
+    const val = formData[field];
+    if (typeof val === 'string' && val.length > max) {
+      return `${field.charAt(0).toUpperCase() + field.slice(1)} mag maximaal ${max} tekens bevatten.`;
+    }
+  }
+
+  return null;
+}
+
 function normalizeDraftType(type) {
   if (VALID_DRAFT_TYPES.includes(type)) {
     return type;
@@ -278,8 +320,9 @@ router.post('/', async (req, res, next) => {
     const formData = req.body?.formData;
     const type = normalizeDraftType(req.body?.type);
 
-    if (!formData || typeof formData !== 'object') {
-      return res.status(400).json({ error: 'Formuliergegevens ontbreken.' });
+    const validationMsg = validateFormData(type, formData);
+    if (validationMsg) {
+      return res.status(400).json({ error: validationMsg });
     }
 
     const payload = {
@@ -507,6 +550,10 @@ router.post('/:id/generate', async (req, res, next) => {
     const overrideForm = req.body?.formData;
     if (overrideForm && typeof overrideForm === 'object') {
       const mergedForm = { ...(draft.form_data || {}), ...overrideForm };
+      const genValidation = validateFormData(draft.type, mergedForm);
+      if (genValidation) {
+        return res.status(400).json({ error: genValidation });
+      }
       const { data: updatedDraft, error: updateFormErr } = await supabase
         .from('drafts')
         .update({ form_data: mergedForm, updated_at: new Date().toISOString() })
@@ -1401,7 +1448,7 @@ router.post('/:id/approve', async (req, res, next) => {
 
     const { data: currentDraft, error: currentDraftError } = await supabase
       .from('drafts')
-      .select('id, type, status, created_by, sollicitatie_url, form_data, omschrijving_nl')
+      .select('id, type, status, version, created_by, sollicitatie_url, form_data, omschrijving_nl')
       .eq('id', draftId)
       .maybeSingle();
 
@@ -1423,15 +1470,20 @@ router.post('/:id/approve', async (req, res, next) => {
     }
 
     const nextStatus = currentDraft.type === 'vacature' ? 'actief' : 'approved';
+    const currentVersion = currentDraft.version || 1;
 
+    // Optimistic lock: only update if version hasn't changed since we read it.
+    // This prevents two concurrent approvals from both succeeding.
     const { data, error } = await supabase
       .from('drafts')
       .update({
         status: nextStatus,
+        version: currentVersion + 1,
         reviewed_by: req.user.id,
         updated_at: new Date().toISOString(),
       })
       .eq('id', draftId)
+      .eq('version', currentVersion)
       .select(
         'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
       )
@@ -1442,7 +1494,8 @@ router.post('/:id/approve', async (req, res, next) => {
     }
 
     if (!data) {
-      return res.status(404).json({ error: 'Concept niet gevonden.' });
+      // Version mismatch: another user changed this draft between our read and write
+      return res.status(409).json({ error: 'Dit concept is al goedgekeurd of gewijzigd door iemand anders. Ververs de pagina en probeer opnieuw.' });
     }
 
     logActivity(req.user.id, req.user.name, 'draft.approved', 'draft', draftId, { title: getDraftTitle(data.form_data) });
@@ -1486,7 +1539,7 @@ router.post('/:id/reject', async (req, res, next) => {
 
     const { data: currentDraft, error: currentDraftError } = await supabase
       .from('drafts')
-      .select('id, form_data, created_by, status')
+      .select('id, form_data, created_by, status, version')
       .eq('id', draftId)
       .maybeSingle();
 
@@ -1507,15 +1560,19 @@ router.post('/:id/reject', async (req, res, next) => {
       review_comment: comment || null,
     };
 
+    const currentVersion = currentDraft.version || 1;
+
     const { data, error } = await supabase
       .from('drafts')
       .update({
         status: 'rejected',
+        version: currentVersion + 1,
         reviewed_by: req.user.id,
         form_data: formData,
         updated_at: new Date().toISOString(),
       })
       .eq('id', draftId)
+      .eq('version', currentVersion)
       .select(
         'id, form_data, status, type, omschrijving_nl, functie_eisen, wat_wij_bieden, social_nl, translations, linkedin_post, instagram_caption, image_path, criticus_passed, criticus_notes'
       )
@@ -1523,6 +1580,10 @@ router.post('/:id/reject', async (req, res, next) => {
 
     if (error) {
       throw error;
+    }
+
+    if (!data) {
+      return res.status(409).json({ error: 'Dit concept is al gewijzigd door iemand anders. Ververs de pagina en probeer opnieuw.' });
     }
 
     logActivity(req.user.id, req.user.name, 'draft.rejected', 'draft', draftId, { title: getDraftTitle(data?.form_data), reason: comment });

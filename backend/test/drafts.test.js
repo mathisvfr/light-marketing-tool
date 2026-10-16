@@ -48,6 +48,7 @@ function seedDraft(store, overrides) {
     id: overrides.id,
     type: overrides.type || 'vacature',
     status: overrides.status || 'draft',
+    version: overrides.version || 1,
     form_data: overrides.form_data || {},
     image_path: overrides.image_path || null,
     omschrijving_nl: overrides.omschrijving_nl || null,

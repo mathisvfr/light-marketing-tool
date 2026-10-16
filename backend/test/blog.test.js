@@ -45,6 +45,7 @@ function seedDraft(store, overrides) {
     id: overrides.id,
     type: overrides.type || 'blog',
     status: overrides.status || 'draft',
+    version: overrides.version || 1,
     form_data: overrides.form_data || {},
     image_path: overrides.image_path || null,
     blog_titel: overrides.blog_titel || null,

@@ -45,6 +45,7 @@ before(async () => {
     id: APPROVED_DRAFT_ID,
     type: 'marketing-post',
     status: 'approved',
+    version: 1,
     form_data: { onderwerp: 'Test', kanalen: ['linkedin'] },
     linkedin_post: 'Hallo LinkedIn',
     image_path: '/uploads/social/x.png',

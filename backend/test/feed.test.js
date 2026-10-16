@@ -23,6 +23,7 @@ function vacature(overrides) {
     id: overrides.id,
     type: 'vacature',
     status: overrides.status || 'actief',
+    version: 1,
     created_at: '2026-08-01T10:00:00.000Z',
     updated_at: '2026-08-01T10:00:00.000Z',
     form_data: overrides.form_data || {},

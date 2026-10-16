@@ -44,14 +44,14 @@ function localParts(date) {
 function nextSlot(pattern, now = new Date()) {
   const weekdays = new Set(pattern.weekdays);
   if (weekdays.size === 0) {
-    throw new Error('Pattern has no weekdays.');
+    throw new Error('Publicatiepatroon heeft geen weekdagen.');
   }
 
   // time_of_day may arrive as 'HH:MM' or 'HH:MM:SS' from Postgres.
   const timeStr = String(pattern.time_of_day || '').trim();
   const match = timeStr.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
   if (!match) {
-    throw new Error(`Invalid time_of_day: ${timeStr}`);
+    throw new Error(`Ongeldig tijdstip: ${timeStr}`);
   }
   const hh = Number(match[1]);
   const mm = Number(match[2]);
@@ -89,7 +89,7 @@ function nextSlot(pattern, now = new Date()) {
     d = advanced.getUTCDate();
   }
 
-  throw new Error('No matching weekday found within 14 days.');
+  throw new Error('Geen passende weekdag gevonden binnen 14 dagen.');
 }
 
 module.exports = { nextSlot, APP_TIMEZONE };
