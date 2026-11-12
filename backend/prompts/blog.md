@@ -8,6 +8,7 @@ Je ontvangt merkrichtlijnen en formulierdata als JSON met daarin:
 - onderwerp: het blogtopic
 - categorie: een van Uitzendwerk, Bedrijfsnieuws, Voor werkzoekenden, Voor opdrachtgevers, Wet- en regelgeving
 - toon: optionele toonrichting
+- bronnen: (optioneel) extra context, notities, cijfers of instructies van de gebruiker. Verwerk deze informatie in het artikel waar relevant. Dit is vrije input — het kan stuurinformatie bevatten, feiten die genoemd moeten worden, of aanvullende context.
 - fetched_articles: (optioneel) array van opgehaalde artikelen met url, title en content. Als dit veld aanwezig is, schrijf een origineel blogartikel GEINSPIREERD door deze bronartikelen. Gebruik ze als context en inspiratie, maar schrijf volledig eigen content in Light's tone of voice. Verwijs NIET naar het bronartikel of de bron-URL in de blogtekst.
 
 Regels:

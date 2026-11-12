@@ -189,7 +189,7 @@ function sanitizeTextField(text) {
 // ---------------------------------------------------------------------------
 // enrichFormDataWithUrls — main entry point
 // ---------------------------------------------------------------------------
-async function enrichFormDataWithUrls(formData, fields = ['onderwerp', 'beschrijving']) {
+async function enrichFormDataWithUrls(formData, fields = ['onderwerp', 'beschrijving', 'bronnen']) {
   if (!formData || typeof formData !== 'object') return formData;
 
   // Collect URLs from specified fields

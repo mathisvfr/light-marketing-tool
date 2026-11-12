@@ -42,6 +42,7 @@ const DEFAULT_FORM = {
   onderwerp: '',
   categorie: 'Uitzendwerk',
   toon: '',
+  bronnen: '',
 };
 
 export default function BlogAanmaken() {
@@ -377,6 +378,17 @@ export default function BlogAanmaken() {
             onChange={(e) => updateField('toon', e.target.value)}
             placeholder="Bijv. informeel, gericht op starters"
           />
+        </label>
+
+        <label className="blog-field">
+          Bronnen &amp; extra input (optioneel)
+          <textarea
+            value={form.bronnen}
+            onChange={(e) => updateField('bronnen', e.target.value)}
+            placeholder={"Plak hier links naar artikelen, columns of andere bronnen.\nJe kunt ook extra context, cijfers of punten toevoegen die in de blog moeten komen."}
+            rows={4}
+          />
+          <span className="field-hint">Links worden automatisch opgehaald en als inspiratie gebruikt.</span>
         </label>
 
         <FormMessage error={error} success={success} />
