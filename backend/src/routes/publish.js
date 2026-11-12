@@ -3,6 +3,7 @@ const { fromZonedTime } = require('date-fns-tz');
 const { supabase } = require('../db/client');
 const { requireRole } = require('../middleware/auth');
 const publishGateway = require('../services/publishGateway');
+const bufferChannel = require('../services/channels/buffer');
 const { getCredential } = require('../services/integrations');
 const { triggerBlogTranslations } = require('../services/blogTranslations');
 const { logActivity } = require('../services/activityLog');
@@ -779,6 +780,134 @@ router.post('/jobit-republish/:id', requireRole(['owner', 'manager']), async (re
         name: ch.name,
         status: ch.status,
       })),
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// Reschedule content: cancel all scheduled Buffer publications for a draft,
+// then re-create them with the current (edited) draft content. The original
+// per-channel scheduling is preserved unless the caller supplies new times.
+router.post('/:id/reschedule-content', requireRole(['owner', 'manager']), async (req, res, next) => {
+  try {
+    const draftId = req.params.id;
+
+    // 1. Load the draft
+    const { data: draft, error: draftError } = await supabase
+      .from('drafts')
+      .select('id, type, status, form_data, omschrijving_nl, social_nl, linkedin_post, instagram_caption, image_path')
+      .eq('id', draftId)
+      .maybeSingle();
+
+    if (draftError) throw draftError;
+    if (!draft) return res.status(404).json({ error: 'Concept niet gevonden.' });
+    if (draft.type !== 'marketing-post') {
+      return res.status(400).json({ error: 'Alleen marketingposts kunnen via deze route herplannen.' });
+    }
+
+    // 2. Load all scheduled publication rows for this draft
+    const { data: scheduledPubs, error: pubError } = await supabase
+      .from('publications')
+      .select('id, channel, status, external_id, scheduled_for')
+      .eq('draft_id', draftId)
+      .eq('status', 'scheduled');
+
+    if (pubError) throw pubError;
+    if (!scheduledPubs || scheduledPubs.length === 0) {
+      return res.status(409).json({ error: 'Geen ingeplande publicaties gevonden voor dit concept.' });
+    }
+
+    // 3. Preserve original per-channel scheduling or use caller-supplied times
+    const originalScheduleMap = {};
+    for (const pub of scheduledPubs) {
+      if (pub.scheduled_for) {
+        originalScheduleMap[pub.channel] = pub.scheduled_for;
+      }
+    }
+
+    let newScheduleMap = {};
+    if (req.body?.schedulePerChannel && typeof req.body.schedulePerChannel === 'object') {
+      for (const [ch, raw] of Object.entries(req.body.schedulePerChannel)) {
+        if (!raw) continue;
+        const str = String(raw);
+        const hasOffset = /Z$|[+-]\d{2}:?\d{2}$/.test(str);
+        const parsed = hasOffset ? new Date(str) : fromZonedTime(str, APP_TIMEZONE);
+        if (!Number.isNaN(parsed.getTime()) && parsed.getTime() > Date.now() + 60_000) {
+          newScheduleMap[ch] = parsed.toISOString();
+        }
+      }
+    }
+
+    // Fall back to original times for channels not in the new map
+    const channels = [...new Set(scheduledPubs.map((p) => p.channel))];
+    const finalScheduleMap = {};
+    for (const ch of channels) {
+      finalScheduleMap[ch] = newScheduleMap[ch] || originalScheduleMap[ch];
+    }
+
+    // 4. Cancel all scheduled publications on Buffer
+    const cancelResults = [];
+    for (const pub of scheduledPubs) {
+      if (!pub.external_id) {
+        cancelResults.push({ id: pub.id, channel: pub.channel, status: 'success', alreadyGone: true });
+        continue;
+      }
+      const result = await bufferChannel.deletePost({ externalId: pub.external_id });
+      cancelResults.push({ id: pub.id, channel: pub.channel, ...result });
+    }
+
+    // Check if any cancel failed (excluding alreadyGone)
+    const hardFails = cancelResults.filter((r) => r.status === 'failed' && !r.alreadyGone);
+    if (hardFails.length > 0) {
+      const details = hardFails.map((r) => `${r.channel}: ${r.error || 'onbekende fout'}`).join('; ');
+      return res.status(502).json({
+        error: `Annuleren van bestaande posts mislukt: ${details}. Oorspronkelijke planning blijft intact.`,
+      });
+    }
+
+    // 5. Mark old publication rows as cancelled
+    const cancelledIds = scheduledPubs.map((p) => p.id);
+    const { error: cancelUpdateErr } = await supabase
+      .from('publications')
+      .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
+      .in('id', cancelledIds);
+
+    if (cancelUpdateErr) throw cancelUpdateErr;
+
+    // 6. Re-create via publishGateway with current draft content + schedule
+    const contentPayload = {
+      omschrijving_nl: draft.omschrijving_nl,
+      social_nl: draft.social_nl,
+      linkedin_post: draft.linkedin_post,
+      instagram_caption: draft.instagram_caption,
+      image_path: draft.image_path,
+      form_data: draft.form_data,
+    };
+
+    const publishResult = await publishGateway.publish(
+      draftId,
+      draft.type,
+      channels,
+      contentPayload,
+      { scheduledForMap: finalScheduleMap }
+    );
+
+    const scheduledCount = publishResult?.scheduledCount || 0;
+    const successCount = publishResult?.successCount || 0;
+
+    logActivity(req.user.id, req.user.name, 'draft.rescheduled', 'draft', draftId, {
+      title: getDraftTitle(draft.form_data),
+      cancelledCount: cancelledIds.length,
+      scheduledCount,
+    });
+
+    return res.json({
+      success: true,
+      cancelledCount: cancelledIds.length,
+      scheduledCount,
+      liveCount: successCount,
+      scheduledForMap: finalScheduleMap,
     });
   } catch (error) {
     return next(error);

@@ -227,6 +227,9 @@ export default function Gepubliceerd() {
                             {(role === 'owner' || role === 'manager') ? (
                               <td>
                                 <div className="published-actions">
+                                  <Link to={`/marketing-post?draftId=${item.id}`} className="published-btn">
+                                    Bewerken
+                                  </Link>
                                   <button
                                     type="button"
                                     className="published-btn"

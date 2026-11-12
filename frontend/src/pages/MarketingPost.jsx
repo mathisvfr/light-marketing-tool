@@ -405,15 +405,41 @@ export default function MarketingPost() {
     const scheduleMap = resolveScheduleMap();
 
     try {
-      await publishMutation.mutateAsync(scheduleMap);
+      // Save current edits first
+      await saveMutation.mutateAsync();
+    } catch (err) {
+      setError(err.message || 'Opslaan mislukt.');
+      return;
+    }
+
+    try {
+      // Try reschedule-content first (cancels existing scheduled posts + re-creates)
+      const hasSchedule = scheduleMap && Object.keys(scheduleMap).length > 0;
+      const result = await api(`/publish/${effectiveDraftId}/reschedule-content`, {
+        method: 'POST',
+        body: JSON.stringify(hasSchedule ? { schedulePerChannel: scheduleMap } : {}),
+      });
       setSuccess(
-        scheduleMap
-          ? 'Ingepland via Buffer.'
-          : 'Marketingpost is succesvol gepubliceerd.'
+        `Ingeplande posts bijgewerkt: ${result.cancelledCount || 0} geannuleerd, ${result.scheduledCount || 0} opnieuw ingepland.`
       );
       setChannelSchedule({});
-    } catch (err) {
-      setError(`Publiceren mislukt: ${err.message || 'Controleer kanaalinstellingen.'}`);
+    } catch (rescheduleErr) {
+      // 409 = no scheduled publications found — fall back to normal publish
+      if (rescheduleErr?.status === 409) {
+        try {
+          await publishMutation.mutateAsync(scheduleMap);
+          setSuccess(
+            scheduleMap
+              ? 'Ingepland via Buffer.'
+              : 'Marketingpost is succesvol gepubliceerd.'
+          );
+          setChannelSchedule({});
+        } catch (err) {
+          setError(`Publiceren mislukt: ${err.message || 'Controleer kanaalinstellingen.'}`);
+        }
+      } else {
+        setError(`Herplannen mislukt: ${rescheduleErr.message || 'Controleer kanaalinstellingen.'}`);
+      }
     }
   }
 
