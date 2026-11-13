@@ -20,17 +20,22 @@ function requireWriteRole(req, res, next) {
 //   source ('upload'|'generated')
 //   search (zoekterm; matched against filename + alt_text)
 //   tags (comma-separated; items must have ALL specified tags)
+//   favorites ('true') — alleen favorieten
 router.get('/', async (req, res, next) => {
   try {
-    const { source, search, tags } = req.query;
+    const { source, search, tags, favorites } = req.query;
 
     let query = supabase
       .from('media_library')
-      .select('id, filename, path, alt_text, tags, source, created_by, created_at, file_size, mime_type, unsplash_photo_id, unsplash_photographer, unsplash_photographer_url')
+      .select('id, filename, path, alt_text, tags, source, created_by, created_at, file_size, mime_type, unsplash_photo_id, unsplash_photographer, unsplash_photographer_url, is_favorite')
       .order('created_at', { ascending: false });
 
     if (source === 'upload' || source === 'generated' || source === 'unsplash') {
       query = query.eq('source', source);
+    }
+
+    if (favorites === 'true') {
+      query = query.eq('is_favorite', true);
     }
 
     if (search && String(search).trim()) {
@@ -171,7 +176,7 @@ router.post('/unsplash-select', requireWriteRole, async (req, res, next) => {
     // Dedup: als dezelfde foto al in de library staat, retourneer die
     const { data: existing, error: findError } = await supabase
       .from('media_library')
-      .select('id, filename, path, alt_text, tags, source, created_by, created_at, file_size, mime_type, unsplash_photo_id, unsplash_photographer, unsplash_photographer_url')
+      .select('id, filename, path, alt_text, tags, source, created_by, created_at, file_size, mime_type, unsplash_photo_id, unsplash_photographer, unsplash_photographer_url, is_favorite')
       .eq('unsplash_photo_id', unsplashPhotoId)
       .maybeSingle();
 
@@ -194,7 +199,7 @@ router.post('/unsplash-select', requireWriteRole, async (req, res, next) => {
         unsplash_photographer: photographer,
         unsplash_photographer_url: photographerUrl,
       })
-      .select('id, filename, path, alt_text, tags, source, created_by, created_at, file_size, mime_type, unsplash_photo_id, unsplash_photographer, unsplash_photographer_url')
+      .select('id, filename, path, alt_text, tags, source, created_by, created_at, file_size, mime_type, unsplash_photo_id, unsplash_photographer, unsplash_photographer_url, is_favorite')
       .single();
 
     if (insertError) throw insertError;
@@ -205,6 +210,35 @@ router.post('/unsplash-select', requireWriteRole, async (req, res, next) => {
     }
 
     return res.status(201).json({ item, reused: false });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// PATCH /api/media/:id/favorite — favoriet toggling
+router.patch('/:id/favorite', requireWriteRole, async (req, res, next) => {
+  try {
+    // Fetch current state
+    const { data: item, error: fetchError } = await supabase
+      .from('media_library')
+      .select('id, is_favorite')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+    if (!item) return res.status(404).json({ error: 'Afbeelding niet gevonden.' });
+
+    const newValue = !item.is_favorite;
+    const { data: updated, error: updateError } = await supabase
+      .from('media_library')
+      .update({ is_favorite: newValue })
+      .eq('id', item.id)
+      .select('id, is_favorite')
+      .single();
+
+    if (updateError) throw updateError;
+
+    return res.json({ item: updated });
   } catch (err) {
     return next(err);
   }

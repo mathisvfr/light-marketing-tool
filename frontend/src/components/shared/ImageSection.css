@@ -296,6 +296,99 @@
   color: var(--grey-500);
 }
 
+.is-translated-msg {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--grey-500);
+  font-style: italic;
+}
+
+/* Standard filter chips (outline style) */
+.is-chip.is-chip-standard {
+  background: transparent;
+  border: 1.5px solid var(--grey-300);
+  font-weight: 600;
+  color: var(--grey-600);
+}
+
+.is-chip.is-chip-standard:hover {
+  border-color: var(--grey-900);
+  color: var(--grey-900);
+}
+
+.is-chip.is-chip-standard.active {
+  background: var(--grey-900);
+  color: var(--color-bg);
+  border-color: var(--grey-900);
+}
+
+/* Favorites section */
+.is-favorites-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.is-favorites-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--grey-600);
+  align-self: flex-start;
+  transition: all 0.15s;
+}
+
+.is-favorites-toggle:hover { border-color: #f59e0b; color: #f59e0b; }
+
+.is-favorites-toggle.active {
+  background: #fffbeb;
+  border-color: #f59e0b;
+  color: #b45309;
+}
+
+.is-favorites-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Star button overlay */
+.is-suggestion-wrap {
+  position: relative;
+}
+
+.is-star-btn {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: rgba(255, 255, 255, 0.85);
+  border: none;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  padding: 0;
+  line-height: 1;
+  transition: transform 0.15s, background 0.15s;
+  color: var(--grey-400);
+}
+
+.is-star-btn:hover {
+  transform: scale(1.15);
+  background: rgba(255, 255, 255, 0.95);
+}
+
 /* ── Divider ── */
 .is-divider {
   display: flex;

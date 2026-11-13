@@ -5,6 +5,15 @@ import './ImageSection.css';
 
 const UNSPLASH_APP = 'light_marketing_tool';
 
+const STANDARD_FILTERS = [
+  { nl: 'Logistiek', en: 'logistics warehouse' },
+  { nl: 'Magazijn', en: 'warehouse workers' },
+  { nl: 'Schoonmaak', en: 'cleaning service professional' },
+  { nl: 'Kantoor', en: 'office work' },
+  { nl: 'Rotterdam', en: 'Rotterdam Netherlands' },
+  { nl: 'Teamwork', en: 'team working together' },
+];
+
 /**
  * Compact image field + modal picker.
  *
@@ -86,6 +95,7 @@ function ImagePickerModal({ onSelect, onClose, suggestions, searchTerms, disable
 
   const displayTerms = searchTerms || [];
   const [searchQuery, setSearchQuery] = useState(displayTerms[0] || '');
+  const [translatedQuery, setTranslatedQuery] = useState('');
   const [unsplashResults, setUnsplashResults] = useState([]);
   const [unsplashTotal, setUnsplashTotal] = useState(0);
   const [unsplashPage, setUnsplashPage] = useState(1);
@@ -99,6 +109,38 @@ function ImagePickerModal({ onSelect, onClose, suggestions, searchTerms, disable
   const [openPanel, setOpenPanel] = useState(null);
   const [librarySearch, setLibrarySearch] = useState('');
   const [generateForm, setGenerateForm] = useState({ onderwerp: '', caption: '' });
+
+  // Favorites query
+  const favoritesQuery = useQuery({
+    queryKey: ['media-favorites'],
+    queryFn: () => api('/media?favorites=true'),
+    enabled: openPanel === 'favorites',
+  });
+
+  async function translateAndSearch(query, page = 1) {
+    if (!query.trim()) return;
+    setIsSearching(true);
+    setLocalError('');
+    setTranslatedQuery('');
+    try {
+      // Try to translate NL→EN
+      let searchTerm = query.trim();
+      try {
+        const translation = await api(`/unsplash/translate?q=${encodeURIComponent(searchTerm)}`);
+        if (translation.translated && translation.translated !== translation.original) {
+          searchTerm = translation.translated;
+          setTranslatedQuery(searchTerm);
+        }
+      } catch {
+        // Translation failed, use original
+      }
+      await doSearch(searchTerm, page);
+    } catch (err) {
+      setLocalError(err.message || 'Unsplash zoeken mislukt.');
+    } finally {
+      setIsSearching(false);
+    }
+  }
 
   async function doSearch(query, page = 1) {
     if (!query.trim()) return;
@@ -129,8 +171,14 @@ function ImagePickerModal({ onSelect, onClose, suggestions, searchTerms, disable
     setSearchQuery(value);
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      if (value.trim()) doSearch(value, 1);
+      if (value.trim()) translateAndSearch(value, 1);
     }, 800);
+  }
+
+  function handleStandardFilter(filter) {
+    setSearchQuery(filter.en);
+    setTranslatedQuery('');
+    doSearch(filter.en, 1);
   }
 
   async function handleUnsplashSelect(photo) {
@@ -152,6 +200,15 @@ function ImagePickerModal({ onSelect, onClose, suggestions, searchTerms, disable
       setLocalError(err.message || 'Selecteren mislukt.');
     }
   }
+
+  // Favorite toggle mutation
+  const favoriteMutation = useMutation({
+    mutationFn: (id) => api(`/media/${id}/favorite`, { method: 'PATCH' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['media-favorites'] });
+      queryClient.invalidateQueries({ queryKey: ['media-library-picker'] });
+    },
+  });
 
   // Library
   const libraryQuery = useQuery({
@@ -231,27 +288,70 @@ function ImagePickerModal({ onSelect, onClose, suggestions, searchTerms, disable
       <div className="is-modal" onClick={(e) => e.stopPropagation()}>
         <div className="is-modal-header">
           <h2>Kies afbeelding</h2>
-          <button type="button" className="is-modal-close" onClick={onClose} aria-label="Sluiten">✕</button>
+          <button type="button" className="is-modal-close" onClick={onClose} aria-label="Sluiten">&#x2715;</button>
         </div>
 
         {localError ? <p className="is-error">{localError}</p> : null}
 
         <div className="is-modal-body">
+          {/* Favorites tab */}
+          {unsplashAvailable ? (
+            <div className="is-favorites-section">
+              <button
+                type="button"
+                className={`is-favorites-toggle${openPanel === 'favorites' ? ' active' : ''}`}
+                onClick={() => togglePanel('favorites')}
+              >
+                <StarIcon filled /> Favorieten
+              </button>
+              {openPanel === 'favorites' ? (
+                <div className="is-favorites-panel">
+                  {favoritesQuery.isLoading ? (
+                    <p className="is-loading">Laden...</p>
+                  ) : (favoritesQuery.data?.items || []).length === 0 ? (
+                    <p className="is-empty">Nog geen favorieten. Klik op het sterretje bij een afbeelding om deze toe te voegen.</p>
+                  ) : (
+                    <div className="is-lib-grid">
+                      {(favoritesQuery.data?.items || []).map((item) => (
+                        <div key={item.id} className="is-suggestion-wrap">
+                          <button type="button" className="is-suggestion" onClick={() => handleLibrarySelect(item)} disabled={isBusy}>
+                            <img src={item.path} alt={item.alt_text || item.filename} loading="lazy" />
+                            <div className="is-suggestion-overlay"><span>Kies</span></div>
+                          </button>
+                          <button
+                            type="button"
+                            className="is-star-btn"
+                            onClick={(e) => { e.stopPropagation(); favoriteMutation.mutate(item.id); }}
+                            aria-label="Verwijder uit favorieten"
+                          >
+                            <StarIcon filled />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           {/* Unsplash suggestions */}
           {unsplashAvailable && displayResults.length > 0 ? (
             <div className="is-suggestions">
               <p className="is-suggestions-label">Suggesties op basis van je content</p>
               <div className="is-suggestions-grid">
                 {displayResults.map((photo) => (
-                  <button key={photo.id} type="button" className="is-suggestion" onClick={() => handleUnsplashSelect(photo)} disabled={isBusy}>
-                    <img src={photo.urls.small} alt={photo.alt_description || ''} loading="lazy" />
-                    <div className="is-suggestion-overlay"><span>Kies</span></div>
-                    <span className="is-suggestion-credit">{photo.user.name}</span>
-                  </button>
+                  <div key={photo.id} className="is-suggestion-wrap">
+                    <button type="button" className="is-suggestion" onClick={() => handleUnsplashSelect(photo)} disabled={isBusy}>
+                      <img src={photo.urls.small} alt={photo.alt_description || ''} loading="lazy" />
+                      <div className="is-suggestion-overlay"><span>Kies</span></div>
+                      <span className="is-suggestion-credit">{photo.user.name}</span>
+                    </button>
+                  </div>
                 ))}
               </div>
               {displayResults.length < unsplashTotal && unsplashResults.length > 0 ? (
-                <button type="button" className="is-more-btn" onClick={() => doSearch(searchQuery, unsplashPage + 1)} disabled={isSearching}>
+                <button type="button" className="is-more-btn" onClick={() => doSearch(translatedQuery || searchQuery, unsplashPage + 1)} disabled={isSearching}>
                   {isSearching ? 'Laden...' : 'Meer laden'}
                 </button>
               ) : null}
@@ -267,13 +367,30 @@ function ImagePickerModal({ onSelect, onClose, suggestions, searchTerms, disable
                 placeholder="Zoek stockfoto's op Unsplash..."
                 value={searchQuery}
                 onChange={(e) => handleSearchInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); doSearch(searchQuery, 1); } }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); translateAndSearch(searchQuery, 1); } }}
                 autoFocus
               />
+              {translatedQuery && translatedQuery !== searchQuery ? (
+                <p className="is-translated-msg">Zoekresultaten voor &lsquo;{translatedQuery}&rsquo;</p>
+              ) : null}
+              {/* Standard filter chips */}
+              <div className="is-chips">
+                {STANDARD_FILTERS.map((filter) => (
+                  <button
+                    key={filter.nl}
+                    type="button"
+                    className={`is-chip is-chip-standard${searchQuery === filter.en ? ' active' : ''}`}
+                    onClick={() => handleStandardFilter(filter)}
+                  >
+                    {filter.nl}
+                  </button>
+                ))}
+              </div>
+              {/* AI-suggested chips */}
               {displayTerms.length > 0 ? (
                 <div className="is-chips">
                   {displayTerms.map((term) => (
-                    <button key={term} type="button" className={`is-chip${searchQuery === term ? ' active' : ''}`} onClick={() => { setSearchQuery(term); doSearch(term, 1); }}>
+                    <button key={term} type="button" className={`is-chip${searchQuery === term ? ' active' : ''}`} onClick={() => { setSearchQuery(term); setTranslatedQuery(''); doSearch(term, 1); }}>
                       {term}
                     </button>
                   ))}
@@ -337,13 +454,23 @@ function ImagePickerModal({ onSelect, onClose, suggestions, searchTerms, disable
               ) : (
                 <div className="is-lib-grid">
                   {(libraryQuery.data?.items || []).map((item) => (
-                    <button key={item.id} type="button" className="is-suggestion" onClick={() => handleLibrarySelect(item)} disabled={isBusy}>
-                      <img src={item.path} alt={item.alt_text || item.filename} loading="lazy" />
-                      <div className="is-suggestion-overlay"><span>Kies</span></div>
-                      <span className={`is-lib-badge ${item.source}`}>
-                        {item.source === 'upload' ? 'foto' : item.source === 'unsplash' ? 'unsplash' : 'gegenereerd'}
-                      </span>
-                    </button>
+                    <div key={item.id} className="is-suggestion-wrap">
+                      <button type="button" className="is-suggestion" onClick={() => handleLibrarySelect(item)} disabled={isBusy}>
+                        <img src={item.path} alt={item.alt_text || item.filename} loading="lazy" />
+                        <div className="is-suggestion-overlay"><span>Kies</span></div>
+                        <span className={`is-lib-badge ${item.source}`}>
+                          {item.source === 'upload' ? 'foto' : item.source === 'unsplash' ? 'unsplash' : 'gegenereerd'}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className="is-star-btn"
+                        onClick={(e) => { e.stopPropagation(); favoriteMutation.mutate(item.id); }}
+                        aria-label={item.is_favorite ? 'Verwijder uit favorieten' : 'Toevoegen aan favorieten'}
+                      >
+                        <StarIcon filled={item.is_favorite} />
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -369,6 +496,14 @@ function ImagePickerModal({ onSelect, onClose, suggestions, searchTerms, disable
         </div>
       </div>
     </div>
+  );
+}
+
+function StarIcon({ filled }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill={filled ? '#f59e0b' : 'none'} stroke={filled ? '#f59e0b' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
   );
 }
 
