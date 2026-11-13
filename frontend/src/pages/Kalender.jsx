@@ -730,6 +730,18 @@ export default function Kalender() {
     },
   });
 
+  // Unschedule mutation
+  const unschedule = useMutation({
+    mutationFn: (draftId) => api(`/calendar/drafts/${draftId}/unschedule`, {
+      method: 'POST',
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.calendar.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.drafts.all });
+      setSelected(null);
+    },
+  });
+
   const handleViewChange = useCallback((newView) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
@@ -842,9 +854,7 @@ export default function Kalender() {
             setDropTarget({ draftId: item.id, date: item.when || new Date() });
           }}
           onCancel={() => {
-            // Cancel = schedule to null (unschedule)
-            manualSchedule.mutate({ draftId: selected.id, scheduledFor: null });
-            setSelected(null);
+            unschedule.mutate(selected.id);
           }}
           canManage={canManage}
         />

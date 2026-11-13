@@ -54,8 +54,7 @@ router.get('/', async (req, res, next) => {
     const { data: marketingPubs, error: pubError } = await supabase
       .from('publications')
       .select('id, draft_id, channel, status, scheduled_for, published_at')
-      .or(`scheduled_for.gte.${fromIso},published_at.gte.${fromIso}`)
-      .or(`scheduled_for.lte.${toIso},published_at.lte.${toIso}`)
+      .or(`and(scheduled_for.gte.${fromIso},scheduled_for.lte.${toIso}),and(published_at.gte.${fromIso},published_at.lte.${toIso})`)
       .in('status', ['scheduled', 'success'])
       .limit(500);
 
@@ -372,6 +371,44 @@ router.post('/drafts/:id/schedule', requireRole(['owner', 'manager']), async (re
 });
 
 // --------------------------------------------------------------------------
+// POST /drafts/:id/unschedule
+// Remove the scheduled_for from a draft (cancel scheduling).
+// --------------------------------------------------------------------------
+router.post('/drafts/:id/unschedule', requireRole(['owner', 'manager']), async (req, res, next) => {
+  try {
+    const draftId = req.params.id;
+
+    const { data: draft, error: draftError } = await supabase
+      .from('drafts')
+      .select('id, type, status, form_data, scheduled_for')
+      .eq('id', draftId)
+      .maybeSingle();
+
+    if (draftError) throw draftError;
+    if (!draft) return res.status(404).json({ error: 'Concept niet gevonden.' });
+
+    if (!draft.scheduled_for) {
+      return res.status(400).json({ error: 'Dit concept is niet ingepland.' });
+    }
+
+    const { error: updateError } = await supabase
+      .from('drafts')
+      .update({ scheduled_for: null, updated_at: new Date().toISOString() })
+      .eq('id', draftId);
+
+    if (updateError) throw updateError;
+
+    logActivity(req.user.id, req.user.name, 'draft.unscheduled', 'draft', draftId, {
+      title: getDraftTitle(draft.form_data),
+    });
+
+    return res.json({ success: true });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// --------------------------------------------------------------------------
 // POST /drafts/:id/smart-schedule
 // Find next available slot using patternScheduler, skip conflicts.
 // --------------------------------------------------------------------------
@@ -450,15 +487,31 @@ router.post('/drafts/:id/smart-schedule', requireRole(['owner', 'manager']), asy
           const scheduledForIso = candidate.toISOString();
 
           if (draft.type === 'marketing-post') {
-            // For marketing-posts, the channel from the pattern should match form_data.kanalen
-            // Delegate to the schedule handler by making the request internally
-            // For simplicity, set scheduled_for and let the publish flow handle it
+            // Marketing-posts: set scheduled_for on draft, same as vacatures/blogs.
+            // The actual Buffer publish happens via scheduledActivation cron or manual publish.
+            // eslint-disable-next-line no-await-in-loop
+            const { error: mktError } = await supabase
+              .from('drafts')
+              .update({
+                scheduled_for: scheduledForIso,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', draftId);
+
+            if (mktError) throw mktError;
+
+            logActivity(req.user.id, req.user.name, 'draft.smart-scheduled', 'draft', draftId, {
+              title: getDraftTitle(draft.form_data),
+              scheduledFor: scheduledForIso,
+              channel: pattern.channel,
+              patternName: pattern.name,
+            });
+
             return res.json({
               scheduledFor: scheduledForIso,
               channel: pattern.channel,
               patternName: pattern.name,
               skippedSlots,
-              _note: 'Gebruik POST /calendar/drafts/:id/schedule om daadwerkelijk in te plannen.',
             });
           }
 

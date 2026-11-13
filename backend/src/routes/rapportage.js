@@ -542,7 +542,8 @@ router.put('/email-config', requireRole(['owner']), async (req, res, next) => {
 
     const { error } = await supabase
       .from('email_report_config')
-      .update({
+      .upsert({
+        id: EMAIL_CONFIG_ID,
         frequency: freq,
         recipients: recips,
         include_sections: sections,
@@ -550,8 +551,7 @@ router.put('/email-config', requireRole(['owner']), async (req, res, next) => {
         day_of_month: dayOfMonth,
         hour: hourVal,
         updated_at: new Date().toISOString(),
-      })
-      .eq('id', EMAIL_CONFIG_ID);
+      }, { onConflict: 'id' });
 
     if (error) throw error;
 
