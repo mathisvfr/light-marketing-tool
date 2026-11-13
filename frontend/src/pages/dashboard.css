@@ -13,8 +13,8 @@
 
 /* ---- Welcome / Onboarding ---- */
 .dash-welcome {
-  background: linear-gradient(135deg, #fef2f2 0%, #fff 100%);
-  border: 1px solid #fecaca;
+  background: linear-gradient(135deg, var(--color-error-soft) 0%, var(--color-bg) 100%);
+  border: 1px solid var(--color-error-border);
   border-radius: 12px;
   padding: 1.25rem;
 }
@@ -148,7 +148,7 @@
   display: flex;
   gap: 1.5rem;
   padding: 0.65rem 1rem;
-  background: #f8fafc;
+  background: var(--grey-50);
   border: 1px solid var(--color-border);
   border-radius: 10px;
 }
@@ -162,7 +162,7 @@
 .dash-team-num {
   font-size: 1.25rem;
   font-weight: 800;
-  color: #334155;
+  color: var(--color-text);
 }
 
 .dash-team-label {
@@ -198,7 +198,7 @@
   margin: 0;
   padding: 1.5rem 0;
   text-align: center;
-  color: #94a3b8;
+  color: var(--color-text-subtle);
   font-size: 0.88rem;
 }
 
@@ -215,13 +215,13 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.55rem 0.65rem;
-  border: 1px solid #f1f5f9;
+  border: 1px solid var(--grey-100);
   border-radius: 8px;
   transition: border-color 0.15s;
 }
 
 .dash-queue-item:hover {
-  border-color: #cbd5e1;
+  border-color: var(--color-border-strong);
 }
 
 .dash-queue-info {
@@ -263,7 +263,7 @@
   display: flex;
   gap: 0.65rem;
   padding: 0.45rem 0;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--grey-100);
   align-items: flex-start;
 }
 
@@ -275,7 +275,7 @@
   width: 0.45rem;
   height: 0.45rem;
   border-radius: 50%;
-  background: #cbd5e1;
+  background: var(--color-border-strong);
   margin-top: 0.45rem;
   flex-shrink: 0;
 }
@@ -290,7 +290,7 @@
 .dash-activity-meta {
   display: block;
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--color-text-subtle);
 }
 
 /* ---- Buttons ---- */
@@ -310,7 +310,7 @@
 
 .dash-btn.primary {
   background: var(--color-primary, #d32f2f);
-  color: #fff;
+  color: var(--color-bg);
   border: 1.5px solid var(--color-primary, #d32f2f);
 }
 
@@ -321,23 +321,23 @@
 .dash-btn.ghost {
   background: transparent;
   color: var(--color-text-muted);
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--color-border);
 }
 
 .dash-btn.ghost:hover:not(:disabled) {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: var(--grey-50);
+  border-color: var(--color-border-strong);
 }
 
 .dash-btn.outline {
   background: var(--color-bg);
-  color: #334155;
-  border: 1.5px solid #cbd5e1;
+  color: var(--color-text);
+  border: 1.5px solid var(--color-border-strong);
 }
 
 .dash-btn.outline:hover {
-  background: #f8fafc;
-  border-color: #94a3b8;
+  background: var(--grey-50);
+  border-color: var(--color-text-subtle);
 }
 
 .dash-btn:disabled {
@@ -371,11 +371,11 @@
 
 .dash-channel-name {
   font-weight: 600;
-  color: #334155;
+  color: var(--color-text);
 }
 
 .dash-channel-updated {
-  color: #94a3b8;
+  color: var(--color-text-subtle);
   font-size: 0.75rem;
 }
 
@@ -384,7 +384,7 @@
   margin: 0;
   padding: 0.5rem 0;
   font-size: 0.88rem;
-  color: #334155;
+  color: var(--color-text);
 }
 
 /* ---- Team table (owner/manager weekly overview) ---- */
@@ -402,17 +402,17 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
   padding: 0.45rem 0.65rem;
-  border-bottom: 2px solid #e2e8f0;
+  border-bottom: 2px solid var(--color-border);
 }
 
 .dash-team-table td {
   padding: 0.45rem 0.65rem;
-  border-bottom: 1px solid #f1f5f9;
-  color: #334155;
+  border-bottom: 1px solid var(--grey-100);
+  color: var(--color-text);
 }
 
 .dash-team-table tbody tr:hover {
-  background: #f8fafc;
+  background: var(--grey-50);
 }
 
 /* ---- Responsive ---- */
