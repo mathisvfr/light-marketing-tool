@@ -1,10 +1,10 @@
 /* ============================================================
-   Light Personeelsdiensten — Responsive breakpoints
+   Light Personeelsdiensten — Breakpoint scale
+   CSS cannot use custom properties in media queries, so this
+   file documents the canonical values. All @media queries in
+   the codebase MUST use one of these three values.
    ============================================================
-   CSS media queries cannot use custom properties, so breakpoints
-   are documented here as the single source of truth.
-
-   Mobile:  max-width: 640px   (phones)
-   Tablet:  max-width: 768px   (tablets, small laptops)
-   Desktop: max-width: 1024px  (desktop adjustments)
+   --bp-sm:  640px    (mobile — phones)
+   --bp-md:  768px    (tablet — iPad portrait, small laptops)
+   --bp-lg:  1024px   (desktop — full sidebar visible)
    ============================================================ */
