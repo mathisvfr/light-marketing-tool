@@ -12,6 +12,7 @@ const { triggerBlogTranslations } = require('../services/blogTranslations');
 const { triggerVacatureTranslations } = require('../services/vacatureTranslations');
 const { logActivity } = require('../services/activityLog');
 const { enrichFormDataWithUrls, UrlFetchError } = require('../services/url-fetcher');
+const { getDraftTitle: getDraftTitleShared } = require('../services/draftUtils');
 
 // Whitelist of safe HTML tags for blog content. Strips scripts, iframes,
 // event handlers, and anything not explicitly listed.
@@ -219,12 +220,10 @@ function formatDraftForResponse(draft) {
 }
 
 function getDraftTitle(formData) {
-  if (!formData || typeof formData !== 'object') {
-    return 'Zonder titel';
-  }
-
-  return formData.functietitel || formData.onderwerp || formData.title || formData.titel || 'Zonder titel';
+  return getDraftTitleShared(formData);
 }
+
+const ARCHIVABLE = new Set(['draft', 'pending_approval', 'approved', 'rejected']);
 
 router.get('/', async (req, res, next) => {
   try {
@@ -240,8 +239,13 @@ router.get('/', async (req, res, next) => {
       .order('created_at', { ascending: false })
       .limit(500);
 
+    const includeArchived = req.query?.includeArchived === 'true';
+
     if (statusFilter !== 'all') {
       query = query.eq('status', statusFilter);
+    } else if (includeArchived) {
+      // Show queue-relevant statuses + archived
+      query = query.in('status', ['draft', 'pending_approval', 'approved', 'rejected', 'archived']);
     } else {
       // Default: only queue-relevant statuses; published/actief/expired belong in Gepubliceerd
       query = query.in('status', ['draft', 'pending_approval', 'approved', 'rejected']);
@@ -1640,6 +1644,238 @@ router.delete('/:id', async (req, res, next) => {
     }
 
     return res.status(204).send();
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// Archive a draft (manual). Only archivable statuses allowed.
+router.post('/:id/archive', async (req, res, next) => {
+  try {
+    if (!['owner', 'manager', 'recruiter'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
+    }
+
+    const draftId = req.params.id;
+
+    const { data: draft, error: draftError } = await supabase
+      .from('drafts')
+      .select('id, status, created_by, form_data')
+      .eq('id', draftId)
+      .maybeSingle();
+
+    if (draftError) throw draftError;
+    if (!draft) return res.status(404).json({ error: 'Concept niet gevonden.' });
+
+    // Recruiter may only archive own drafts
+    if (req.user.role === 'recruiter' && draft.created_by !== req.user.id) {
+      return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
+    }
+
+    if (!ARCHIVABLE.has(draft.status)) {
+      return res.status(400).json({
+        error: 'Alleen concepten, ingediende, goedgekeurde of afgewezen items kunnen gearchiveerd worden.',
+      });
+    }
+
+    const now = new Date().toISOString();
+    const { data: updated, error: updateError } = await supabase
+      .from('drafts')
+      .update({
+        pre_archive_status: draft.status,
+        status: 'archived',
+        archived_at: now,
+        updated_at: now,
+      })
+      .eq('id', draft.id)
+      .select('id, status, archived_at')
+      .single();
+
+    if (updateError) throw updateError;
+
+    logActivity(req.user.id, req.user.name, 'draft.archived', 'draft', draft.id, { title: getDraftTitle(draft.form_data) });
+
+    return res.json({ draft: updated });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// Unarchive (de-archive) a draft back to its pre-archive status.
+router.post('/:id/unarchive', async (req, res, next) => {
+  try {
+    if (!['owner', 'manager', 'recruiter'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
+    }
+
+    const draftId = req.params.id;
+
+    const { data: draft, error: draftError } = await supabase
+      .from('drafts')
+      .select('id, status, pre_archive_status, created_by, form_data')
+      .eq('id', draftId)
+      .maybeSingle();
+
+    if (draftError) throw draftError;
+    if (!draft) return res.status(404).json({ error: 'Concept niet gevonden.' });
+
+    if (req.user.role === 'recruiter' && draft.created_by !== req.user.id) {
+      return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
+    }
+
+    if (draft.status !== 'archived') {
+      return res.status(400).json({ error: 'Alleen gearchiveerde items kunnen teruggezet worden.' });
+    }
+
+    const restoreStatus = draft.pre_archive_status || 'draft';
+    const now = new Date().toISOString();
+
+    const { data: updated, error: updateError } = await supabase
+      .from('drafts')
+      .update({
+        status: restoreStatus,
+        pre_archive_status: null,
+        archived_at: null,
+        updated_at: now,
+      })
+      .eq('id', draft.id)
+      .select('id, status')
+      .single();
+
+    if (updateError) throw updateError;
+
+    logActivity(req.user.id, req.user.name, 'draft.unarchived', 'draft', draft.id, { title: getDraftTitle(draft.form_data) });
+
+    return res.json({ draft: updated });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// Bulk archive (owner/manager only)
+router.post('/bulk-archive', async (req, res, next) => {
+  try {
+    if (!['owner', 'manager'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
+    }
+
+    const parsed = parseBulkIds(req.body?.ids);
+    if (parsed.error) {
+      return res.status(400).json({ error: parsed.error });
+    }
+
+    const { data: drafts, error: fetchError } = await supabase
+      .from('drafts')
+      .select('id, status, form_data')
+      .in('id', parsed.ids);
+
+    if (fetchError) throw fetchError;
+
+    const skipped = [];
+    const eligible = [];
+
+    for (const draft of drafts || []) {
+      if (ARCHIVABLE.has(draft.status)) {
+        eligible.push(draft);
+      } else {
+        skipped.push({ id: draft.id, reason: 'wrong-status', status: draft.status });
+      }
+    }
+
+    const notFound = parsed.ids
+      .filter((id) => !(drafts || []).some((d) => d.id === id))
+      .map((id) => ({ id, reason: 'not-found' }));
+
+    const now = new Date().toISOString();
+    const succeeded = [];
+
+    for (const draft of eligible) {
+      const { error } = await supabase
+        .from('drafts')
+        .update({
+          pre_archive_status: draft.status,
+          status: 'archived',
+          archived_at: now,
+          updated_at: now,
+        })
+        .eq('id', draft.id);
+
+      if (error) throw error;
+      succeeded.push({ id: draft.id, status: 'archived' });
+      logActivity(req.user.id, req.user.name, 'draft.archived', 'draft', draft.id, { title: getDraftTitle(draft.form_data) });
+    }
+
+    return res.json({
+      succeededCount: succeeded.length,
+      skippedCount: skipped.length + notFound.length,
+      succeeded,
+      skipped: [...skipped, ...notFound],
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// Bulk unarchive (owner/manager only)
+router.post('/bulk-unarchive', async (req, res, next) => {
+  try {
+    if (!['owner', 'manager'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
+    }
+
+    const parsed = parseBulkIds(req.body?.ids);
+    if (parsed.error) {
+      return res.status(400).json({ error: parsed.error });
+    }
+
+    const { data: drafts, error: fetchError } = await supabase
+      .from('drafts')
+      .select('id, status, pre_archive_status, form_data')
+      .in('id', parsed.ids);
+
+    if (fetchError) throw fetchError;
+
+    const skipped = [];
+    const eligible = [];
+
+    for (const draft of drafts || []) {
+      if (draft.status === 'archived') {
+        eligible.push(draft);
+      } else {
+        skipped.push({ id: draft.id, reason: 'wrong-status', status: draft.status });
+      }
+    }
+
+    const notFound = parsed.ids
+      .filter((id) => !(drafts || []).some((d) => d.id === id))
+      .map((id) => ({ id, reason: 'not-found' }));
+
+    const now = new Date().toISOString();
+    const succeeded = [];
+
+    for (const draft of eligible) {
+      const restoreStatus = draft.pre_archive_status || 'draft';
+      const { error } = await supabase
+        .from('drafts')
+        .update({
+          status: restoreStatus,
+          pre_archive_status: null,
+          archived_at: null,
+          updated_at: now,
+        })
+        .eq('id', draft.id);
+
+      if (error) throw error;
+      succeeded.push({ id: draft.id, status: restoreStatus });
+      logActivity(req.user.id, req.user.name, 'draft.unarchived', 'draft', draft.id, { title: getDraftTitle(draft.form_data) });
+    }
+
+    return res.json({
+      succeededCount: succeeded.length,
+      skippedCount: skipped.length + notFound.length,
+      succeeded,
+      skipped: [...skipped, ...notFound],
+    });
   } catch (error) {
     return next(error);
   }

@@ -168,22 +168,33 @@ export default function ContentWachtrij() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [authorFilter, setAuthorFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [error, setError] = useState('');
   const [confirm, setConfirm] = useState(null);
   const [viewDraftId, setViewDraftId] = useState(null);
 
   const draftsQuery = useQuery({
-    queryKey: ['drafts-queue', statusFilter, typeFilter, authorFilter],
+    queryKey: ['drafts-queue', statusFilter, typeFilter, authorFilter, showArchived],
     queryFn: () => {
       const params = new URLSearchParams({
         status: statusFilter,
         type: typeFilter,
         auteur: authorFilter,
       });
+      if (showArchived && statusFilter === 'all') {
+        params.set('includeArchived', 'true');
+      }
 
       return api(`/drafts?${params.toString()}`);
     },
+  });
+
+  // Count of archived items for the toggle label
+  const archivedCountQuery = useQuery({
+    queryKey: ['drafts-queue-archived-count'],
+    queryFn: () => api('/drafts?status=archived'),
+    select: (data) => data?.drafts?.length || 0,
   });
 
   // ── Optimistic update pattern ────────────────────────────────────
@@ -304,6 +315,71 @@ export default function ContentWachtrij() {
   const bulkPublishMutation = useMutation({
     mutationFn: (ids) => api('/publish/bulk', { method: 'POST', body: JSON.stringify({ ids }) }),
     onSettled: () => queryClient.invalidateQueries({ queryKey: queueKey }),
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: (id) => api(`/drafts/${id}/archive`, { method: 'POST' }),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queueKey });
+      const previous = queryClient.getQueryData(queueKey);
+      queryClient.setQueryData(queueKey, (old) => {
+        if (!old?.drafts) return old;
+        return {
+          ...old,
+          drafts: old.drafts.map((d) =>
+            d.id === id ? { ...d, status: 'archived', _optimistic: true } : d,
+          ),
+        };
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(queueKey, context.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queueKey });
+      queryClient.invalidateQueries({ queryKey: ['drafts-queue-archived-count'] });
+    },
+  });
+
+  const unarchiveMutation = useMutation({
+    mutationFn: (id) => api(`/drafts/${id}/unarchive`, { method: 'POST' }),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queueKey });
+      const previous = queryClient.getQueryData(queueKey);
+      queryClient.setQueryData(queueKey, (old) => {
+        if (!old?.drafts) return old;
+        return {
+          ...old,
+          drafts: old.drafts.map((d) =>
+            d.id === id ? { ...d, status: 'draft', _optimistic: true } : d,
+          ),
+        };
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(queueKey, context.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queueKey });
+      queryClient.invalidateQueries({ queryKey: ['drafts-queue-archived-count'] });
+    },
+  });
+
+  const bulkArchiveMutation = useMutation({
+    mutationFn: (ids) => api('/drafts/bulk-archive', { method: 'POST', body: JSON.stringify({ ids }) }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queueKey });
+      queryClient.invalidateQueries({ queryKey: ['drafts-queue-archived-count'] });
+    },
+  });
+  const bulkUnarchiveMutation = useMutation({
+    mutationFn: (ids) => api('/drafts/bulk-unarchive', { method: 'POST', body: JSON.stringify({ ids }) }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queueKey });
+      queryClient.invalidateQueries({ queryKey: ['drafts-queue-archived-count'] });
+    },
   });
 
   const allDrafts = useMemo(() => draftsQuery.data?.drafts || [], [draftsQuery.data]);
@@ -447,6 +523,32 @@ export default function ContentWachtrij() {
     });
   }
 
+  async function handleArchive(id) {
+    setError('');
+    try {
+      await archiveMutation.mutateAsync(id);
+    } catch (err) {
+      setError(err.message || 'Archiveren mislukt.');
+    }
+  }
+
+  async function handleUnarchive(id) {
+    setError('');
+    try {
+      await unarchiveMutation.mutateAsync(id);
+    } catch (err) {
+      setError(err.message || 'Terugzetten mislukt.');
+    }
+  }
+
+  async function handleBulkArchive() {
+    await runBulk(bulkArchiveMutation, 'gearchiveerd', 'Bulk archiveren mislukt.');
+  }
+
+  async function handleBulkUnarchive() {
+    await runBulk(bulkUnarchiveMutation, 'teruggezet', 'Bulk terugzetten mislukt.');
+  }
+
   async function handleDuplicate(id) {
     setError('');
     try {
@@ -574,7 +676,11 @@ export default function ContentWachtrij() {
     bulkDeleteMutation.isPending ||
     bulkExpireMutation.isPending ||
     bulkPublishMutation.isPending ||
-    publishSingleMutation.isPending;
+    publishSingleMutation.isPending ||
+    archiveMutation.isPending ||
+    unarchiveMutation.isPending ||
+    bulkArchiveMutation.isPending ||
+    bulkUnarchiveMutation.isPending;
 
   const selectionStatusLabel = selectionStatus ? getSharedStatusLabel(selectionStatus) : '';
 
@@ -589,6 +695,7 @@ export default function ContentWachtrij() {
             <option value="pending_approval">Wacht op goedkeuring</option>
             <option value="approved">Goedgekeurd</option>
             <option value="rejected">Afgewezen</option>
+            <option value="archived">Gearchiveerd</option>
           </select>
         </label>
 
@@ -598,6 +705,7 @@ export default function ContentWachtrij() {
             <option value="all">Alle types</option>
             <option value="vacature">Vacature</option>
             <option value="marketing">Marketing</option>
+            <option value="blog">Blog</option>
           </select>
         </label>
 
@@ -621,6 +729,15 @@ export default function ContentWachtrij() {
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Titel of auteur..."
           />
+        </label>
+
+        <label className="queue-archive-toggle">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => setShowArchived(e.target.checked)}
+          />
+          Toon gearchiveerd ({archivedCountQuery.data ?? 0})
         </label>
       </div>
 
@@ -656,6 +773,18 @@ export default function ContentWachtrij() {
           {selectionStatus === 'actief' ? (
             <button type="button" onClick={handleBulkExpire} disabled={isMutating}>
               Sluiten
+            </button>
+          ) : null}
+
+          {['draft', 'pending_approval', 'approved', 'rejected'].includes(selectionStatus) ? (
+            <button type="button" onClick={handleBulkArchive} disabled={isMutating}>
+              Archiveren
+            </button>
+          ) : null}
+
+          {selectionStatus === 'archived' ? (
+            <button type="button" onClick={handleBulkUnarchive} disabled={isMutating}>
+              Terugzetten
             </button>
           ) : null}
 
@@ -716,8 +845,15 @@ export default function ContentWachtrij() {
 
                 const canDuplicate = isOwner || isRecruiterOwnDraft;
 
+                const isArchived = draft.status === 'archived';
+                const rowStyle = draft._optimistic
+                  ? { opacity: 0.6, transition: 'opacity 0.3s' }
+                  : isArchived
+                  ? { opacity: 0.55 }
+                  : undefined;
+
                 return (
-                  <tr key={draft.id} style={draft._optimistic ? { opacity: 0.6, transition: 'opacity 0.3s' } : undefined}>
+                  <tr key={draft.id} style={rowStyle}>
                     {(role === 'owner' || role === 'manager') ? (
                       <td>
                         <input
@@ -789,14 +925,36 @@ export default function ContentWachtrij() {
                                 Afwijzen
                               </button>
                             )}
-                            <button
-                              type="button"
-                              className="btn-secondary btn-sm"
-                              disabled={isMutating}
-                              onClick={() => handleEdit(draft)}
-                            >
-                              Bewerken
-                            </button>
+                            {!isArchived && (
+                              <button
+                                type="button"
+                                className="btn-secondary btn-sm"
+                                disabled={isMutating}
+                                onClick={() => handleEdit(draft)}
+                              >
+                                Bewerken
+                              </button>
+                            )}
+                            {['draft', 'pending_approval', 'approved', 'rejected'].includes(draft.status) && (
+                              <button
+                                type="button"
+                                className="btn-ghost btn-sm"
+                                disabled={isMutating}
+                                onClick={() => handleArchive(draft.id)}
+                              >
+                                Archiveren
+                              </button>
+                            )}
+                            {isArchived && (
+                              <button
+                                type="button"
+                                className="btn-secondary btn-sm"
+                                disabled={isMutating}
+                                onClick={() => handleUnarchive(draft.id)}
+                              >
+                                Terugzetten
+                              </button>
+                            )}
                             <button
                               type="button"
                               className="btn-danger btn-sm"
@@ -810,14 +968,36 @@ export default function ContentWachtrij() {
 
                         {isRecruiterOwnDraft ? (
                           <>
-                            <button
-                              type="button"
-                              className="btn-secondary btn-sm"
-                              disabled={isMutating}
-                              onClick={() => handleEdit(draft)}
-                            >
-                              Bewerken
-                            </button>
+                            {!isArchived && (
+                              <button
+                                type="button"
+                                className="btn-secondary btn-sm"
+                                disabled={isMutating}
+                                onClick={() => handleEdit(draft)}
+                              >
+                                Bewerken
+                              </button>
+                            )}
+                            {['draft', 'pending_approval', 'approved', 'rejected'].includes(draft.status) && (
+                              <button
+                                type="button"
+                                className="btn-ghost btn-sm"
+                                disabled={isMutating}
+                                onClick={() => handleArchive(draft.id)}
+                              >
+                                Archiveren
+                              </button>
+                            )}
+                            {isArchived && (
+                              <button
+                                type="button"
+                                className="btn-secondary btn-sm"
+                                disabled={isMutating}
+                                onClick={() => handleUnarchive(draft.id)}
+                              >
+                                Terugzetten
+                              </button>
+                            )}
                             <button
                               type="button"
                               className="btn-danger btn-sm"

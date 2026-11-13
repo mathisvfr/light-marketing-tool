@@ -39,11 +39,14 @@ const profileRoutes = require('./routes/profile');
 const activityRoutes = require('./routes/activity');
 const notificationsRoutes = require('./routes/notifications');
 const websiteTextsRoutes = require('./routes/website-texts');
+const calendarRoutes = require('./routes/calendar');
 const { requireAuth } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/errorHandler');
 const { startCleanupSchedule } = require('./services/cleanup');
 const bufferSync = require('./services/bufferSync');
 const metricsCron = require('./services/metrics');
+const { startAutoArchiveSchedule } = require('./services/autoArchive');
+const { startScheduledActivation } = require('./services/scheduledActivation');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -266,6 +269,7 @@ app.use('/api/profile', requireAuth, profileRoutes);
 app.use('/api/activity', requireAuth, activityRoutes);
 app.use('/api/notifications', requireAuth, notificationsRoutes);
 app.use('/api/website-texts', requireAuth, websiteTextsRoutes);
+app.use('/api/calendar', requireAuth, calendarRoutes);
 
 app.use(errorHandler);
 
@@ -289,6 +293,12 @@ if (require.main === module) {
 
   // Nightly metrics snapshots at 03:00 Amsterdam time (DB counts + Buffer engagement).
   metricsCron.startCron();
+
+  // Daily auto-archive of stale draft/rejected items (14d warning, 21d archive).
+  startAutoArchiveSchedule();
+
+  // Every 60s: activate approved drafts whose scheduled_for has passed.
+  startScheduledActivation();
 }
 
 module.exports = app;

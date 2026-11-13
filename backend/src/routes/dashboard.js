@@ -6,22 +6,9 @@ const { getAllCredentialStatuses } = require('../services/integrations');
 const { notifyAfterCommit } = require('../services/notifications');
 const { validateVacatureForApproval } = require('../services/vacatureValidation');
 const { logActivity } = require('../services/activityLog');
+const { getDraftTitle } = require('../services/draftUtils');
 
 const router = express.Router();
-
-function getDraftTitle(formData) {
-  if (!formData || typeof formData !== 'object') {
-    return 'Zonder titel';
-  }
-
-  return (
-    formData.functietitel ||
-    formData.onderwerp ||
-    formData.title ||
-    formData.titel ||
-    'Zonder titel'
-  );
-}
 
 function formatActivityTitle(item) {
   const name = item.user_name || 'Iemand';
@@ -35,6 +22,8 @@ function formatActivityTitle(item) {
     case 'draft.published': return `${name} heeft '${title}' gepubliceerd`;
     case 'draft.expired': return `${name} heeft '${title}' gesloten`;
     case 'draft.deleted': return `${name} heeft '${title}' verwijderd`;
+    case 'draft.archived': return `${name} heeft '${title}' gearchiveerd`;
+    case 'draft.unarchived': return `${name} heeft '${title}' teruggezet uit archief`;
     case 'user.created': return `${name} heeft ${item.metadata?.newUserName || 'een gebruiker'} toegevoegd`;
     case 'user.role_changed': return `${name} heeft een rol gewijzigd naar ${item.metadata?.newRole}`;
     case 'user.deleted': return `${name} heeft een gebruiker verwijderd`;
@@ -53,6 +42,7 @@ function actionToStatus(action) {
     'draft.submitted': 'pending_approval',
     'draft.created': 'draft',
     'draft.expired': 'expired',
+    'draft.archived': 'archived',
   };
   return map[action] || null;
 }

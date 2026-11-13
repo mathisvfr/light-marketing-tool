@@ -22,6 +22,7 @@ const LIFECYCLE_STATUSES = {
   published:        { label: 'Gepubliceerd', tone: 'live',     order: 5 },
   expired:          { label: 'Verlopen',    tone: 'muted',     order: 6 },
   rejected:         { label: 'Afgewezen',   tone: 'danger',    order: 7 },
+  archived:         { label: 'Gearchiveerd', tone: 'muted',   order: 8 },
 };
 
 // Kanaal-publicatiestatus (Buffer + eigen website). Separate namespace omdat

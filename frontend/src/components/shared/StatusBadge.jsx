@@ -16,6 +16,7 @@ const FALLBACK_META = {
   published:        { label: 'Gepubliceerd', tone: 'live' },
   expired:          { label: 'Verlopen',    tone: 'muted' },
   rejected:         { label: 'Afgewezen',   tone: 'danger' },
+  archived:         { label: 'Gearchiveerd', tone: 'muted' },
 };
 
 // Icoontjes blijven in de component (zijn puur UI, hoeven niet uit de
@@ -28,6 +29,7 @@ const LIFECYCLE_ICONS = {
   published: '●',
   expired: '◌',
   rejected: '✕',
+  archived: '⊘',
 };
 
 export default function StatusBadge({ status, className = '' }) {

@@ -217,6 +217,24 @@
   font-weight: 600;
 }
 
+.queue-archive-toggle {
+  display: flex;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #64748b);
+  white-space: nowrap;
+  align-self: flex-end;
+  min-width: auto !important;
+  flex: 0 !important;
+}
+
+.queue-archive-toggle input[type="checkbox"] {
+  margin: 0;
+}
+
 @media (max-width: 1024px) {
   .queue-filters {
     flex-direction: column;
