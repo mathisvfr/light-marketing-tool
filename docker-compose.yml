@@ -1,3 +1,10 @@
+# Shared log rotation — prevents unbounded log growth on VPS
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   backend:
     build:
@@ -16,6 +23,13 @@ services:
     expose:
       - "3001"
     restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
 
   frontend:
     build:
@@ -24,6 +38,12 @@ services:
     expose:
       - "80"
     restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   umami-db:
     image: postgres:16-alpine
@@ -36,23 +56,39 @@ services:
     expose:
       - "5432"
     restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U umami"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   umami:
     image: ghcr.io/umami-software/umami:postgresql-latest
     depends_on:
-      - umami-db
+      umami-db:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@umami-db:5432/umami
       TRACKER_SCRIPT_NAME: script.js
     expose:
       - "3000"
     restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
 
   caddy:
     image: caddy:2.8-alpine
     depends_on:
-      - backend
-      - frontend
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
     env_file:
       - .env
     ports:
@@ -63,6 +99,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     restart: unless-stopped
+    logging: *default-logging
 
 volumes:
   caddy_data:
