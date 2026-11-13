@@ -111,7 +111,49 @@ Stop:
 - Do not commit `.env` to git.
 - Keep service role key only on backend side.
 
-## 9) Multiposter XML feed koppelen (uitvoering)
+## 9) Database backups
+
+### Setup (eenmalig)
+
+1. Stel `DATABASE_URL` in in `.env` (zie `.env.example` voor het formaat).
+   Dit is de **directe Postgres** connection string, niet de REST URL.
+   Vind deze in Supabase Dashboard > Settings > Database > Connection string (URI).
+2. Installeer `postgresql-client` op de VPS: `sudo apt install postgresql-client`
+3. Maak de backups-directory: `mkdir -p backups && echo 'backups/' >> .gitignore`
+4. Voeg een cron-job toe:
+
+   ```bash
+   crontab -e
+   0 3 * * * /opt/light-marketing-tool/scripts/backup-db.sh >> /var/log/backup-db.log 2>&1
+   ```
+
+### Schema
+
+- **Frequentie:** dagelijks om 03:00 UTC
+- **Retentie:** 14 dagen (oudere backups worden automatisch verwijderd)
+- **Schijflimiet:** backup stopt als de map > 500MB is (stel `MAX_DIR_MB` in om te wijzigen)
+- **Formaat:** `light-db-YYYYMMDD-HHMMSS.sql.gz` (gzip-compressed SQL)
+
+### Handmatige backup
+
+```bash
+./scripts/backup-db.sh
+```
+
+### Restore
+
+```bash
+gunzip -c backups/light-db-20261113-030000.sql.gz | psql "$DATABASE_URL"
+```
+
+### Maandelijkse restore-test
+
+- [ ] Download de nieuwste backup naar een lokale machine
+- [ ] Herstel naar een test-database (NIET productie)
+- [ ] Verifieer dat tabellen en data aanwezig zijn
+- [ ] Noteer de datum in dit bestand: Laatst getest: ____
+
+## 10) Multiposter XML feed koppelen (uitvoering)
 
 Doel: vacatures met status `actief` inladen in Multiposter via de publieke XML feed.
 

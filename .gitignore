@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# Database backups
+backups/
+
 # Dependencies
 node_modules/
 
