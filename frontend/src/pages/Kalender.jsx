@@ -565,8 +565,7 @@ function ScheduleCard({ draft, onSmartSchedule, onManualSchedule }) {
           />
           <button
             type="button"
-            className="kal-side-btn kal-side-btn-primary"
-            style={{ width: '100%' }}
+            className="kal-side-btn kal-side-btn-primary kal-side-btn-full"
             disabled={!dateTime}
             onClick={() => {
               onManualSchedule(draft.id, new Date(dateTime).toISOString());
