@@ -18,19 +18,17 @@
 .generation-progress-fill {
   position: absolute;
   height: 100%;
-  width: 30%;
+  width: 100%;
   background: var(--color-primary, #d32f2f);
   border-radius: 2px;
-  animation: generation-progress-slide 1.4s ease-in-out infinite;
+  animation: generation-progress-pulse 2s ease-in-out infinite;
+  transform-origin: left;
 }
 
-@keyframes generation-progress-slide {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(400%);
-  }
+@keyframes generation-progress-pulse {
+  0%   { opacity: 0.3; transform: scaleX(0.3); }
+  50%  { opacity: 1;   transform: scaleX(0.7); }
+  100% { opacity: 0.3; transform: scaleX(0.3); }
 }
 
 .generation-progress-label {
