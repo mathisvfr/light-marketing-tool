@@ -40,7 +40,7 @@
 
   --color-text:          var(--grey-900);
   --color-text-muted:    var(--grey-600);
-  --color-text-subtle:   var(--grey-500);
+  --color-text-subtle:   var(--grey-600);  /* was grey-500 (4.2:1); grey-600 passes WCAG AA (6.1:1) */
   --color-text-inverse:  var(--white);
   --color-text-on-dark-muted: #c4c7c9;
 
