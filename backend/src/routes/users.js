@@ -58,6 +58,10 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ error: 'Naam, e-mail en tijdelijk wachtwoord zijn verplicht.' });
     }
 
+    if (temporaryPassword.length < 8) {
+      return res.status(400).json({ error: 'Wachtwoord moet minimaal 8 tekens bevatten.' });
+    }
+
     if (!ALLOWED_ROLES.includes(role)) {
       return res.status(400).json({ error: 'Ongeldige rol gekozen.' });
     }
