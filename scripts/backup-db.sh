@@ -44,15 +44,11 @@ if [ "${CURRENT_MB:-0}" -ge "$MAX_DIR_MB" ]; then
   exit 1
 fi
 
-# ---- Dump (via Docker — no host pg_dump needed) ----
+# ---- Dump (via Docker postgres:17-alpine for version match) ----
 echo "[INFO] Starting backup to $BACKUP_FILE"
-if command -v pg_dump >/dev/null 2>&1; then
-  pg_dump "$DATABASE_URL" --no-owner --no-privileges --clean --if-exists | gzip > "$BACKUP_FILE"
-else
-  docker exec light-marketing-tool-umami-db-1 \
-    pg_dump "$DATABASE_URL" --no-owner --no-privileges --clean --if-exists \
-    | gzip > "$BACKUP_FILE"
-fi
+docker run --rm --network host postgres:17-alpine \
+  pg_dump "$DATABASE_URL" --no-owner --no-privileges --clean --if-exists \
+  | gzip > "$BACKUP_FILE"
 
 FILE_SIZE=$(du -h "$BACKUP_FILE" | awk '{print $1}')
 echo "[OK] Backup complete: $BACKUP_FILE ($FILE_SIZE)"
