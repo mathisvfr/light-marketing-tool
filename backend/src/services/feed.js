@@ -64,17 +64,33 @@ function pickFirst(...values) {
 
 /**
  * Derive a startdatum when the form doesn't have one.
- * For 'Onbepaalde tijd' contracts we use today's date (platforms accept this
- * as "per direct"). For temporary contracts the date should have been provided
- * by the user — if it's missing we return '' and let diagnostics flag it.
+ * For 'Onbepaalde tijd' AND 'Bepaalde tijd' contracts we use today's date
+ * when missing. Werk.nl requires startdatum for all non-permanent contracts.
  */
 function deriveStartdatum(formData) {
   const explicit = pickFirst(formData.startdatum);
   if (explicit) return formatDate(explicit);
 
-  const contract = pickFirst(formData.contract);
-  if (contract === 'Onbepaalde tijd') {
-    return formatDate(new Date().toISOString());
+  // Always provide a start date — Werk.nl rejects without one
+  return formatDate(new Date().toISOString());
+}
+
+/**
+ * Derive an einddatum for "Bepaalde tijd" contracts when missing.
+ * Werk.nl requires einddatum for temporary contracts. Default: 6 months
+ * from startdatum (standard uitzend Fase A duration).
+ */
+function deriveEinddatum(formData, startdatum) {
+  const explicit = pickFirst(formData.einddatum);
+  if (explicit) return formatDate(explicit);
+
+  const contract = normalizeContract(pickFirst(formData.contract));
+  if (contract === 'Bepaalde tijd' && startdatum) {
+    const start = new Date(startdatum);
+    if (!Number.isNaN(start.getTime())) {
+      start.setMonth(start.getMonth() + 6);
+      return formatDate(start.toISOString());
+    }
   }
   return '';
 }
@@ -118,7 +134,7 @@ function mapDraftToFeedItem(draft) {
     uren: pickFirst(draft.uren, formData.uren, formData.urenPerWeek, ''),
     contract,
     startdatum: deriveStartdatum(formData),
-    einddatum: formatDate(pickFirst(formData.einddatum, '')),
+    einddatum: deriveEinddatum(formData, deriveStartdatum(formData)),
     sollicitatieUrl: pickFirst(draft.sollicitatie_url, formData.sollicitatie_url, ''),
     email: pickFirst(formData.email, 'vacature@lightpersoneelsdiensten.nl'),
   };
