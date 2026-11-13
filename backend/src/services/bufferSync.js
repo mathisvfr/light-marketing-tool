@@ -10,18 +10,27 @@ const { notifyAfterCommit } = require('./notifications');
 // spacing, hard cap of 50 rows per pass. Buffer schema has no bulk-by-id
 // query as of probe (see plan risks section for the probe result).
 
-const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://api.buffer.com';
+const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://graph.buffer.com';
 const POLL_MAX_ROWS = 3;
 const POLL_SPACING_MS = 3000;
 
 async function getBufferToken() {
-  // Prefer stored credential; fall back to env. Matches buffer.js pattern.
-  const { data } = await supabase
-    .from('channel_credentials')
-    .select('access_token')
-    .eq('provider', 'buffer')
-    .maybeSingle();
-  return data?.access_token || process.env.BUFFER_API_KEY || null;
+  // Prefer env var (this is what's actually configured in production)
+  if (process.env.BUFFER_API_KEY) {
+    return process.env.BUFFER_API_KEY;
+  }
+  // Fall back to DB lookup, handling table-not-found gracefully
+  try {
+    const { data } = await supabase
+      .from('channel_credentials')
+      .select('access_token')
+      .eq('provider', 'buffer')
+      .maybeSingle();
+    return data?.access_token || null;
+  } catch {
+    // Table may not exist — that's fine, return null
+    return null;
+  }
 }
 
 async function fetchBufferPost(externalId, token) {
@@ -225,10 +234,10 @@ async function runOnce() {
 }
 
 // Called by index.js at boot. No-op in tests via NODE_ENV check.
-// Run twice a day (every 12h). Only checks scheduled posts (max 3 per run).
-// Budget: ~6 calls/day from sync + ~10/night from snapshotter = ~500/month,
-// leaving ~2500/month for actual posting, retries, and channel refreshes.
-function startCron(intervalMs = 12 * 60 * 60 * 1000) {
+// Run every 2 hours. Only checks scheduled posts (max 3 per run).
+// Budget: ~36 calls/day from sync + ~10/night from snapshotter = ~1400/month,
+// leaving ~1600/month for actual posting, retries, and channel refreshes.
+function startCron(intervalMs = 2 * 60 * 60 * 1000) {
   if (process.env.NODE_ENV === 'test') return null;
   const handle = setInterval(() => {
     runOnce().catch((err) => console.error('[bufferSync] pass failed:', err.message));

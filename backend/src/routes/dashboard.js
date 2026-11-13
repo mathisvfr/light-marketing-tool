@@ -530,4 +530,116 @@ router.post('/queue/:id/reject', requireRole(['owner', 'manager']), async (req, 
   }
 });
 
+// GET /api/dashboard/analytics — chart data computed from drafts + publications
+router.get('/analytics', async (_req, res, next) => {
+  try {
+    const now = new Date();
+    const eightWeeksAgo = new Date(now.getTime() - 8 * 7 * 24 * 60 * 60 * 1000);
+
+    // 1. Content per week (last 8 weeks): drafts created per week, grouped by type
+    const { data: recentDrafts, error: e1 } = await supabase
+      .from('drafts')
+      .select('type, created_at')
+      .gte('created_at', eightWeeksAgo.toISOString());
+    if (e1) throw e1;
+
+    // Build week buckets for last 8 weeks
+    const weekLabels = [];
+    for (let i = 7; i >= 0; i--) {
+      const weekStart = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+      const day = weekStart.getDay();
+      const diffToMonday = day === 0 ? 6 : day - 1;
+      const monday = new Date(weekStart);
+      monday.setDate(weekStart.getDate() - diffToMonday);
+      monday.setHours(0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      const fmt = (d) => `${d.getDate()} ${d.toLocaleString('nl-NL', { month: 'short' })}`;
+      weekLabels.push({
+        label: `${fmt(monday)} - ${fmt(sunday)}`,
+        start: monday.getTime(),
+        end: sunday.getTime() + 24 * 60 * 60 * 1000,
+      });
+    }
+
+    const contentPerWeek = weekLabels.map((w) => {
+      const bucket = { week: w.label, vacature: 0, marketing: 0 };
+      for (const d of recentDrafts || []) {
+        const t = new Date(d.created_at).getTime();
+        if (t >= w.start && t < w.end) {
+          if (d.type === 'vacature') bucket.vacature++;
+          else bucket.marketing++;
+        }
+      }
+      return bucket;
+    });
+
+    // 2. Publications by channel: count grouped by channel and status
+    const { data: pubs, error: e2 } = await supabase
+      .from('publications')
+      .select('channel, status');
+    if (e2) throw e2;
+
+    const channelMap = {};
+    for (const p of pubs || []) {
+      const ch = p.channel || 'onbekend';
+      if (!channelMap[ch]) channelMap[ch] = { channel: ch, success: 0, pending: 0, failed: 0 };
+      if (p.status === 'success') channelMap[ch].success++;
+      else if (p.status === 'failed') channelMap[ch].failed++;
+      else channelMap[ch].pending++;
+    }
+    const publicationsByChannel = Object.values(channelMap);
+
+    // 3. Status distribution: count of drafts grouped by status
+    const { data: allDrafts, error: e3 } = await supabase
+      .from('drafts')
+      .select('status');
+    if (e3) throw e3;
+
+    const statusCounts = {};
+    for (const d of allDrafts || []) {
+      const s = d.status || 'draft';
+      statusCounts[s] = (statusCounts[s] || 0) + 1;
+    }
+    const statusDistribution = Object.entries(statusCounts).map(([status, count]) => ({
+      status,
+      count,
+    }));
+
+    // 4. Active vacatures over time (last 8 weeks) — approximate via drafts
+    //    with type=vacature and status=actief, bucketed by updated_at
+    const { data: activeVacs, error: e4 } = await supabase
+      .from('drafts')
+      .select('updated_at')
+      .eq('type', 'vacature')
+      .eq('status', 'actief');
+    if (e4) throw e4;
+
+    // Current active count (used as baseline)
+    const currentActive = (activeVacs || []).length;
+
+    const activeVacaturesPerWeek = weekLabels.map((w, idx) => {
+      // Simple approach: show current count for the last week,
+      // and count how many were updated before each week's end
+      if (idx === weekLabels.length - 1) {
+        return { week: w.label, count: currentActive };
+      }
+      const count = (activeVacs || []).filter((v) => {
+        const t = new Date(v.updated_at).getTime();
+        return t < w.end;
+      }).length;
+      return { week: w.label, count };
+    });
+
+    return res.json({
+      contentPerWeek,
+      publicationsByChannel,
+      statusDistribution,
+      activeVacaturesPerWeek,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 module.exports = router;

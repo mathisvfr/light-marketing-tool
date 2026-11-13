@@ -304,6 +304,16 @@ router.get('/', async (req, res, next) => {
       userName: r.user_name || '',
     }));
 
+    // Build hints for missing configuration so zero metrics are explained
+    const hints = [];
+    if (!process.env.BUFFER_API_KEY) {
+      hints.push('Buffer metrics niet beschikbaar — controleer BUFFER_API_KEY in .env');
+    }
+    const hasBufferEngagement = allTime.total.likes > 0 || allTime.total.reach > 0 || allTime.total.comments > 0;
+    if (process.env.BUFFER_API_KEY && !hasBufferEngagement && (pubRowsAll || []).length > 0) {
+      hints.push('Buffer engagement is 0 voor alle posts — mogelijk is de API-key ongeldig of heeft Buffer nog geen metrics beschikbaar');
+    }
+
     return res.json({
       vacatures: {
         actief: actiefCount,
@@ -345,6 +355,7 @@ router.get('/', async (req, res, next) => {
           website: latestWebsite,
         },
         range: { from: from.toISOString(), to: to.toISOString() },
+        hints,
       },
     });
   } catch (error) {

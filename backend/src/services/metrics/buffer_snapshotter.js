@@ -8,18 +8,28 @@
 const { supabase } = require('../../db/client');
 const { upsertMetric } = require('./upsert');
 
-const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://api.buffer.com';
+const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://graph.buffer.com';
 // Buffer Free tier: 3000 requests / 30 days. Keep nightly snapshot minimal.
 const MAX_API_CALLS = 15;
 const CALL_SPACING_MS = 3000;
 
 async function getBufferToken() {
-  const { data } = await supabase
-    .from('channel_credentials')
-    .select('access_token')
-    .eq('provider', 'buffer')
-    .maybeSingle();
-  return data?.access_token || process.env.BUFFER_API_KEY || null;
+  // Prefer env var (this is what's actually configured in production)
+  if (process.env.BUFFER_API_KEY) {
+    return process.env.BUFFER_API_KEY;
+  }
+  // Fall back to DB lookup, handling table-not-found gracefully
+  try {
+    const { data } = await supabase
+      .from('channel_credentials')
+      .select('access_token')
+      .eq('provider', 'buffer')
+      .maybeSingle();
+    return data?.access_token || null;
+  } catch {
+    // Table may not exist — that's fine, return null
+    return null;
+  }
 }
 
 async function fetchPostMetrics(externalId, token) {

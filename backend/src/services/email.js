@@ -75,21 +75,34 @@ async function gatherReportData() {
     .gte('published_at', prevMonthStart.toISOString())
     .lt('published_at', monthStart.toISOString());
 
+  // Normalize Buffer metrics keys (stored as Reactions/Impressions/etc, need likes/reach/etc)
+  function normalize(raw) {
+    if (!raw || typeof raw !== 'object') return { likes: 0, comments: 0, reach: 0, clicks: 0, shares: 0 };
+    const m = {};
+    for (const [k, v] of Object.entries(raw)) { m[k.toLowerCase()] = Number(v) || 0; }
+    return {
+      likes: m.reactions || m.likes || 0,
+      comments: m.comments || 0,
+      reach: m.impressions || m.reach || 0,
+      clicks: m.clicks || 0,
+      shares: m.shares || 0,
+    };
+  }
+
   function sumMetrics(pubs) {
     const total = { likes: 0, comments: 0, reach: 0, clicks: 0, shares: 0 };
     const byChannel = {};
     for (const p of pubs || []) {
-      const m = p.metrics;
-      if (!m) continue;
-      total.likes += m.likes || 0;
-      total.comments += m.comments || 0;
-      total.reach += m.reach || 0;
-      total.clicks += m.clicks || 0;
-      total.shares += m.shares || 0;
+      const m = normalize(p.metrics);
+      total.likes += m.likes;
+      total.comments += m.comments;
+      total.reach += m.reach;
+      total.clicks += m.clicks;
+      total.shares += m.shares;
       const ch = p.channel || 'unknown';
       if (!byChannel[ch]) byChannel[ch] = { reach: 0, engagement: 0 };
-      byChannel[ch].reach += m.reach || 0;
-      byChannel[ch].engagement += (m.likes || 0) + (m.comments || 0) + (m.shares || 0);
+      byChannel[ch].reach += m.reach;
+      byChannel[ch].engagement += m.likes + m.comments + m.shares;
     }
     return { total, byChannel };
   }
@@ -109,10 +122,11 @@ async function gatherReportData() {
   if (bestPubs && bestPubs.length > 0) {
     let maxReach = -1;
     for (const p of bestPubs) {
-      const reach = p.metrics?.reach || 0;
+      const nm = normalize(p.metrics);
+      const reach = nm.reach;
       if (reach > maxReach) {
         maxReach = reach;
-        bestPost = p;
+        bestPost = { ...p, metrics: nm };
       }
     }
     if (bestPost) {
@@ -145,8 +159,15 @@ async function gatherReportData() {
 
   const monthName = now.toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' });
 
+  // Hints for missing configuration
+  const hints = [];
+  if (!process.env.BUFFER_API_KEY) {
+    hints.push('Buffer metrics niet beschikbaar — controleer BUFFER_API_KEY');
+  }
+
   return {
     monthName,
+    hints,
     vacatures: {
       actief: actiefCount || 0,
       nieuw: nieuwCount || 0,

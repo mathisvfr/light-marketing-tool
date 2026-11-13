@@ -141,6 +141,21 @@ function startCron() {
   // Also check immediately at startup (in case we're starting at the right time)
   setTimeout(() => checkEmailReportSchedule(), 10_000);
 
+  // Run db_snapshotter shortly after startup so metrics are populated immediately,
+  // not waiting until 03:00. Only db_snapshotter (no external service dependencies).
+  setTimeout(async () => {
+    try {
+      const result = await dbSnapshotter.run();
+      if (process.env.NODE_ENV === 'production') {
+        console.log(`[metrics-cron] startup db_snapshotter: ${result.written} written, ${result.errors.length} errors`);
+      }
+    } catch (err) {
+      if (process.env.NODE_ENV === 'production') {
+        console.log(`[metrics-cron] startup db_snapshotter failed: ${err.message}`);
+      }
+    }
+  }, 30_000);
+
   return scheduleNext();
 }
 
