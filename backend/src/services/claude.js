@@ -449,7 +449,7 @@ async function generate(type, formData) {
 
 // Ondersteunde talen voor kandidaat-vertalingen (naast NL). Uitbreiden = één
 // entry toevoegen én de prompt bijwerken.
-const SUPPORTED_TRANSLATION_LANGS = ['pl', 'bg', 'sk', 'lv', 'en', 'hu', 'ro', 'uk'];
+const SUPPORTED_TRANSLATION_LANGS = ['pl', 'bg', 'sk', 'lv', 'en', 'hu', 'ro', 'uk', 'ru'];
 
 async function translateVacature(lang, formData, nlContent) {
   if (!SUPPORTED_TRANSLATION_LANGS.includes(lang)) {
@@ -474,7 +474,8 @@ async function translateVacature(lang, formData, nlContent) {
     },
   };
 
-  const result = await callAnthropicExpectingJson(systemBlocks, payload);
+  // Haiku is 5-10x sneller en prima voor vertalingen
+  const result = await callAnthropicExpectingJson(systemBlocks, payload, { model: TRANSLATION_MODEL });
   return sanitizeGenerated({
     titel: result?.titel || '',
     omschrijving: result?.omschrijving || '',
@@ -486,7 +487,7 @@ async function translateVacature(lang, formData, nlContent) {
 
 // Ondersteunde talen voor blog-vertalingen — alle website-locales behalve NL.
 // Bevat de en es die vacatures niet hebben (website ondersteunt meer locales).
-const SUPPORTED_BLOG_TRANSLATION_LANGS = ['pl', 'bg', 'sk', 'lv', 'en', 'hu', 'ro', 'uk', 'de', 'es'];
+const SUPPORTED_BLOG_TRANSLATION_LANGS = ['pl', 'bg', 'sk', 'lv', 'en', 'hu', 'ro', 'uk', 'de', 'es', 'ru'];
 
 // Goedkoper model voor vertalingen — Haiku is snel, goedkoop en prima voor
 // rechtstreekse vertalingen. Gemini Flash wordt al automatisch gebruikt als
@@ -529,14 +530,45 @@ async function translateBlog(lang, formData, nlContent) {
   });
 }
 
+// Feedback loop: haal recente goedgekeurde posts op waar de criticus faalde
+// (owner override) zodat de criticus leert wat wél acceptabel is.
+async function loadCriticusFeedback() {
+  try {
+    // Posts die de criticus afkeurde maar die toch goedgekeurd/gepubliceerd zijn
+    const { data: overrides } = await supabase
+      .from('drafts')
+      .select('type, criticus_notes')
+      .eq('criticus_passed', false)
+      .in('status', ['approved', 'actief', 'published'])
+      .order('updated_at', { ascending: false })
+      .limit(5);
+
+    if (!overrides?.length) return '';
+
+    const examples = overrides.map((d) =>
+      `- [${d.type}] Criticus zei: "${d.criticus_notes}" → Owner keurde toch goed`
+    ).join('\n');
+
+    return [
+      '\n# Feedback van eerdere beoordelingen',
+      'De volgende criticus-opmerkingen bleken onterecht (owner heeft de content toch goedgekeurd). Leer hiervan en herhaal deze fouten niet:',
+      examples,
+    ].join('\n');
+  } catch {
+    return '';
+  }
+}
+
 async function criticus(input) {
-  const [brandKnowledge, brandContext, criticusPrompt] = await Promise.all([
+  const [brandKnowledge, brandContext, criticusPrompt, feedback] = await Promise.all([
     loadBrandKnowledge(),
     loadBrandContext(),
     loadPrompt('criticus'),
+    loadCriticusFeedback(),
   ]);
 
-  const systemBlocks = buildSystemBlocks(brandKnowledge, brandContext, criticusPrompt);
+  const promptWithFeedback = feedback ? criticusPrompt + feedback : criticusPrompt;
+  const systemBlocks = buildSystemBlocks(brandKnowledge, brandContext, promptWithFeedback);
   const result = await callAnthropicExpectingJson(systemBlocks, input);
 
   const notes = String(result?.notes || '').trim();

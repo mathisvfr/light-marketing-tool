@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useAutosaveDraft, formatSavedAt } from '../hooks/useAutosaveDraft';
 import useImagePath from '../hooks/useImagePath';
@@ -14,6 +14,7 @@ import StatusBadge from '../components/shared/StatusBadge';
 import StatusStrip from '../components/shared/StatusStrip';
 import StickyFooter from '../components/shared/StickyFooter';
 import FormMessage from '../components/shared/FormMessage';
+import ConfirmDialog from '../components/shared/ConfirmDialog';
 import '../components/shared/status-strip.css';
 import '../components/shared/toast.css';
 import '../components/shared/draft-common.css';
@@ -54,9 +55,11 @@ export default function MarketingPost() {
   const [imageSearchTerms, setImageSearchTerms] = useState([]);
   const [activeTab, setActiveTab] = useState('linkedin_post');
   const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [steeringNotes, setSteeringNotes] = useState('');
   // Per-channel scheduling: { linkedin: '2026-09-19T09:00', instagram: '2026-09-19T13:00' }
   const [channelSchedule, setChannelSchedule] = useState({});
@@ -443,11 +446,18 @@ export default function MarketingPost() {
     }
   }
 
+  const deleteMutation = useMutation({
+    mutationFn: () => api(`/drafts/${draftId}`, { method: 'DELETE' }),
+    onSuccess: () => navigate('/content-wachtrij'),
+    onError: (err) => setError(err.message || 'Verwijderen mislukt.'),
+  });
+
   const isBusy =
     isGenerating ||
     saveMutation.isPending ||
     submitForApprovalMutation.isPending ||
-    publishMutation.isPending;
+    publishMutation.isPending ||
+    deleteMutation.isPending;
 
   if (existingDraftQuery.isLoading) {
     return <p>Concept wordt geladen...</p>;
@@ -750,12 +760,29 @@ export default function MarketingPost() {
                 {hasAnySchedule ? 'Goedkeuren en inplannen' : 'Goedkeuren en publiceren'}
               </button>
             ) : null}
+
+            {draftId && (
+              <button type="button" className="btn-destructive" onClick={() => setConfirmDelete(true)} disabled={isBusy}>
+                Verwijderen
+              </button>
+            )}
           </StickyFooter>
         </section>
       ) : null}
 
       {error ? <FormMessage variant="error">{error}</FormMessage> : null}
       {success ? <FormMessage variant="success">{success}</FormMessage> : null}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title="Concept verwijderen"
+          message="Dit concept wordt permanent verwijderd. Dit kan niet ongedaan gemaakt worden."
+          confirmLabel="Verwijderen"
+          variant="destructive"
+          onConfirm={() => deleteMutation.mutate()}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
     </div>
   );
 }

@@ -36,6 +36,8 @@ export default function Gebruikers() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [confirm, setConfirm] = useState(null);
+  const [resetPasswordTarget, setResetPasswordTarget] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
 
   const usersQuery = useQuery({
     queryKey: ['users-list'],
@@ -72,6 +74,19 @@ export default function Gebruikers() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-list'] });
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: ({ userId, newPassword: pw }) =>
+      api(`/users/${userId}/password`, {
+        method: 'PUT',
+        body: JSON.stringify({ newPassword: pw }),
+      }),
+    onSuccess: () => {
+      setResetPasswordTarget(null);
+      setNewPassword('');
+      setSuccess('Wachtwoord is gewijzigd.');
     },
   });
 
@@ -181,7 +196,14 @@ export default function Gebruikers() {
                     </select>
                   </td>
                   <td>{formatDate(item.createdAt)}</td>
-                  <td>
+                  <td className="users-actions">
+                    <button
+                      type="button"
+                      onClick={() => { setResetPasswordTarget(item); setNewPassword(''); setError(''); }}
+                      disabled={updateRoleMutation.isPending || deleteUserMutation.isPending}
+                    >
+                      Wachtwoord
+                    </button>
                     <button
                       type="button"
                       onClick={() => requestDeleteUser(item.id, item.name)}
@@ -264,6 +286,50 @@ export default function Gebruikers() {
             </button>
             <button type="submit" className="confirm-btn-primary" disabled={createMutation.isPending}>
               Opslaan
+            </button>
+          </ModalFooter>
+        </form>
+      </Modal>
+
+      <Modal
+        open={Boolean(resetPasswordTarget)}
+        onOpenChange={(next) => { if (!next) { setResetPasswordTarget(null); setNewPassword(''); } }}
+        title={`Wachtwoord resetten — ${resetPasswordTarget?.name || ''}`}
+        size="sm"
+      >
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setError('');
+            try {
+              await resetPasswordMutation.mutateAsync({ userId: resetPasswordTarget.id, newPassword });
+            } catch (err) {
+              setError(err.message || 'Wachtwoord resetten mislukt.');
+            }
+          }}
+          className="users-modal-form"
+        >
+          <label>
+            Nieuw wachtwoord (minimaal 8 tekens)
+            <input
+              type="text"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              minLength={8}
+              required
+              autoFocus
+            />
+          </label>
+          <ModalFooter>
+            <button
+              type="button"
+              className="confirm-btn-cancel"
+              onClick={() => { setResetPasswordTarget(null); setNewPassword(''); }}
+            >
+              Annuleren
+            </button>
+            <button type="submit" className="confirm-btn-primary" disabled={resetPasswordMutation.isPending}>
+              Wachtwoord wijzigen
             </button>
           </ModalFooter>
         </form>

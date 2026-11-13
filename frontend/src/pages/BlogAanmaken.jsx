@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useAutosaveDraft, formatSavedAt } from '../hooks/useAutosaveDraft';
 import useImagePath from '../hooks/useImagePath';
@@ -10,6 +10,7 @@ import GenerationProgress from '../components/shared/GenerationProgress';
 import StatusStrip from '../components/shared/StatusStrip';
 import StickyFooter from '../components/shared/StickyFooter';
 import FormMessage from '../components/shared/FormMessage';
+import ConfirmDialog from '../components/shared/ConfirmDialog';
 import '../components/shared/status-strip.css';
 import RichTextEditor from '../components/shared/RichTextEditor';
 import ImageSection from '../components/shared/ImageSection';
@@ -19,8 +20,8 @@ import './blog-aanmaken.css';
 const BLOG_CATEGORIES = [
   'Uitzendwerk',
   'Bedrijfsnieuws',
-  'Voor werkzoekenden',
-  'Voor opdrachtgevers',
+  'Werkzoekenden',
+  'Opdrachtgevers',
   'Wet- en regelgeving',
 ];
 
@@ -36,6 +37,7 @@ const BLOG_TRANSLATION_LANGS = [
   { code: 'uk', label: 'Oekraïens', native: 'Українська' },
   { code: 'de', label: 'Duits', native: 'Deutsch' },
   { code: 'es', label: 'Spaans', native: 'Español' },
+  { code: 'ru', label: 'Russisch', native: 'Русский' },
 ];
 
 const DEFAULT_FORM = {
@@ -52,9 +54,11 @@ export default function BlogAanmaken() {
   const [draftId, setDraftId] = useState(draftIdParam);
   const [formEdits, setFormEdits] = useState({});
   const [contentEdits, setContentEdits] = useState({});
+  const navigate = useNavigate();
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [unsplashSuggestions, setUnsplashSuggestions] = useState([]);
   const [imageSearchTerms, setImageSearchTerms] = useState([]);
 
@@ -276,8 +280,14 @@ export default function BlogAanmaken() {
     }
   }
 
+  const deleteMutation = useMutation({
+    mutationFn: () => api(`/drafts/${draftId}`, { method: 'DELETE' }),
+    onSuccess: () => navigate('/content-wachtrij'),
+    onError: (err) => setError(err.message || 'Verwijderen mislukt.'),
+  });
+
   const isBusy =
-    isGenerating || saveMutation.isPending || submitForApprovalMutation.isPending || publishMutation.isPending;
+    isGenerating || saveMutation.isPending || submitForApprovalMutation.isPending || publishMutation.isPending || deleteMutation.isPending;
 
   if (existingDraftQuery.isLoading) return <p>Concept wordt geladen...</p>;
 
@@ -474,8 +484,25 @@ export default function BlogAanmaken() {
                 Goedkeuren en publiceren
               </button>
             )}
+
+            {draftId && (
+              <button type="button" className="btn-destructive" onClick={() => setConfirmDelete(true)} disabled={isBusy}>
+                Verwijderen
+              </button>
+            )}
           </StickyFooter>
         </div>
+      )}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title="Concept verwijderen"
+          message="Dit concept wordt permanent verwijderd. Dit kan niet ongedaan gemaakt worden."
+          confirmLabel="Verwijderen"
+          variant="destructive"
+          onConfirm={() => deleteMutation.mutate()}
+          onCancel={() => setConfirmDelete(false)}
+        />
       )}
     </div>
   );

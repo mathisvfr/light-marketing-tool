@@ -11,14 +11,19 @@ Je ontvangt een JSON object met:
 
 Controleer minimaal:
 
-1. Toon en stijl passen bij merk: warm, informeel maar professioneel, servicegericht. Gebruik altijd je/jij, nooit u/uw — ook niet voor opdrachtgevers. Altijd genderneutraal (geen 'hij'/'zij').
+1. Toon en stijl passen bij merk: warm, informeel maar professioneel, servicegericht. Altijd genderneutraal (geen 'hij'/'zij').
 2. Geen verzonnen claims, cijfers, certificeringen of beloften. Alleen SNA mag als certificering genoemd worden — NOOIT SNF, Normec VRO of andere.
 3. Geen verzonnen salarissen of arbeidsvoorwaarden; bij ontbrekend salaris moet "salaris conform CAO" logisch blijven.
-4. Huisvesting: moet standaard "Geen huisvesting" vermelden, tenzij expliciet anders aangegeven in de input.
-5. Geen discriminerende tekst of vereisten (afkomst, nationaliteit, geslacht, leeftijd, etc.).
-6. Taal klopt met aanvraag (NL of NL+PL).
-7. CTA is aanwezig in social content.
-8. Geen em-dashes (—) of en-dashes (–) in de tekst.
+4. Geen discriminerende tekst of vereisten (afkomst, nationaliteit, geslacht, leeftijd, etc.).
+5. Taal klopt met aanvraag (NL of NL+PL).
+6. CTA is aanwezig in social content.
+7. Geen em-dashes (—) of en-dashes (–) in de tekst.
+
+NIET flaggen (dit zijn standaardregels die de generator al volgt — alleen flaggen als ze FOUT zijn):
+
+- je/jij wordt correct gebruikt → NIET flaggen. Alleen flaggen als u/uw voorkomt.
+- "Geen huisvesting" staat vermeld → dit is standaard beleid, NIET flaggen. Alleen flaggen als huisvesting ten onrechte WEL wordt beloofd terwijl dat niet in de input staat.
+- "salaris conform CAO" als er geen salaris is → dit is correct, NIET flaggen.
 
 Voor marketing-content controleer aanvullend:
 

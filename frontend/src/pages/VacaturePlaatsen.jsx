@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useAutosaveDraft, formatSavedAt } from '../hooks/useAutosaveDraft';
 import useImagePath from '../hooks/useImagePath';
@@ -11,6 +11,7 @@ import StatusBadge from '../components/shared/StatusBadge';
 import StatusStrip from '../components/shared/StatusStrip';
 import StickyFooter from '../components/shared/StickyFooter';
 import FormMessage from '../components/shared/FormMessage';
+import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { api } from '../lib/api';
 import ImageSection from '../components/shared/ImageSection';
 import '../components/shared/status-strip.css';
@@ -69,6 +70,7 @@ const LANGUAGES = [
   { code: 'hu', label: 'Hongaars', native: 'Magyar' },
   { code: 'ro', label: 'Roemeens', native: 'Română' },
   { code: 'uk', label: 'Oekraïens', native: 'Українська' },
+  { code: 'ru', label: 'Russisch', native: 'Русский' },
 ];
 
 // Vier bewerkbare velden per taal. Voor NL komen de waarden uit vaste
@@ -150,8 +152,10 @@ export default function VacaturePlaatsen() {
       { replace: true }
     );
   }
+  const navigate = useNavigate();
   const [copiedField, setCopiedField] = useState(null); // 'nl:omschrijving' etc.
   const [isGenerating, setIsGenerating] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [unsplashSuggestions, setUnsplashSuggestions] = useState([]);
@@ -549,10 +553,17 @@ export default function VacaturePlaatsen() {
     }
   }
 
+  const deleteMutation = useMutation({
+    mutationFn: () => api(`/drafts/${draftId}`, { method: 'DELETE' }),
+    onSuccess: () => navigate('/content-wachtrij'),
+    onError: (err) => setError(err.message || 'Verwijderen mislukt.'),
+  });
+
   const isBusy =
     isGenerating ||
     saveMutation.isPending ||
-    submitForApprovalMutation.isPending;
+    submitForApprovalMutation.isPending ||
+    deleteMutation.isPending;
 
   if (existingDraftQuery.isLoading) {
     return <p>Concept wordt geladen...</p>;
@@ -1085,12 +1096,29 @@ export default function VacaturePlaatsen() {
                 Goedkeuren
               </button>
             ) : null}
+
+            {draftId && (
+              <button type="button" className="btn-destructive" onClick={() => setConfirmDelete(true)} disabled={isBusy}>
+                Verwijderen
+              </button>
+            )}
           </StickyFooter>
         </section>
       ) : null}
 
       <FormMessage variant="error">{error}</FormMessage>
       <FormMessage variant="success">{success}</FormMessage>
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title="Concept verwijderen"
+          message="Dit concept wordt permanent verwijderd. Dit kan niet ongedaan gemaakt worden."
+          confirmLabel="Verwijderen"
+          variant="destructive"
+          onConfirm={() => deleteMutation.mutate()}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
     </div>
   );
 }

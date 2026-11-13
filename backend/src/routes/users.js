@@ -162,6 +162,41 @@ router.patch('/:id/role', async (req, res, next) => {
   }
 });
 
+router.put('/:id/password', async (req, res, next) => {
+  try {
+    const userId = req.params.id;
+    const newPassword = String(req.body?.newPassword || '').trim();
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'Wachtwoord moet minimaal 8 tekens zijn.' });
+    }
+
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, name')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (userError) throw userError;
+    if (!user) return res.status(404).json({ error: 'Gebruiker niet gevonden.' });
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    const { error } = await supabase
+      .from('users')
+      .update({ password_hash: passwordHash })
+      .eq('id', userId);
+
+    if (error) throw error;
+
+    logActivity(req.user.id, req.user.name, 'user.password_reset', 'user', userId, { targetName: user.name });
+
+    return res.json({ success: true, message: 'Wachtwoord is gewijzigd.' });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 router.delete('/:id', async (req, res, next) => {
   try {
     const userId = req.params.id;
