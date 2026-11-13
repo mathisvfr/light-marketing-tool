@@ -320,27 +320,12 @@
   flex-wrap: wrap;
 }
 
-.is-action-btn {
-  padding: 7px 16px;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg);
-  border-radius: 8px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  color: var(--grey-700);
-  font-weight: 500;
-  transition: all 0.15s;
-}
-
-.is-action-btn:hover:not(:disabled) { border-color: var(--grey-900); color: var(--grey-900); }
-
-.is-action-btn.active {
+/* Buttons: uses unified .btn-* from index.css. Toggle-active override below. */
+.is-actions .btn-secondary.is-toggle-active {
   background: var(--grey-900);
   color: var(--color-bg);
   border-color: var(--grey-900);
 }
-
-.is-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Sub panels ── */
 .is-sub-panel {

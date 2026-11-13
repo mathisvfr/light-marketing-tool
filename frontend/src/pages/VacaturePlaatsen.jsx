@@ -837,7 +837,7 @@ export default function VacaturePlaatsen() {
         </section>
 
         <div className="form-actions">
-          <button type="submit" disabled={isBusy}>
+          <button type="submit" className="btn-primary btn-lg" disabled={isBusy}>
             Concept genereren
           </button>
         </div>

@@ -172,7 +172,7 @@ export default function MediaPicker({ open, onSelect, onClose }) {
           <div className="mp-actions">
             <button
               type="button"
-              className="mp-btn-secondary"
+              className="btn-secondary btn-sm"
               onClick={() => fileInputRef.current?.click()}
               disabled={isBusy}
             >
@@ -180,7 +180,7 @@ export default function MediaPicker({ open, onSelect, onClose }) {
             </button>
             <button
               type="button"
-              className="mp-btn-primary"
+              className="btn-primary btn-sm"
               onClick={() => setShowGenerateForm((v) => !v)}
               disabled={isBusy}
             >

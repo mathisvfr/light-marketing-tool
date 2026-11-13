@@ -288,13 +288,13 @@ function ImagePickerModal({ onSelect, onClose, suggestions, searchTerms, disable
 
           {/* Secondary action buttons */}
           <div className="is-actions">
-            <button type="button" className={`is-action-btn${openPanel === 'upload' ? ' active' : ''}`} onClick={() => togglePanel('upload')} disabled={isBusy}>
+            <button type="button" className={`btn-secondary btn-sm${openPanel === 'upload' ? ' is-toggle-active' : ''}`} onClick={() => togglePanel('upload')} disabled={isBusy}>
               Upload foto
             </button>
-            <button type="button" className={`is-action-btn${openPanel === 'library' ? ' active' : ''}`} onClick={() => togglePanel('library')} disabled={isBusy}>
+            <button type="button" className={`btn-secondary btn-sm${openPanel === 'library' ? ' is-toggle-active' : ''}`} onClick={() => togglePanel('library')} disabled={isBusy}>
               Bibliotheek
             </button>
-            <button type="button" className={`is-action-btn${openPanel === 'generate' ? ' active' : ''}`} onClick={() => togglePanel('generate')} disabled={isBusy}>
+            <button type="button" className={`btn-secondary btn-sm${openPanel === 'generate' ? ' is-toggle-active' : ''}`} onClick={() => togglePanel('generate')} disabled={isBusy}>
               Genereer
             </button>
           </div>

@@ -186,11 +186,31 @@ export default function ContentWachtrij() {
     },
   });
 
+  // ── Optimistic update pattern ────────────────────────────────────
+  // Show instant UI feedback while the server processes the mutation.
+  // On error, roll back to the previous cache snapshot.
+  const queueKey = ['drafts-queue'];
+
   const approveMutation = useMutation({
     mutationFn: (id) => api(`/drafts/${id}/approve`, { method: 'POST' }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['drafts-queue'] });
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queueKey });
+      const previous = queryClient.getQueryData(queueKey);
+      queryClient.setQueryData(queueKey, (old) => {
+        if (!old?.drafts) return old;
+        return {
+          ...old,
+          drafts: old.drafts.map((d) =>
+            d.id === id ? { ...d, status: 'approved', _optimistic: true } : d,
+          ),
+        };
+      });
+      return { previous };
     },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(queueKey, context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queueKey }),
   });
 
   const rejectMutation = useMutation({
@@ -199,53 +219,91 @@ export default function ContentWachtrij() {
         method: 'POST',
         body: JSON.stringify({ comment }),
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['drafts-queue'] });
+    onMutate: async ({ id }) => {
+      await queryClient.cancelQueries({ queryKey: queueKey });
+      const previous = queryClient.getQueryData(queueKey);
+      queryClient.setQueryData(queueKey, (old) => {
+        if (!old?.drafts) return old;
+        return {
+          ...old,
+          drafts: old.drafts.map((d) =>
+            d.id === id ? { ...d, status: 'rejected', _optimistic: true } : d,
+          ),
+        };
+      });
+      return { previous };
     },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(queueKey, context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queueKey }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => api(`/drafts/${id}`, { method: 'DELETE' }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['drafts-queue'] });
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queueKey });
+      const previous = queryClient.getQueryData(queueKey);
+      queryClient.setQueryData(queueKey, (old) => {
+        if (!old?.drafts) return old;
+        return { ...old, drafts: old.drafts.filter((d) => d.id !== id) };
+      });
+      return { previous };
     },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(queueKey, context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queueKey }),
   });
 
   const duplicateMutation = useMutation({
     mutationFn: (id) => api(`/drafts/${id}/duplicate`, { method: 'POST' }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['drafts-queue'] });
-    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queueKey }),
   });
 
   const publishSingleMutation = useMutation({
     mutationFn: (id) => api(`/publish/${id}`, { method: 'POST', body: JSON.stringify({}) }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['drafts-queue'] });
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queueKey });
+      const previous = queryClient.getQueryData(queueKey);
+      queryClient.setQueryData(queueKey, (old) => {
+        if (!old?.drafts) return old;
+        return {
+          ...old,
+          drafts: old.drafts.map((d) =>
+            d.id === id ? { ...d, status: 'published', _optimistic: true } : d,
+          ),
+        };
+      });
+      return { previous };
     },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(queueKey, context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queueKey }),
   });
 
   // Bulk mutations. All follow the same succeeded/skipped shape so the
   // handler code below can share result-reporting logic.
   const bulkApproveMutation = useMutation({
     mutationFn: (ids) => api('/drafts/bulk-approve', { method: 'POST', body: JSON.stringify({ ids }) }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['drafts-queue'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queueKey }),
   });
   const bulkRejectMutation = useMutation({
     mutationFn: (ids) => api('/drafts/bulk-reject', { method: 'POST', body: JSON.stringify({ ids }) }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['drafts-queue'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queueKey }),
   });
   const bulkDeleteMutation = useMutation({
     mutationFn: (ids) => api('/drafts/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['drafts-queue'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queueKey }),
   });
   const bulkExpireMutation = useMutation({
     mutationFn: (ids) => api('/drafts/bulk-expire', { method: 'POST', body: JSON.stringify({ ids }) }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['drafts-queue'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queueKey }),
   });
   const bulkPublishMutation = useMutation({
     mutationFn: (ids) => api('/publish/bulk', { method: 'POST', body: JSON.stringify({ ids }) }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['drafts-queue'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queueKey }),
   });
 
   const allDrafts = useMemo(() => draftsQuery.data?.drafts || [], [draftsQuery.data]);
@@ -659,7 +717,7 @@ export default function ContentWachtrij() {
                 const canDuplicate = isOwner || isRecruiterOwnDraft;
 
                 return (
-                  <tr key={draft.id}>
+                  <tr key={draft.id} style={draft._optimistic ? { opacity: 0.6, transition: 'opacity 0.3s' } : undefined}>
                     {(role === 'owner' || role === 'manager') ? (
                       <td>
                         <input
@@ -693,6 +751,7 @@ export default function ContentWachtrij() {
                       <div className="queue-actions">
                         <button
                           type="button"
+                          className="btn-secondary btn-sm"
                           onClick={() => setViewDraftId(draft.id)}
                         >
                           Bekijken
@@ -703,6 +762,7 @@ export default function ContentWachtrij() {
                             {['draft', 'pending_approval'].includes(draft.status) && (
                               <button
                                 type="button"
+                                className="btn-primary btn-sm"
                                 disabled={isMutating}
                                 onClick={() => handleApprove(draft)}
                               >
@@ -712,6 +772,7 @@ export default function ContentWachtrij() {
                             {draft.status === 'approved' && (draft.type === 'marketing-post' || draft.type === 'blog') && (
                               <button
                                 type="button"
+                                className="btn-primary btn-sm"
                                 disabled={isMutating}
                                 onClick={() => handlePublish(draft)}
                               >
@@ -721,6 +782,7 @@ export default function ContentWachtrij() {
                             {['draft', 'pending_approval'].includes(draft.status) && (
                               <button
                                 type="button"
+                                className="btn-ghost btn-sm"
                                 disabled={isMutating}
                                 onClick={() => handleReject(draft.id)}
                               >
@@ -729,6 +791,7 @@ export default function ContentWachtrij() {
                             )}
                             <button
                               type="button"
+                              className="btn-secondary btn-sm"
                               disabled={isMutating}
                               onClick={() => handleEdit(draft)}
                             >
@@ -736,6 +799,7 @@ export default function ContentWachtrij() {
                             </button>
                             <button
                               type="button"
+                              className="btn-danger btn-sm"
                               disabled={isMutating}
                               onClick={() => handleDelete(draft.id)}
                             >
@@ -748,6 +812,7 @@ export default function ContentWachtrij() {
                           <>
                             <button
                               type="button"
+                              className="btn-secondary btn-sm"
                               disabled={isMutating}
                               onClick={() => handleEdit(draft)}
                             >
@@ -755,6 +820,7 @@ export default function ContentWachtrij() {
                             </button>
                             <button
                               type="button"
+                              className="btn-danger btn-sm"
                               disabled={isMutating}
                               onClick={() => handleDelete(draft.id)}
                             >
@@ -766,6 +832,7 @@ export default function ContentWachtrij() {
                         {canDuplicate ? (
                           <button
                             type="button"
+                            className="btn-secondary btn-sm"
                             disabled={isMutating}
                             onClick={() => handleDuplicate(draft.id)}
                           >

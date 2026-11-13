@@ -210,7 +210,7 @@ export default function Dashboard() {
                           <>
                             <button
                               type="button"
-                              className="dash-btn primary"
+                              className="btn-primary btn-sm"
                               disabled={approveMutation.isPending || rejectMutation.isPending}
                               onClick={() => approveMutation.mutate(item.id)}
                             >
@@ -218,7 +218,7 @@ export default function Dashboard() {
                             </button>
                             <button
                               type="button"
-                              className="dash-btn ghost"
+                              className="btn-ghost btn-sm"
                               disabled={approveMutation.isPending || rejectMutation.isPending}
                               onClick={() => rejectMutation.mutate(item.id)}
                             >
@@ -226,7 +226,7 @@ export default function Dashboard() {
                             </button>
                           </>
                         ) : (
-                          <Link to={editPath} className="dash-btn outline">Bewerken</Link>
+                          <Link to={editPath} className="btn-secondary btn-sm">Bewerken</Link>
                         )}
                       </div>
                     </div>

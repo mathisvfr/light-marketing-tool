@@ -293,57 +293,7 @@
   color: var(--color-text-subtle);
 }
 
-/* ---- Buttons ---- */
-.dash-btn {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 7px;
-  padding: 0.3rem 0.6rem;
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  text-decoration: none;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.dash-btn.primary {
-  background: var(--color-primary, #d32f2f);
-  color: var(--color-bg);
-  border: 1.5px solid var(--color-primary, #d32f2f);
-}
-
-.dash-btn.primary:hover:not(:disabled) {
-  background: var(--color-primary-hover, #b91c1c);
-}
-
-.dash-btn.ghost {
-  background: transparent;
-  color: var(--color-text-muted);
-  border: 1.5px solid var(--color-border);
-}
-
-.dash-btn.ghost:hover:not(:disabled) {
-  background: var(--grey-50);
-  border-color: var(--color-border-strong);
-}
-
-.dash-btn.outline {
-  background: var(--color-bg);
-  color: var(--color-text);
-  border: 1.5px solid var(--color-border-strong);
-}
-
-.dash-btn.outline:hover {
-  background: var(--grey-50);
-  border-color: var(--color-text-subtle);
-}
-
-.dash-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+/* Buttons: uses unified .btn-* from index.css */
 
 /* ---- Channel health ---- */
 .dash-channels {

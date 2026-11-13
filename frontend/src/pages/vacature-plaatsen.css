@@ -356,35 +356,19 @@
   margin-top: var(--space-4);
 }
 
-.form-actions button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border-radius: var(--radius-sm);
-  padding: 12px 22px;
+/* Buttons: uses unified .btn-* from index.css.
+   The form submit button uses .btn-primary.btn-lg with
+   page-specific overrides for display weight. */
+.form-actions .btn-primary {
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 15px;
-  cursor: pointer;
-  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
-  white-space: nowrap;
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  border: 2px solid transparent;
+  padding: 12px 22px;
+  border-radius: var(--radius-sm);
+  border-width: 2px;
 }
-
-.form-actions button:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+.form-actions .btn-primary:hover:not(:disabled) {
   box-shadow: var(--shadow-red);
-}
-
-.form-actions button:active:not(:disabled) {
-  background: var(--color-primary-press);
-}
-
-.form-actions button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .preview-tabs {

@@ -103,42 +103,7 @@
   gap: 0.35rem;
 }
 
-.queue-actions button {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 7px;
-  padding: 0.3rem 0.6rem;
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background var(--dur-fast, 0.15s), border-color var(--dur-fast, 0.15s);
-  white-space: nowrap;
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  border: 1.5px solid var(--color-primary);
-}
-
-.queue-actions button:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-}
-
-.queue-actions button:last-child {
-  background: var(--color-bg);
-  color: var(--color-primary);
-  border-color: var(--color-border, #e2e8f0);
-}
-
-.queue-actions button:last-child:hover:not(:disabled) {
-  background: var(--light-red-50, #fef2f2);
-  border-color: var(--color-primary);
-}
-
-.queue-actions button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+/* Buttons: uses unified .btn-* from index.css */
 
 /* Klikbare titel in de tabel */
 .queue-title-link {
@@ -330,7 +295,7 @@
     gap: 0.35rem;
   }
 
-  .queue-actions button {
+  .queue-actions [class*="btn-"] {
     min-height: 44px;
     width: 100%;
     justify-content: center;

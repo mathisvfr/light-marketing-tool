@@ -117,41 +117,7 @@
   margin-left: auto;
 }
 
-.mp-btn-primary,
-.mp-btn-secondary {
-  padding: 7px 14px;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  cursor: pointer;
-  border: none;
-  font-weight: 500;
-  transition: background 0.15s;
-}
-
-.mp-btn-primary {
-  background: var(--grey-900);
-  color: var(--color-bg);
-}
-
-.mp-btn-primary:hover:not(:disabled) {
-  background: var(--color-primary);
-}
-
-.mp-btn-secondary {
-  background: var(--grey-100);
-  color: var(--grey-700);
-  border: 1px solid var(--color-border);
-}
-
-.mp-btn-secondary:hover:not(:disabled) {
-  background: var(--color-border);
-}
-
-.mp-btn-primary:disabled,
-.mp-btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+/* Buttons: uses unified .btn-* from index.css */
 
 .mp-generate-form {
   padding: 16px 24px;

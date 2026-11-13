@@ -227,12 +227,12 @@ export default function Gepubliceerd() {
                             {(role === 'owner' || role === 'manager') ? (
                               <td>
                                 <div className="published-actions">
-                                  <Link to={`/marketing-post?draftId=${item.id}`} className="published-btn">
+                                  <Link to={`/marketing-post?draftId=${item.id}`} className="btn-secondary btn-sm">
                                     Bewerken
                                   </Link>
                                   <button
                                     type="button"
-                                    className="published-btn"
+                                    className="btn-secondary btn-sm"
                                     onClick={() => openReschedule(channel, item.title)}
                                     disabled={rescheduleMutation.isPending || cancelMutation.isPending}
                                   >
@@ -240,7 +240,7 @@ export default function Gepubliceerd() {
                                   </button>
                                   <button
                                     type="button"
-                                    className="published-btn destructive"
+                                    className="btn-danger btn-sm"
                                     onClick={() => handleCancel(channel, item.title)}
                                     disabled={rescheduleMutation.isPending || cancelMutation.isPending}
                                   >
@@ -303,7 +303,7 @@ export default function Gepubliceerd() {
                               {hasFailed ? (
                                 <button
                                   type="button"
-                                  className="published-btn"
+                                  className="btn-secondary btn-sm"
                                   onClick={() => handleRetryFailed(item.id)}
                                   disabled={retryingDrafts.has(item.id)}
                                 >
@@ -349,13 +349,13 @@ export default function Gepubliceerd() {
                         <span className="jobit-card-date">Bijgewerkt {formatDate(item.updatedAt)}</span>
                       </div>
                       <div className="jobit-card-actions">
-                        <Link to={`/vacature-plaatsen?draftId=${item.id}`} className="published-btn">
+                        <Link to={`/vacature-plaatsen?draftId=${item.id}`} className="btn-secondary btn-sm">
                           Bewerken
                         </Link>
                         {(role === 'owner' || role === 'manager') && channels.length > 0 && (
                           <button
                             type="button"
-                            className="published-btn"
+                            className="btn-secondary btn-sm"
                             onClick={() => republishMutation.mutate(item.id)}
                             disabled={republishMutation.isPending}
                             title="Verzendt de vacature opnieuw naar alle platforms via Jobit"
@@ -366,7 +366,7 @@ export default function Gepubliceerd() {
                         {(role === 'owner' || role === 'manager') && (
                           <button
                             type="button"
-                            className="published-btn destructive"
+                            className="btn-danger btn-sm"
                             onClick={() => handleExpire(item.id)}
                             disabled={expireMutation.isPending}
                           >
@@ -464,7 +464,7 @@ export default function Gepubliceerd() {
                       <td><StatusBadge status={item.status} /></td>
                       <td>{formatDate(item.updatedAt)}</td>
                       <td>
-                        <Link to={`/blog-aanmaken?draftId=${item.id}`} className="published-btn">
+                        <Link to={`/blog-aanmaken?draftId=${item.id}`} className="btn-secondary btn-sm">
                           Bewerken
                         </Link>
                       </td>

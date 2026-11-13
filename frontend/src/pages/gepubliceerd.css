@@ -150,41 +150,7 @@
   gap: 0.4rem;
 }
 
-.published-btn {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 7px;
-  padding: 0.35rem 0.65rem;
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-  white-space: nowrap;
-  background: var(--color-bg);
-  color: var(--color-text);
-  border: 1.5px solid var(--color-border-strong);
-}
-
-.published-btn:hover:not(:disabled) {
-  background: var(--grey-100);
-  border-color: var(--color-text-subtle);
-}
-
-.published-btn.destructive {
-  color: var(--light-red, #d32f2f);
-  border-color: var(--light-red-300, #fca5a5);
-}
-
-.published-btn.destructive:hover:not(:disabled) {
-  background: var(--light-red-50, #fef2f2);
-  border-color: var(--light-red, #d32f2f);
-}
-
-.published-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+/* Buttons: uses unified .btn-* from index.css */
 
 /* ---- Note ---- */
 .published-note {
@@ -246,7 +212,8 @@
     gap: 0.35rem;
   }
 
-  .published-btn {
+  .published-actions .btn-secondary,
+  .published-actions .btn-danger {
     min-height: 44px;
     width: 100%;
     justify-content: center;
@@ -395,7 +362,8 @@
     width: 100%;
   }
 
-  .jobit-card-actions .published-btn {
+  .jobit-card-actions .btn-secondary,
+  .jobit-card-actions .btn-danger {
     flex: 1;
     justify-content: center;
     min-height: 44px;
