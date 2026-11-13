@@ -44,11 +44,12 @@ async function run() {
     // so we probe and adapt. Common patterns:
     //   GET /candidates              -- flat list
     //   GET /candidates?channel_id=X -- filtered by channel
-    const channelParam = JOBIT_CHANNEL_ID ? `?channel_id=${JOBIT_CHANNEL_ID}` : '';
+    const params = new URLSearchParams({ type: 'application' });
+    if (JOBIT_CHANNEL_ID) params.set('channel_id', JOBIT_CHANNEL_ID);
     let candidates;
 
     try {
-      candidates = await jobitGet(`/candidates${channelParam}`);
+      candidates = await jobitGet(`/candidates?${params}`);
     } catch (err) {
       // If /candidates fails, try /vacancies/{channel}/candidates as fallback
       if (JOBIT_CHANNEL_ID) {
@@ -64,14 +65,15 @@ async function run() {
       }
     }
 
-    // Normalize response: expect an array or { data: [...] }
+    // Normalize response: Jobit returns { data: { candidates: [...] } }
     let items = [];
     if (Array.isArray(candidates)) {
       items = candidates;
+    } else if (candidates?.data?.candidates && Array.isArray(candidates.data.candidates)) {
+      items = candidates.data.candidates;
     } else if (candidates && Array.isArray(candidates.data)) {
       items = candidates.data;
     } else if (candidates && typeof candidates === 'object') {
-      // Log the shape so we can adapt
       const keys = Object.keys(candidates).slice(0, 10);
       results.errors.push(`Onverwachte response-structuur. Keys: ${keys.join(', ')}`);
       return results;
@@ -89,38 +91,39 @@ async function run() {
     // Count per vacancy (look for common field names for the vacancy reference)
     const perVacancy = {};
     for (const item of items) {
-      const vacId = item.vacancy_id || item.vacature_id || item.jobit_id
-        || item.vacancy?.id || item.job_id || null;
+      // Jobit nests vacancy as an object with id and number (our draft UUID)
+      const vacId = item.vacancy?.id || item.vacancy_id || item.job_id || null;
+      const draftUuid = item.vacancy?.number || null; // our draft UUID used as feed Nummer
       if (vacId) {
-        perVacancy[vacId] = (perVacancy[vacId] || 0) + 1;
+        if (!perVacancy[vacId]) perVacancy[vacId] = { count: 0, draftUuid, title: item.vacancy?.title || '' };
+        perVacancy[vacId].count += 1;
       }
     }
 
-    let apiCalls = 0;
-    for (const [vacancyId, count] of Object.entries(perVacancy)) {
-      if (apiCalls >= MAX_API_CALLS) break;
-
-      // Try to match Jobit vacancy ID to our draft ID via the XML feed
-      // (our feed uses draft UUID as Nummer)
-      const { data: draft } = await supabase
-        .from('drafts')
-        .select('id, titel')
-        .or(`id.eq.${vacancyId},form_data->>jobit_id.eq.${vacancyId}`)
-        .maybeSingle();
+    for (const [vacancyId, info] of Object.entries(perVacancy)) {
+      // Match to our draft via the vacancy.number field (= our draft UUID)
+      let draftId = null;
+      let draftTitel = info.title || '';
+      if (info.draftUuid) {
+        const { data: draft } = await supabase
+          .from('drafts')
+          .select('id, titel')
+          .eq('id', info.draftUuid)
+          .maybeSingle();
+        if (draft) {
+          draftId = draft.id;
+          draftTitel = draft.titel || draftTitel;
+        }
+      }
 
       await upsertMetric({
         metric_key: 'jobit.applications.by_vacancy',
-        dimensions: { vacancy_id: vacancyId, draft_id: draft?.id || null, titel: draft?.titel || '' },
+        dimensions: { vacancy_id: vacancyId, draft_id: draftId, titel: draftTitel },
         source: 'jobit',
-        value: count,
+        value: info.count,
         captured_at: now,
       });
       results.written++;
-      apiCalls++;
-
-      if (apiCalls < Object.keys(perVacancy).length) {
-        await new Promise((r) => setTimeout(r, CALL_SPACING_MS));
-      }
     }
 
   } catch (err) {
