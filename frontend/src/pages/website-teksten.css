@@ -1,0 +1,201 @@
+.wt-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.wt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.wt-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.wt-save-btn {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 7px;
+  padding: 0.45rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background var(--dur-fast, 0.15s), border-color var(--dur-fast, 0.15s);
+  white-space: nowrap;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: 1.5px solid var(--color-primary);
+}
+
+.wt-save-btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.wt-save-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.wt-section {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.wt-section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: left;
+  transition: background var(--dur-fast, 0.15s);
+}
+
+.wt-section-toggle:hover {
+  background: var(--grey-50, #f8fafc);
+}
+
+.wt-section-toggle-icon {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  transition: transform var(--dur-fast, 0.15s);
+}
+
+.wt-section-toggle-icon.open {
+  transform: rotate(90deg);
+}
+
+.wt-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wt-section-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+}
+
+.wt-section-status.translating {
+  background: var(--color-warning-soft, #fef9c3);
+  color: var(--color-warning-text, #92400e);
+}
+
+.wt-section-status.complete {
+  background: var(--color-success-soft, #dcfce7);
+  color: var(--color-success-text, #166534);
+}
+
+.wt-section-body {
+  padding: 0 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.wt-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.wt-field-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #64748b);
+  font-family: monospace;
+}
+
+.wt-field input,
+.wt-field textarea {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.5rem 0.65rem;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 400;
+  transition: border-color var(--dur-fast, 0.15s) var(--ease-out, ease-out);
+}
+
+.wt-field input:focus,
+.wt-field textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring, rgba(211, 47, 47, 0.12));
+}
+
+.wt-translation-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: var(--color-warning-soft, #fef9c3);
+  color: var(--color-warning-text, #92400e);
+  border: 1px solid var(--color-warning-border, #fde68a);
+}
+
+.wt-translation-banner .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: wt-spin 0.6s linear infinite;
+}
+
+@keyframes wt-spin {
+  to { transform: rotate(360deg); }
+}
+
+.wt-locale-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+}
+
+.wt-locale-pill {
+  display: inline-flex;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.08rem 0.35rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  background: var(--grey-100, #f1f5f9);
+  color: var(--color-text-muted, #64748b);
+}
+
+.wt-locale-pill.has-value {
+  background: var(--color-success-soft, #dcfce7);
+  color: var(--color-success-text, #166534);
+}
+
+@media (max-width: 640px) {
+  .wt-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

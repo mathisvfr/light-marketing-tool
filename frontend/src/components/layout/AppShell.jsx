@@ -17,6 +17,7 @@ const navItems = [
   { to: '/kalender', label: 'Kalender' },
   { to: '/rapportage', label: 'Rapportage' },
   { to: '/merk-instellingen', label: 'Merk instellingen', ownerOnly: true },
+  { to: '/website-teksten', label: 'Website teksten', ownerOnly: true },
   { to: '/gebruikers', label: 'Gebruikers', ownerOnly: true },
   { to: '/profiel', label: 'Profiel' },
 ];
@@ -31,6 +32,7 @@ const routeTitles = {
   '/kalender': 'Kalender',
   '/rapportage': 'Rapportage',
   '/merk-instellingen': 'Merk instellingen',
+  '/website-teksten': 'Website teksten',
   '/gebruikers': 'Gebruikers',
   '/profiel': 'Profiel',
 };
@@ -68,7 +70,12 @@ export default function AppShell() {
           onMenuToggle={toggleSidebar}
         />
 
-        <main id="main-content" className="app-shell-content" tabIndex={-1}>
+        <main
+          id="main-content"
+          className="app-shell-content"
+          tabIndex={-1}
+          style={{ viewTransitionName: 'main-content' }}
+        >
           <PageWrapper>
             <Outlet />
           </PageWrapper>

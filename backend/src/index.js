@@ -38,6 +38,7 @@ const rapportageRoutes = require('./routes/rapportage');
 const profileRoutes = require('./routes/profile');
 const activityRoutes = require('./routes/activity');
 const notificationsRoutes = require('./routes/notifications');
+const websiteTextsRoutes = require('./routes/website-texts');
 const { requireAuth } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/errorHandler');
 const { startCleanupSchedule } = require('./services/cleanup');
@@ -125,9 +126,14 @@ app.use(
     referrerPolicy: false,
   })
 );
+// In production, CORS_ORIGIN must be explicitly set — never fall back to localhost.
+const corsOrigin = process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? undefined : 'http://localhost:5173');
+if (process.env.NODE_ENV === 'production' && !corsOrigin) {
+  throw new Error('CORS_ORIGIN is verplicht in productie. Stel deze in via .env.');
+}
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: corsOrigin,
     credentials: true,
   })
 );
@@ -158,10 +164,10 @@ app.use('/uploads', (req, res, next) => {
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Te veel inlogpogingen. Probeer het later opnieuw.' },
+  message: { error: 'Te veel inlogpogingen. Probeer het over 15 minuten opnieuw.' },
 });
 
 // General API limiter: 100 requests per minute per IP
@@ -228,7 +234,7 @@ app.get('/api/health', async (_req, res) => {
     : aiProvider === 'gemini' ? Boolean(process.env.GOOGLE_AI_STUDIO_API_KEY)
     : Boolean(process.env.GREENPT_API_KEY);
   checks.ai = aiKeyPresent ? 'ok' : 'no_key';
-  checks.ai_provider = aiProvider;
+  // Don't expose which AI provider is active to unauthenticated callers.
 
   // Buffer: check if key is set
   checks.buffer = Boolean(process.env.BUFFER_API_KEY) ? 'ok' : 'no_key';
@@ -259,6 +265,7 @@ app.use('/api/rapportage', requireAuth, rapportageRoutes);
 app.use('/api/profile', requireAuth, profileRoutes);
 app.use('/api/activity', requireAuth, activityRoutes);
 app.use('/api/notifications', requireAuth, notificationsRoutes);
+app.use('/api/website-texts', requireAuth, websiteTextsRoutes);
 
 app.use(errorHandler);
 
