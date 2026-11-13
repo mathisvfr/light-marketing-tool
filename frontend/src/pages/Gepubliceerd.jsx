@@ -42,6 +42,7 @@ export default function Gepubliceerd() {
   const { role } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('marketing');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [error, setError] = useState('');
   const [reschedTarget, setReschedTarget] = useState(null);
   const [reschedValue, setReschedValue] = useState('');
@@ -166,10 +167,27 @@ export default function Gepubliceerd() {
     return <FormMessage variant="error">Kon gepubliceerde items niet laden.</FormMessage>;
   }
 
-  const marketingItems = publishedQuery.data?.marketingItems || [];
+  const allMarketingItems = publishedQuery.data?.marketingItems || [];
   const vacatureItems = publishedQuery.data?.vacatureItems || [];
-  const scheduledItems = publishedQuery.data?.scheduledItems || [];
+  const allScheduledItems = publishedQuery.data?.scheduledItems || [];
   const blogItems = publishedQuery.data?.blogItems || [];
+
+  // Apply status filter to marketing items
+  const marketingItems = statusFilter === 'all'
+    ? allMarketingItems
+    : statusFilter === 'failed'
+      ? allMarketingItems.filter((item) => (item.channels || []).some((c) => c.status === 'failed'))
+      : statusFilter === 'success'
+        ? allMarketingItems.filter((item) => (item.channels || []).every((c) => c.status !== 'failed'))
+        : allMarketingItems;
+
+  const scheduledItems = statusFilter === 'all' || statusFilter === 'scheduled'
+    ? allScheduledItems
+    : [];
+
+  const failedCount = allMarketingItems.filter((item) =>
+    (item.channels || []).some((c) => c.status === 'failed')
+  ).length;
 
   return (
     <div className="published-layout">
@@ -177,7 +195,7 @@ export default function Gepubliceerd() {
       <nav className="published-tabs">
         {TABS.map((tab) => {
           const count =
-            tab.key === 'marketing' ? marketingItems.length + scheduledItems.length
+            tab.key === 'marketing' ? allMarketingItems.length + allScheduledItems.length
             : tab.key === 'vacatures' ? vacatureItems.length
             : blogItems.length;
           return (
@@ -197,6 +215,18 @@ export default function Gepubliceerd() {
       {/* Marketing tab */}
       {activeTab === 'marketing' && (
         <>
+          <div className="published-filters">
+            <label>
+              Status
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                <option value="all">Alle statussen</option>
+                <option value="success">Gelukt</option>
+                <option value="failed">Mislukt{failedCount > 0 ? ` (${failedCount})` : ''}</option>
+                <option value="scheduled">Ingepland</option>
+              </select>
+            </label>
+          </div>
+
           {scheduledItems.length > 0 && (
             <section className="published-section">
               <h3 className="published-section-title">Ingepland via Buffer</h3>

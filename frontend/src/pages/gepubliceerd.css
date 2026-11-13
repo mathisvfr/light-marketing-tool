@@ -54,6 +54,39 @@
   color: var(--color-primary, #d32f2f);
 }
 
+/* ---- Filters ---- */
+.published-filters {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.published-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #64748b);
+  min-width: 140px;
+}
+
+.published-filters select {
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-sm, 6px);
+  font: inherit;
+  font-size: 0.88rem;
+  background: var(--color-bg);
+  transition: border-color var(--dur-fast, 0.15s) var(--ease-out, ease-out);
+}
+
+.published-filters select:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring, rgba(211, 47, 47, 0.12));
+}
+
 /* ---- Sections ---- */
 .published-section {
   display: grid;

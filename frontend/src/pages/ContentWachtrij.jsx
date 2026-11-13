@@ -134,6 +134,80 @@ function buildVacatureChecklist(draft) {
   return items;
 }
 
+/**
+ * Build a pre-publish checklist for a marketing-post draft.
+ * Checks channel selection, per-channel text, image, and criticus.
+ * Returns null for non-marketing drafts.
+ */
+function buildMarketingChecklist(draft) {
+  if (draft.type !== 'marketing-post') return null;
+
+  const fd = draft.form_data || {};
+  const items = [];
+
+  // At least one channel selected
+  const kanalen = Array.isArray(fd.kanalen) ? fd.kanalen : [];
+  items.push({
+    label: 'Kanalen geselecteerd',
+    passed: kanalen.length > 0,
+    detail: kanalen.length > 0
+      ? kanalen.join(', ')
+      : 'Geen kanalen geselecteerd — minstens één kanaal vereist',
+  });
+
+  // LinkedIn text present if linkedin is selected
+  if (kanalen.includes('linkedin')) {
+    const hasLinkedin = Boolean(draft.linkedin_post || fd.linkedin_post);
+    items.push({
+      label: 'LinkedIn-tekst',
+      passed: hasLinkedin,
+      detail: hasLinkedin ? 'Aanwezig' : 'Ontbreekt — vereist voor LinkedIn-publicatie',
+    });
+  }
+
+  // Instagram caption present if instagram is selected
+  if (kanalen.includes('instagram')) {
+    const hasInstagram = Boolean(draft.instagram_caption || fd.instagram_caption);
+    items.push({
+      label: 'Instagram-bijschrift',
+      passed: hasInstagram,
+      detail: hasInstagram ? 'Aanwezig' : 'Ontbreekt — vereist voor Instagram-publicatie',
+    });
+  }
+
+  // Facebook text present if facebook is selected
+  if (kanalen.includes('facebook')) {
+    const hasFacebook = Boolean(draft.facebook_post || fd.facebook_post);
+    items.push({
+      label: 'Facebook-tekst',
+      passed: hasFacebook,
+      detail: hasFacebook ? 'Aanwezig' : 'Ontbreekt — vereist voor Facebook-publicatie',
+    });
+  }
+
+  // Branded image
+  const hasImage = Boolean(draft.image_path || fd.image_path);
+  items.push({
+    label: 'Branded afbeelding',
+    passed: hasImage,
+    detail: hasImage ? 'Aanwezig' : 'Ontbreekt — afbeelding is vereist voor social posts',
+  });
+
+  // Criticus check
+  const criticusDone = draft.criticus_passed !== null && draft.criticus_passed !== undefined;
+  items.push({
+    label: 'Criticus-check',
+    passed: draft.criticus_passed === true,
+    detail: !criticusDone
+      ? 'Nog niet uitgevoerd'
+      : draft.criticus_passed
+        ? 'Akkoord'
+        : (draft.criticus_notes || 'Aandacht nodig'),
+  });
+
+  return items;
+}
+
 function PrePublishChecklist({ items }) {
   if (!items || items.length === 0) return null;
 
@@ -570,7 +644,7 @@ export default function ContentWachtrij() {
   function handleApprove(draft) {
     setError('');
     const isMarketingOrBlog = draft.type === 'marketing-post' || draft.type === 'blog';
-    const checklist = buildVacatureChecklist(draft);
+    const checklist = buildVacatureChecklist(draft) || buildMarketingChecklist(draft);
     setConfirm({
       title: isMarketingOrBlog ? 'Goedkeuren en publiceren' : 'Goedkeuren',
       message: isMarketingOrBlog
