@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # ============================================================
 # Daily Supabase/Postgres backup — run via cron on VPS:
-#   0 3 * * * /opt/light-marketing-tool/scripts/backup-db.sh >> /var/log/backup-db.log 2>&1
+#   0 3 * * * ~/light-marketing-tool/scripts/backup-db.sh >> /var/log/backup-db.log 2>&1
 #
-# Requires: pg_dump (postgresql-client), gzip
+# Requires: docker (uses pg_dump from the umami-db container), gzip
 # Env: DATABASE_URL (direct Postgres connection string, NOT the REST URL)
 # ============================================================
 set -euo pipefail
@@ -30,11 +30,6 @@ if [ -z "${DATABASE_URL:-}" ]; then
   exit 1
 fi
 
-if ! command -v pg_dump >/dev/null 2>&1; then
-  echo "[ERROR] pg_dump not found. Install postgresql-client."
-  exit 1
-fi
-
 mkdir -p "$BACKUP_DIR"
 
 # ---- Disk safety ----
@@ -49,14 +44,15 @@ if [ "${CURRENT_MB:-0}" -ge "$MAX_DIR_MB" ]; then
   exit 1
 fi
 
-# ---- Dump ----
+# ---- Dump (via Docker — no host pg_dump needed) ----
 echo "[INFO] Starting backup to $BACKUP_FILE"
-pg_dump "$DATABASE_URL" \
-  --no-owner \
-  --no-privileges \
-  --clean \
-  --if-exists \
-  | gzip > "$BACKUP_FILE"
+if command -v pg_dump >/dev/null 2>&1; then
+  pg_dump "$DATABASE_URL" --no-owner --no-privileges --clean --if-exists | gzip > "$BACKUP_FILE"
+else
+  docker exec light-marketing-tool-umami-db-1 \
+    pg_dump "$DATABASE_URL" --no-owner --no-privileges --clean --if-exists \
+    | gzip > "$BACKUP_FILE"
+fi
 
 FILE_SIZE=$(du -h "$BACKUP_FILE" | awk '{print $1}')
 echo "[OK] Backup complete: $BACKUP_FILE ($FILE_SIZE)"
