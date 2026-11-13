@@ -8,10 +8,26 @@ const translationCache = new Map();
 const TRANSLATION_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
 function looksEnglish(text) {
-  // Basic heuristic: no accented chars and contains common English patterns
+  // Heuristic: skip translation only for clearly-English text.
+  // Dutch words often look plausible as English to a simple regex,
+  // so we err on the side of translating (worst case: English→English is fine).
   if (/[àáâãäåèéêëìíîïòóôõöùúûüýÿñçæœ]/i.test(text)) return false;
-  const commonDutch = /\b(een|het|van|voor|bij|met|naar|niet|ook|maar|nog|uit|worden|hebben|zijn|deze|deze|werk|schoon|maga)\b/i;
-  return !commonDutch.test(text);
+
+  // Common Dutch words, suffixes, and domain terms
+  const commonDutch = /\b(een|het|de|van|voor|bij|met|naar|niet|ook|maar|nog|uit|worden|hebben|zijn|deze|dit|dat|dan|wel|als|aan|kan|mag|moet|weer|veel|meer|alle|andere|geen|hoe|wat|wie|waar|goed|werk|werken|werker|medewerker|medewerkers|baan|banen|vacature|vacatures|personeel|uitzend|schoon|schoonmaak|schoonmaker|magazijn|productie|logistiek|vervoer|monteur|chauffeur|reiniging|industrieel|kantoor|fabriek|rotterdam|nederland|betrouwbaar|flexibel|ervaren|zoeken|vinden|nodig|team|bedrijf|samenwerk|opdrachtgever|kandidaat)\b/i;
+  if (commonDutch.test(text)) return false;
+
+  // Dutch suffixes strongly indicate Dutch
+  if (/\w+(heid|heid|lijk|atie|teit|ering|ting|baar|zaam|isch)\b/i.test(text)) return false;
+
+  // If it's a single word and contains typical Dutch letter patterns
+  const words = text.trim().split(/\s+/);
+  if (words.length === 1) {
+    // Dutch-specific digraphs
+    if (/(?:ij|oe|ui|eu|aa|ee|oo|uu|sch|cht|nk)/i.test(text)) return false;
+  }
+
+  return true;
 }
 
 // GET /api/unsplash/translate?q=magazijnmedewerker

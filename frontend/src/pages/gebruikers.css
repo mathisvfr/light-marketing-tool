@@ -123,6 +123,50 @@
   border-color: var(--color-primary-hover);
 }
 
+.users-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.users-actions button {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font: inherit;
+  font-weight: 500;
+  font-size: 0.82rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--dur-fast, 0.15s), border-color var(--dur-fast, 0.15s), color var(--dur-fast, 0.15s);
+  border: 1px solid var(--color-border, #e2e8f0);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.users-actions button:hover:not(:disabled) {
+  background: var(--grey-100);
+  border-color: var(--color-text-muted);
+}
+
+.users-actions button:last-child {
+  color: var(--color-error-text, #b91c1c);
+  border-color: color-mix(in srgb, var(--color-error-text, #b91c1c) 40%, transparent);
+}
+
+.users-actions button:last-child:hover:not(:disabled) {
+  background: var(--color-error-soft, #fef2f2);
+  border-color: var(--color-error-text, #b91c1c);
+}
+
+.users-actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.role-pill.manager { background: var(--color-warning-soft, #fef9c3); color: var(--color-warning-text, #92400e); }
+
 .users-error {
   color: var(--color-primary);
 }

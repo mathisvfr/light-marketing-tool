@@ -7,7 +7,7 @@
 .wt-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
   gap: 0.75rem;
 }
@@ -15,6 +15,12 @@
 .wt-header h2 {
   margin: 0;
   font-size: 1.1rem;
+}
+
+.wt-subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #64748b);
 }
 
 .wt-save-btn {
@@ -43,27 +49,30 @@
   cursor: not-allowed;
 }
 
+/* ── Sections ── */
 .wt-section {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: 12px;
   overflow: hidden;
+  transition: border-color var(--dur-fast, 0.15s);
+}
+
+.wt-section-open {
+  border-color: var(--color-text-muted, #94a3b8);
 }
 
 .wt-section-toggle {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   width: 100%;
   padding: 0.75rem 1rem;
   background: none;
   border: none;
   cursor: pointer;
   font: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-text);
   text-align: left;
+  gap: 0.25rem;
   transition: background var(--dur-fast, 0.15s);
 }
 
@@ -71,20 +80,57 @@
   background: var(--grey-50, #f8fafc);
 }
 
+.wt-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.wt-section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.wt-section-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.wt-section-count {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--color-text-muted, #64748b);
+}
+
+.wt-section-edited {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: var(--color-warning-soft, #fef9c3);
+  color: var(--color-warning-text, #92400e);
+}
+
+.wt-section-desc {
+  font-size: 0.8rem;
+  color: var(--color-text-muted, #64748b);
+  font-weight: 400;
+  line-height: 1.4;
+}
+
 .wt-section-toggle-icon {
   font-size: 0.75rem;
   color: var(--color-text-muted);
   transition: transform var(--dur-fast, 0.15s);
+  flex-shrink: 0;
 }
 
 .wt-section-toggle-icon.open {
   transform: rotate(90deg);
-}
-
-.wt-section-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .wt-section-status {
@@ -107,17 +153,49 @@
   color: var(--color-success-text, #166534);
 }
 
+/* ── Section body ── */
 .wt-section-body {
   padding: 0 1rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.85rem;
+  border-top: 1px solid var(--grey-100, #f1f5f9);
 }
 
+/* ── Fields ── */
 .wt-field {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  padding: 0.6rem;
+  border-radius: 8px;
+  transition: background var(--dur-fast, 0.15s), border-color var(--dur-fast, 0.15s);
+  border: 1px solid transparent;
+}
+
+.wt-field-edited {
+  background: color-mix(in srgb, var(--color-warning-soft, #fef9c3) 50%, transparent);
+  border-color: var(--color-warning-border, #fde68a);
+}
+
+.wt-field-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.wt-field-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.wt-field-key {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-text-subtle, #94a3b8);
+  font-family: monospace;
 }
 
 .wt-field-label {
@@ -125,6 +203,49 @@
   font-weight: 600;
   color: var(--color-text-muted, #64748b);
   font-family: monospace;
+}
+
+.wt-field-reset {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--color-primary, #d32f2f);
+  margin-left: auto;
+}
+
+.wt-field-reset:hover {
+  text-decoration: underline;
+}
+
+.wt-field-original {
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #64748b);
+  padding: 0.35rem 0.5rem;
+  background: var(--grey-50, #f8fafc);
+  border-radius: 6px;
+  border-left: 3px solid var(--color-border, #e2e8f0);
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.wt-field-original-label {
+  font-weight: 600;
+  margin-right: 0.3rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.wt-field-charcount {
+  font-size: 0.72rem;
+  color: var(--color-text-muted, #64748b);
+  text-align: right;
+}
+
+.wt-field-charcount.over {
+  color: var(--color-error-text, #b91c1c);
+  font-weight: 600;
 }
 
 .wt-field input,
@@ -145,6 +266,7 @@
   box-shadow: 0 0 0 3px var(--color-focus-ring, rgba(211, 47, 47, 0.12));
 }
 
+/* ── Translation banner ── */
 .wt-translation-banner {
   display: flex;
   align-items: center;
@@ -170,6 +292,7 @@
   to { transform: rotate(360deg); }
 }
 
+/* ── Locale pills ── */
 .wt-locale-pills {
   display: flex;
   flex-wrap: wrap;
