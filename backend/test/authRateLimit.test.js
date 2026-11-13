@@ -38,5 +38,5 @@ test('20. login rate limit returns a Dutch 429 after repeated attempts', async (
 
   assert.ok(limited, 'expected a 429 within 15 attempts');
   const body = await limited.json();
-  assert.equal(body.error, 'Te veel inlogpogingen. Probeer het later opnieuw.');
+  assert.equal(body.error, 'Te veel inlogpogingen. Probeer het over 15 minuten opnieuw.');
 });
