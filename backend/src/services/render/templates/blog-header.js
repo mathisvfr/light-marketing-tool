@@ -18,8 +18,8 @@ function blogHeader({ width, height, title, category, logoSrc }) {
   const catColors = {
     'Uitzendwerk': TOKENS.red,
     'Bedrijfsnieuws': TOKENS.grey700,
-    'Voor werkzoekenden': '#2563eb',
-    'Voor opdrachtgevers': '#059669',
+    'Werkzoekenden': '#2563eb',
+    'Opdrachtgevers': '#059669',
     'Wet- en regelgeving': '#7c3aed',
   };
   const catColor = catColors[category] || TOKENS.red;

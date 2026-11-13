@@ -85,7 +85,7 @@ Keep static markdown blogs, new blogs from Supabase, website renders both source
 
 **1. Blog draft support** (`routes/drafts.js`)
 - Accept `type='blog'` in draft creation.
-- `form_data` contains: `onderwerp` (topic), `categorie` (one of: Uitzendwerk, Bedrijfsnieuws, Voor werkzoekenden, Voor opdrachtgevers, Wet- en regelgeving), `toon` (tone guidance, optional).
+- `form_data` contains: `onderwerp` (topic), `categorie` (one of: Uitzendwerk, Bedrijfsnieuws, Werkzoekenden, Opdrachtgevers, Wet- en regelgeving), `toon` (tone guidance, optional).
 - After creation, POST `/api/drafts/:id/generate` triggers AI generation.
 
 **2. Blog generation prompt** (`prompts/blog.md`)
