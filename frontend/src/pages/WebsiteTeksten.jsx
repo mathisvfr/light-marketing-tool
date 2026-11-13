@@ -1,9 +1,20 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import { CardLoading } from '../components/shared/Card';
 import FormMessage from '../components/shared/FormMessage';
+import HeroPreview from '../components/website-teksten/HeroPreview';
+import TilesPreview from '../components/website-teksten/TilesPreview';
+import AboutPreview from '../components/website-teksten/AboutPreview';
+import ServicesPreview from '../components/website-teksten/ServicesPreview';
+import ContactPreview from '../components/website-teksten/ContactPreview';
+import VacaturesPreview from '../components/website-teksten/VacaturesPreview';
+import CtaPreview from '../components/website-teksten/CtaPreview';
+import BlogPreview from '../components/website-teksten/BlogPreview';
+import SeoPreview from '../components/website-teksten/SeoPreview';
+import FooterPreview from '../components/website-teksten/FooterPreview';
+import NavPreview from '../components/website-teksten/NavPreview';
 import './website-teksten.css';
 
 const LONG_KEYS = [
@@ -19,70 +30,50 @@ const LONG_KEYS = [
 
 const LOCALES = ['pl', 'en', 'bg', 'sk', 'lv', 'hu', 'ro', 'uk', 'de', 'es', 'ru'];
 
-// ── Section metadata ──
+const SECTION_ORDER = ['hero', 'tiles', 'about', 'services', 'contact', 'vacatures', 'cta', 'blog', 'meta', 'footer', 'nav'];
+
 const SECTION_META = {
-  hero: {
-    label: 'Hero (bovenaan de homepage)',
-    description: 'De grote banner die bezoekers als eerste zien. Bevat koptekst, ondertitel en actieknoppen.',
-  },
-  tiles: {
-    label: 'Tegels (USP-blokken)',
-    description: 'De drie informatieblokken onder de hero die de kernwaarden van Light tonen.',
-  },
-  about: {
-    label: 'Over ons',
-    description: 'De "Over Light" pagina met introductietekst en kernwaarden.',
-  },
-  services: {
-    label: 'Diensten',
-    description: 'De dienstenpagina met kaarten per dienst (logistiek, productie, schoonmaak, etc.).',
-  },
-  vacatures: {
-    label: 'Vacatures',
-    description: 'De vacaturepagina-intro en call-to-action teksten.',
-  },
-  cta: {
-    label: 'Call-to-Action',
-    description: 'De CTA-sectie die op meerdere pagina\'s verschijnt.',
-  },
-  contact: {
-    label: 'Contact',
-    description: 'De contactpagina met teksten voor werkzoekenden en opdrachtgevers.',
-  },
-  blog: {
-    label: 'Blog',
-    description: 'De blogpagina-intro.',
-  },
-  meta: {
-    label: 'SEO meta-beschrijvingen',
-    description: 'De meta-descriptions die in Google-resultaten verschijnen. Houd ze onder 160 tekens.',
-  },
-  footer: {
-    label: 'Footer',
-    description: 'De teksten onderaan elke pagina.',
-  },
-  nav: {
-    label: 'Navigatie',
-    description: 'Menulinks en navigatielabels.',
-  },
+  hero: { label: 'Hero', icon: '\u2B50' },
+  tiles: { label: 'Tegels', icon: '\u25A6' },
+  about: { label: 'Over ons', icon: '\u2139' },
+  services: { label: 'Diensten', icon: '\u2699' },
+  contact: { label: 'Contact', icon: '\u2709' },
+  vacatures: { label: 'Vacatures', icon: '\u2696' },
+  cta: { label: 'Call-to-Action', icon: '\u2794' },
+  blog: { label: 'Blog', icon: '\u270E' },
+  meta: { label: 'SEO', icon: '\u2315' },
+  footer: { label: 'Footer', icon: '\u2587' },
+  nav: { label: 'Navigatie', icon: '\u2630' },
 };
 
-// ── Human-readable field labels ──
+const SECTION_ALIASES = { overons: 'about', diensten: 'services', calltoaction: 'cta', navigatie: 'nav' };
+
+const PREVIEW_MAP = {
+  hero: HeroPreview,
+  tiles: TilesPreview,
+  about: AboutPreview,
+  services: ServicesPreview,
+  contact: ContactPreview,
+  vacatures: VacaturesPreview,
+  cta: CtaPreview,
+  blog: BlogPreview,
+  meta: SeoPreview,
+  footer: FooterPreview,
+  nav: NavPreview,
+};
+
 const FIELD_LABELS = {
-  // Hero
   'hero.title': 'Koptekst',
   'hero.lead': 'Ondertitel / introductietekst',
   'hero.btn_vacatures': 'Knoptekst — Vacatures',
   'hero.btn_contact': 'Knoptekst — Contact',
   'hero.badge': 'Badge-tekst',
-  // Tiles
   'tiles.tile1_title': 'Tegel 1 — Titel',
   'tiles.tile1_body': 'Tegel 1 — Tekst',
   'tiles.tile2_title': 'Tegel 2 — Titel',
   'tiles.tile2_body': 'Tegel 2 — Tekst',
   'tiles.tile3_title': 'Tegel 3 — Titel',
   'tiles.tile3_body': 'Tegel 3 — Tekst',
-  // About
   'about.title': 'Paginatitel',
   'about.intro': 'Introductietekst',
   'about.value1_title': 'Waarde 1 — Titel',
@@ -91,7 +82,6 @@ const FIELD_LABELS = {
   'about.value2_body': 'Waarde 2 — Tekst',
   'about.value3_title': 'Waarde 3 — Titel',
   'about.value3_body': 'Waarde 3 — Tekst',
-  // Services
   'services.title': 'Paginatitel',
   'services.intro': 'Introductietekst',
   'services.card1_title': 'Dienst 1 — Titel',
@@ -102,70 +92,58 @@ const FIELD_LABELS = {
   'services.card3_body': 'Dienst 3 — Beschrijving',
   'services.card4_title': 'Dienst 4 — Titel',
   'services.card4_body': 'Dienst 4 — Beschrijving',
-  // Vacatures
   'vacatures.title': 'Paginatitel',
   'vacatures.intro': 'Introductietekst',
   'vacatures.cta_title': 'CTA — Titel',
   'vacatures.cta_body': 'CTA — Tekst',
   'vacatures.cta_btn': 'CTA — Knoptekst',
-  // CTA
   'cta.title': 'Titel',
   'cta.body': 'Tekst',
   'cta.btn': 'Knoptekst',
-  // Contact
   'contact.title': 'Paginatitel',
   'contact.intro': 'Introductietekst',
   'contact.audience1_title': 'Doelgroep 1 — Titel',
   'contact.audience1_body': 'Doelgroep 1 — Tekst',
   'contact.audience2_title': 'Doelgroep 2 — Titel',
   'contact.audience2_body': 'Doelgroep 2 — Tekst',
-  // Blog
   'blog.title': 'Paginatitel',
   'blog.intro': 'Introductietekst',
-  // Meta
   'meta.home': 'Homepage',
   'meta.diensten': 'Diensten',
   'meta.over_ons': 'Over ons',
   'meta.contact': 'Contact',
   'meta.vacatures': 'Vacatures',
   'meta.blog': 'Blog',
-  // Nav
   'nav.home': 'Home',
   'nav.diensten': 'Diensten',
   'nav.over_ons': 'Over ons',
   'nav.vacatures': 'Vacatures',
   'nav.blog': 'Blog',
   'nav.contact': 'Contact',
-  // Footer
   'footer.tagline': 'Slogan',
   'footer.copyright': 'Copyright',
 };
 
 function getFieldLabel(key) {
   if (FIELD_LABELS[key]) return FIELD_LABELS[key];
-  // Fallback: humanize the key part after the dot
   const parts = key.split('.');
   return parts.slice(1).join(' ').replace(/_/g, ' ');
 }
 
-function getSectionMeta(name) {
+function resolveSection(name) {
   const key = (name || '').toLowerCase().replace(/\s+/g, '');
-  // Try exact match first, then normalized lowercase lookup
-  if (SECTION_META[name]) return SECTION_META[name];
-  // Map known backend variants to our keys
-  const ALIASES = { 'overons': 'about', 'diensten': 'services', 'calltoaction': 'cta', 'navigatie': 'nav' };
-  const resolved = ALIASES[key] || key;
-  return SECTION_META[resolved] || { label: name, description: '' };
+  return SECTION_ALIASES[key] || key;
 }
 
 export default function WebsiteTeksten() {
   const queryClient = useQueryClient();
   const { role } = useAuth();
   const [edits, setEdits] = useState({});
-  const [openSections, setOpenSections] = useState({});
+  const [activeSection, setActiveSection] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
+  const sectionRefs = useRef({});
 
   const textsQuery = useQuery({
     queryKey: ['website-texts'],
@@ -176,9 +154,6 @@ export default function WebsiteTeksten() {
     queryKey: ['website-texts-translation-status'],
     queryFn: async () => {
       const data = await api('/website-texts/translation-status');
-      // Stop polling when all translations are complete.
-      // Handled inside queryFn (an event callback) to avoid calling
-      // setState in a render body or effect.
       if (data && (!data.pending || data.pending.length === 0)) {
         setIsTranslating(false);
         queryClient.invalidateQueries({ queryKey: ['website-texts'] });
@@ -198,6 +173,27 @@ export default function WebsiteTeksten() {
     () => textsQuery.data?.sections || {},
     [textsQuery.data]
   );
+
+  // Ordered section names: prefer SECTION_ORDER, then append any extras
+  const orderedSectionNames = useMemo(() => {
+    const resolved = {};
+    for (const rawName of Object.keys(sections)) {
+      const norm = resolveSection(rawName);
+      resolved[norm] = rawName;
+    }
+    const ordered = [];
+    for (const s of SECTION_ORDER) {
+      if (resolved[s]) {
+        ordered.push(resolved[s]);
+        delete resolved[s];
+      }
+    }
+    // Append any remaining sections not in our predefined order
+    for (const rawName of Object.values(resolved)) {
+      ordered.push(rawName);
+    }
+    return ordered;
+  }, [sections]);
 
   const getServerValue = useCallback(
     (key) => {
@@ -253,10 +249,6 @@ export default function WebsiteTeksten() {
       }),
   });
 
-  function toggleSection(name) {
-    setOpenSections((prev) => ({ ...prev, [name]: !prev[name] }));
-  }
-
   function updateField(key, value) {
     setEdits((prev) => ({ ...prev, [key]: value }));
   }
@@ -296,6 +288,14 @@ export default function WebsiteTeksten() {
     }
   }
 
+  function scrollToSection(sectionName) {
+    setActiveSection(sectionName);
+    const el = sectionRefs.current[sectionName];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
   if (role !== 'owner') {
     return <p>Alleen eigenaren hebben toegang tot deze pagina.</p>;
   }
@@ -311,12 +311,16 @@ export default function WebsiteTeksten() {
   const hasEdits = Object.keys(edits).length > 0;
   const editCount = Object.keys(edits).length;
 
+  // If no active section yet, default to first
+  const currentActive = activeSection || orderedSectionNames[0] || null;
+
   return (
-    <div className="wt-layout">
-      <div className="wt-header">
-        <div>
-          <h2>Website teksten</h2>
-          <p className="wt-subtitle">Bewerk de teksten die op de website verschijnen. Wijzigingen worden automatisch vertaald naar alle talen.</p>
+    <div className="wt-page">
+      {/* Top bar */}
+      <div className="wt-topbar">
+        <div className="wt-topbar-left">
+          <h2 className="wt-page-title">Website teksten</h2>
+          <p className="wt-page-subtitle">Bewerk teksten, zie direct hoe ze eruitzien op de website</p>
         </div>
         <button
           type="button"
@@ -333,129 +337,150 @@ export default function WebsiteTeksten() {
 
       {isTranslating && (
         <div className="wt-translation-banner">
-          <span className="spinner" />
+          <span className="wt-spinner" />
           Vertalingen worden bijgewerkt voor {LOCALES.length} talen...
-          {pendingKeys.length > 0 && ` (${pendingKeys.length} teksten in behandeling)`}
+          {pendingKeys.length > 0 && ` (${pendingKeys.length} in behandeling)`}
         </div>
       )}
 
-      {Object.entries(sections).map(([sectionName, sectionKeys]) => {
-        const isOpen = openSections[sectionName] ?? false;
-        const keys = Object.keys(sectionKeys);
-        const meta = getSectionMeta(sectionName);
-        const translationStatus = sectionTranslationStatus[sectionName];
-        const sectionEditCount = keys.filter((k) => Object.prototype.hasOwnProperty.call(edits, k)).length;
+      <div className="wt-split">
+        {/* Section sidebar */}
+        <nav className="wt-sidebar">
+          {orderedSectionNames.map((sectionName) => {
+            const norm = resolveSection(sectionName);
+            const meta = SECTION_META[norm] || { label: sectionName, icon: '\u25CF' };
+            const isActive = currentActive === sectionName;
+            const keys = sections[sectionName] ? Object.keys(sections[sectionName]) : [];
+            const sectionEditCount = keys.filter((k) => Object.prototype.hasOwnProperty.call(edits, k)).length;
+            const translationStatus = sectionTranslationStatus[sectionName];
 
-        return (
-          <div key={sectionName} className={`wt-section${isOpen ? ' wt-section-open' : ''}`}>
-            <button
-              type="button"
-              className="wt-section-toggle"
-              onClick={() => toggleSection(sectionName)}
-              aria-expanded={isOpen}
-            >
-              <div className="wt-section-header">
-                <div className="wt-section-header-left">
-                  <span className="wt-section-name">{meta.label}</span>
-                  <span className="wt-section-count">{keys.length} velden</span>
-                  {sectionEditCount > 0 && (
-                    <span className="wt-section-edited">{sectionEditCount} gewijzigd</span>
-                  )}
-                  {isTranslating && translationStatus === 'translating' && (
-                    <span className="wt-section-status translating">vertalen...</span>
-                  )}
-                  {isTranslating && translationStatus === 'complete' && (
-                    <span className="wt-section-status complete">vertaald</span>
-                  )}
+            return (
+              <button
+                key={sectionName}
+                type="button"
+                className={`wt-sidebar-item${isActive ? ' active' : ''}`}
+                onClick={() => scrollToSection(sectionName)}
+              >
+                <span className="wt-sidebar-icon">{meta.icon}</span>
+                <span className="wt-sidebar-label">{meta.label}</span>
+                {sectionEditCount > 0 && (
+                  <span className="wt-sidebar-badge edit">{sectionEditCount}</span>
+                )}
+                {isTranslating && translationStatus === 'translating' && (
+                  <span className="wt-sidebar-badge translating" title="Vertalen...">...</span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Main content area */}
+        <div className="wt-main">
+          {orderedSectionNames.map((sectionName) => {
+            const norm = resolveSection(sectionName);
+            const meta = SECTION_META[norm] || { label: sectionName, icon: '\u25CF' };
+            const sectionKeys = sections[sectionName] || {};
+            const keys = Object.keys(sectionKeys);
+            const PreviewComponent = PREVIEW_MAP[norm];
+
+            return (
+              <section
+                key={sectionName}
+                ref={(el) => { sectionRefs.current[sectionName] = el; }}
+                className="wt-section-block"
+              >
+                {/* Section header */}
+                <div className="wt-section-label">
+                  <span className="wt-section-label-icon">{meta.icon}</span>
+                  <span>{meta.label}</span>
+                  <span className="wt-section-field-count">{keys.length} velden</span>
                 </div>
-                <span className={`wt-section-toggle-icon ${isOpen ? 'open' : ''}`}>
-                  &#9654;
-                </span>
-              </div>
-              {meta.description && (
-                <span className="wt-section-desc">{meta.description}</span>
-              )}
-            </button>
 
-            {isOpen && (
-              <div className="wt-section-body">
-                {keys.map((key) => {
-                  const isLong = LONG_KEYS.includes(key);
-                  const value = getValueForKey(key);
-                  const serverValue = getServerValue(key);
-                  const isEdited = Object.prototype.hasOwnProperty.call(edits, key);
-                  const locales = getLocalesForKey(key);
-                  const isMeta = key.startsWith('meta.');
+                {/* Visual preview */}
+                {PreviewComponent && (
+                  <div className="wt-preview-wrap">
+                    <PreviewComponent getValue={getValueForKey} />
+                  </div>
+                )}
 
-                  return (
-                    <div key={key} className={`wt-field${isEdited ? ' wt-field-edited' : ''}`}>
-                      <div className="wt-field-header">
-                        <label className="wt-field-title" htmlFor={`wt-${key}`}>{getFieldLabel(key)}</label>
-                        <span className="wt-field-key">{key}</span>
-                        {isEdited && (
-                          <button
-                            type="button"
-                            className="wt-field-reset"
-                            onClick={() => resetField(key)}
-                            title="Wijziging ongedaan maken"
-                          >
-                            ongedaan maken
-                          </button>
+                {/* Edit fields */}
+                <div className="wt-fields">
+                  {keys.map((key) => {
+                    const isLong = LONG_KEYS.includes(key);
+                    const value = getValueForKey(key);
+                    const serverValue = getServerValue(key);
+                    const isEdited = Object.prototype.hasOwnProperty.call(edits, key);
+                    const locales = getLocalesForKey(key);
+                    const isMeta = key.startsWith('meta.');
+
+                    return (
+                      <div key={key} className={`wt-field${isEdited ? ' wt-field-edited' : ''}`}>
+                        <div className="wt-field-header">
+                          <label className="wt-field-title" htmlFor={`wt-${key}`}>{getFieldLabel(key)}</label>
+                          <div className="wt-locale-pills">
+                            <span className={`wt-locale-pill${locales.nl ? ' has-value' : ''}`}>nl</span>
+                            {LOCALES.map((loc) => (
+                              <span
+                                key={loc}
+                                className={`wt-locale-pill${locales[loc] ? ' has-value' : ''}`}
+                                title={locales[loc] || `Geen ${loc} vertaling`}
+                              >
+                                {loc}
+                              </span>
+                            ))}
+                          </div>
+                          {isEdited && (
+                            <button
+                              type="button"
+                              className="wt-field-reset"
+                              onClick={() => resetField(key)}
+                              title="Wijziging ongedaan maken"
+                            >
+                              ongedaan maken
+                            </button>
+                          )}
+                        </div>
+                        {isEdited && serverValue && (
+                          <div className="wt-field-original">
+                            <span className="wt-field-original-label">Was:</span>
+                            {serverValue}
+                          </div>
+                        )}
+                        {isLong ? (
+                          <textarea
+                            id={`wt-${key}`}
+                            rows={3}
+                            value={value}
+                            onChange={(e) => updateField(key, e.target.value)}
+                            maxLength={isMeta ? 160 : undefined}
+                          />
+                        ) : (
+                          <input
+                            id={`wt-${key}`}
+                            type="text"
+                            value={value}
+                            onChange={(e) => updateField(key, e.target.value)}
+                          />
+                        )}
+                        {isMeta && (
+                          <span className={`wt-field-charcount${(value || '').length > 160 ? ' over' : ''}`}>
+                            {(value || '').length}/160
+                          </span>
                         )}
                       </div>
-                      {isEdited && serverValue && (
-                        <div className="wt-field-original">
-                          <span className="wt-field-original-label">Huidige tekst:</span>
-                          {serverValue}
-                        </div>
-                      )}
-                      {isLong ? (
-                        <textarea
-                          id={`wt-${key}`}
-                          rows={3}
-                          value={value}
-                          onChange={(e) => updateField(key, e.target.value)}
-                          maxLength={isMeta ? 160 : undefined}
-                        />
-                      ) : (
-                        <input
-                          id={`wt-${key}`}
-                          type="text"
-                          value={value}
-                          onChange={(e) => updateField(key, e.target.value)}
-                        />
-                      )}
-                      {isMeta && (
-                        <span className={`wt-field-charcount${(value || '').length > 160 ? ' over' : ''}`}>
-                          {(value || '').length}/160
-                        </span>
-                      )}
-                      <div className="wt-locale-pills">
-                        <span className={`wt-locale-pill ${locales.nl ? 'has-value' : ''}`}>
-                          nl
-                        </span>
-                        {LOCALES.map((loc) => (
-                          <span
-                            key={loc}
-                            className={`wt-locale-pill ${locales[loc] ? 'has-value' : ''}`}
-                            title={locales[loc] || `Geen ${loc} vertaling`}
-                          >
-                            {loc}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })}
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      </div>
 
+      {/* Sticky bottom save bar when edits exist */}
       {hasEdits && (
-        <div className="wt-header">
-          <span />
+        <div className="wt-sticky-save">
+          <span className="wt-sticky-save-text">{editCount} wijziging{editCount !== 1 ? 'en' : ''} niet opgeslagen</span>
           <button
             type="button"
             className="wt-save-btn"
