@@ -1,10 +1,46 @@
 <!doctype html>
-<html lang="en">
+<html lang="nl">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" fetchpriority="high" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <title>Light Marketing Tool</title>
+
+    <!-- Speculation Rules: prerender likely next pages for near-instant navigation.
+         Supported in Chromium 121+ (~95% of users). Gracefully ignored elsewhere. -->
+    <script type="speculationrules">
+      {
+        "prerender": [
+          {
+            "where": {
+              "href_matches": [
+                "/dashboard",
+                "/content-wachtrij",
+                "/vacature-plaatsen",
+                "/marketing-post",
+                "/gepubliceerd"
+              ]
+            },
+            "eagerness": "moderate"
+          }
+        ],
+        "prefetch": [
+          {
+            "where": {
+              "href_matches": [
+                "/kalender",
+                "/rapportage",
+                "/blog-aanmaken",
+                "/merk-instellingen",
+                "/gebruikers",
+                "/profiel"
+              ]
+            },
+            "eagerness": "moderate"
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

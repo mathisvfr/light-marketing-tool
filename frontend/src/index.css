@@ -234,6 +234,139 @@
   }
 }
 
+/* ================================================================
+   View Transitions API — smooth crossfade between route changes.
+   Supported in Chromium 111+ (~85% of users). Gracefully ignored
+   elsewhere — no polyfill needed, it's pure progressive enhancement.
+   ================================================================ */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root) {
+  animation: fade-out 150ms ease-out;
+}
+::view-transition-new(root) {
+  animation: fade-in 200ms ease-in;
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Main content area gets a subtle slide-up on entry */
+::view-transition-old(main-content) {
+  animation: slide-out 150ms ease-out;
+}
+::view-transition-new(main-content) {
+  animation: slide-in 200ms ease-in;
+}
+
+@keyframes slide-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-8px); }
+}
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ================================================================
+   Modern CSS: :has() for form validation styling
+   Fields with invalid inputs get a subtle red border.
+   ================================================================ */
+.form-group:has(:invalid:not(:placeholder-shown)) {
+  --field-border: var(--light-red-300);
+}
+.form-group:has(:invalid:not(:placeholder-shown)) label {
+  color: var(--light-red);
+}
+
+/* ================================================================
+   Modern CSS: @starting-style for dialog/popover entry animations.
+   Elements animate FROM these values when first displayed.
+   ================================================================ */
+dialog[open],
+[popover]:popover-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: opacity 200ms ease, transform 200ms ease,
+              display 200ms allow-discrete, overlay 200ms allow-discrete;
+}
+
+@starting-style {
+  dialog[open],
+  [popover]:popover-open {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
+/* Closing animation for dialogs */
+dialog:not([open]) {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+/* ================================================================
+   Container queries: responsive components based on parent size,
+   not viewport. Used for dashboard cards, queue items, etc.
+   ================================================================ */
+.cq-container {
+  container-type: inline-size;
+}
+
+/* Card grid adapts to container width, not viewport */
+@container (min-width: 600px) {
+  .cq-card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@container (min-width: 900px) {
+  .cq-card-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Queue items switch from stacked to inline at container breakpoint */
+@container (min-width: 500px) {
+  .cq-queue-item {
+    flex-direction: row;
+    align-items: center;
+  }
+  .cq-queue-item .cq-queue-actions {
+    margin-left: auto;
+  }
+}
+
+/* ================================================================
+   Scroll-driven progress indicator for long form pages.
+   Shows how far down the page the user has scrolled.
+   ================================================================ */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--color-primary);
+  transform-origin: left;
+  z-index: 100;
+  animation: scroll-progress linear;
+  animation-timeline: scroll(root);
+}
+
+@keyframes scroll-progress {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
 /* ------------------------------------------------------------
    Form controls — brand-consistent native styling.
    Applies globally so every page picks up the same look

@@ -15,6 +15,29 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Separate vendor chunks that change rarely from app code.
+        // Improves long-term cache hit rates significantly.
+        // Vite 8 / Rolldown requires manualChunks as a function.
+        manualChunks(id) {
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router')) {
+            return 'react-core';
+          }
+          if (id.includes('node_modules/@tanstack/react-query')) {
+            return 'tanstack-query';
+          }
+          if (id.includes('node_modules/@tiptap') || id.includes('node_modules/prosemirror')) {
+            return 'editor';
+          }
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
+            return 'charts';
+          }
+        },
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,
