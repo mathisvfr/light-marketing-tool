@@ -110,6 +110,29 @@ Stop:
 - Rotate any key that appeared in terminal output or logs.
 - Do not commit `.env` to git.
 - Keep service role key only on backend side.
+- Wachtwoorden voor nieuwe gebruikers: minimaal 8 tekens (backend valideert dit).
+
+### CSRF-bescherming
+
+De app gebruikt JWT in httpOnly cookies met `SameSite=Lax` + CORS origin-check.
+Dit biedt CSRF-bescherming omdat:
+1. `httpOnly` voorkomt JavaScript-toegang tot de cookie
+2. `SameSite=Lax` blokkeert cross-site POST-verzoeken
+3. CORS blokkeert cross-origin verzoeken (alleen `CORS_ORIGIN` is toegestaan)
+
+Expliciete CSRF-tokens zijn niet nodig zolang deze drie condities gelden.
+Heroverweeg als: cookies veranderen naar `SameSite=None`, of CORS opent naar `*`.
+Referentie: [OWASP CSRF Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#token-based-mitigation)
+
+### Uptime monitoring
+
+Stel externe uptime-monitoring in zodat je weet wanneer de tool offline is:
+- **Service:** BetterStack Uptime (gratis: 5 monitors, 3 min interval) of
+  UptimeRobot (gratis: 50 monitors, 5 min interval)
+- **URL:** `https://tool.lightpersoneelsdiensten.nl/api/health`
+- **Verwacht:** HTTP 200 met `{"status":"ok"}`
+- **Alert:** e-mail naar eigenaar
+- Dit is een eenmalige handmatige setup, geen code-wijziging.
 
 ## 9) Database backups
 

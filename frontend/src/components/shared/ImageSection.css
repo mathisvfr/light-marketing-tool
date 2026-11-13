@@ -210,7 +210,7 @@
 .is-suggestion:hover .is-suggestion-overlay { opacity: 1; }
 
 .is-suggestion-overlay span {
-  color: #fff;
+  color: var(--color-bg);
   font-size: 0.82rem;
   font-weight: 600;
 }
@@ -378,7 +378,7 @@
 }
 
 .is-lib-badge.upload { background: #dbeafe; color: #1d4ed8; }
-.is-lib-badge.generated { background: #dcfce7; color: #15803d; }
+.is-lib-badge.generated { background: var(--color-success-soft); color: var(--color-success-text); }
 .is-lib-badge.unsplash { background: var(--grey-100); color: var(--grey-700); }
 
 /* Upload dropzone */

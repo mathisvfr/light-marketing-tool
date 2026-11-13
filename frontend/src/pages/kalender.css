@@ -126,7 +126,7 @@
 
 .kal-day-num.today {
   background: var(--color-primary, #d32f2f);
-  color: #fff;
+  color: var(--color-bg);
   border-radius: 50%;
   width: 1.5rem;
   height: 1.5rem;
@@ -307,7 +307,7 @@
 
   .kal-chip {
     padding: 0.35rem 0.5rem;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     min-height: 44px;
     min-width: 44px;
   }
