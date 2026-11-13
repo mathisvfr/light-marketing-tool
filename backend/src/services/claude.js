@@ -636,6 +636,7 @@ async function extractDocumentFields(text) {
 module.exports = {
   loadBrandContext,
   generate,
+  generateRawJson: callAnthropicExpectingJson,
   translateVacature,
   translateBlog,
   extractDocumentFields,

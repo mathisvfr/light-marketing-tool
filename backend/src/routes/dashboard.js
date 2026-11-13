@@ -306,7 +306,95 @@ router.get('/summary', async (req, res, next) => {
       }));
     }
 
+    // --- Monthly stats (#27) ---
+    const nowDate = new Date();
+    const currentMonthStart = new Date(nowDate.getFullYear(), nowDate.getMonth(), 1);
+    const prevMonthStart = new Date(nowDate.getFullYear(), nowDate.getMonth() - 1, 1);
+    const prevMonthEnd = currentMonthStart;
+
+    const { data: allDraftsForMonthly } = await supabase
+      .from('drafts')
+      .select('id, type, status, updated_at, created_at')
+      .in('status', ['published', 'actief', 'draft', 'pending_approval', 'approved', 'rejected', 'expired', 'archived']);
+
+    function countMonthlyStats(drafts, monthStart, monthEnd) {
+      const result = { vacatures: 0, posts: 0, blogs: 0, totalGenerated: 0 };
+      for (const d of drafts || []) {
+        const updatedAt = new Date(d.updated_at || d.created_at);
+        const createdAt = new Date(d.created_at);
+        if (createdAt >= monthStart && createdAt < monthEnd) {
+          result.totalGenerated++;
+        }
+        if (['published', 'actief'].includes(d.status) && updatedAt >= monthStart && updatedAt < monthEnd) {
+          if (d.type === 'vacature') result.vacatures++;
+          else if (d.type === 'marketing-post') result.posts++;
+          else if (d.type === 'blog') result.blogs++;
+        }
+      }
+      return result;
+    }
+
+    const currentMonthEnd = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 1);
+    const currentStats = countMonthlyStats(allDraftsForMonthly, currentMonthStart, currentMonthEnd);
+    const previousStats = countMonthlyStats(allDraftsForMonthly, prevMonthStart, prevMonthEnd);
+
+    const monthLabel = nowDate.toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' });
+
+    // --- Channel distribution (#27) ---
+    const { data: channelPubsThisMonth } = await supabase
+      .from('publications')
+      .select('channel')
+      .eq('status', 'success')
+      .gte('published_at', currentMonthStart.toISOString());
+
+    // Also count vacature-type drafts published this month (they go via XML feed)
+    const xmlFeedCount = currentStats.vacatures;
+
+    const channelCounts = {};
+    for (const p of channelPubsThisMonth || []) {
+      const ch = p.channel || 'unknown';
+      channelCounts[ch] = (channelCounts[ch] || 0) + 1;
+    }
+    const channelDistribution = [
+      { channel: 'xml-feed', label: 'XML Feed', count: xmlFeedCount },
+      ...Object.entries(channelCounts).map(([channel, count]) => ({
+        channel,
+        label: { linkedin: 'LinkedIn', facebook: 'Facebook', instagram: 'Instagram' }[channel] || channel,
+        count,
+      })),
+    ].filter((c) => c.count > 0);
+
+    // --- Daily activity (30 days, #27) ---
+    const thirtyDaysAgo = new Date(nowDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const { data: dailyActivityRows } = await supabase
+      .from('activity_log')
+      .select('created_at')
+      .gte('created_at', thirtyDaysAgo.toISOString());
+
+    const dailyMap = {};
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(nowDate);
+      d.setDate(d.getDate() - (29 - i));
+      const key = d.toISOString().slice(0, 10);
+      dailyMap[key] = 0;
+    }
+    for (const row of dailyActivityRows || []) {
+      const key = new Date(row.created_at).toISOString().slice(0, 10);
+      if (dailyMap[key] !== undefined) {
+        dailyMap[key]++;
+      }
+    }
+    const dailyActivity = Object.entries(dailyMap).map(([date, count]) => ({ date, count }));
+
     return res.json({
+      // Monthly stats (#27)
+      monthlyStats: {
+        current: currentStats,
+        previous: previousStats,
+        monthLabel,
+      },
+      channelDistribution,
+      dailyActivity,
       // Personal counts for the caller. Frontend renders these under 'Jouw'.
       counts: {
         pendingApproval: pendingApprovalResult.count || 0,

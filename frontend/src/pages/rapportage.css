@@ -224,6 +224,143 @@
   opacity: 0.8;
 }
 
+/* Custom date range inputs */
+.rapportage-custom-dates {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.rapportage-custom-dates input[type="date"] {
+  padding: 0.35rem 0.5rem;
+  border: 1.5px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-sm, 6px);
+  font: inherit;
+  font-size: 0.82rem;
+  background: var(--color-bg);
+}
+
+/* Metrics hint for young posts */
+.rapportage-metrics-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+  font-style: italic;
+}
+
+/* Activity timeline */
+.rapportage-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.rapportage-activity-item {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--grey-100, #f1f5f9);
+  align-items: flex-start;
+}
+
+.rapportage-activity-item:last-child {
+  border-bottom: none;
+}
+
+.rapportage-activity-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--color-border-strong, #94a3b8);
+  margin-top: 0.45rem;
+  flex-shrink: 0;
+}
+
+.rapportage-activity-text {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.rapportage-activity-time {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+}
+
+/* Email report settings */
+.rapportage-email-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.rapportage-email-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.rapportage-email-field > label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.rapportage-email-field select,
+.rapportage-email-field input[type="text"] {
+  padding: 0.4rem 0.65rem;
+  border: 1.5px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-sm, 6px);
+  font: inherit;
+  font-size: 0.88rem;
+  background: var(--color-bg);
+}
+
+.rapportage-email-checks {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.rapportage-email-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.rapportage-email-row {
+  display: flex;
+  gap: 0.875rem;
+}
+
+.rapportage-email-row .rapportage-email-field {
+  flex: 1;
+}
+
+.rapportage-email-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.rapportage-email-feedback {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.rapportage-email-success {
+  color: var(--color-success, #2f8f4e);
+}
+
+.rapportage-email-error {
+  color: var(--light-red, #be1e2d);
+}
+
 @media (max-width: 1024px) {
   .rapportage-tiles,
   .rapportage-charts {

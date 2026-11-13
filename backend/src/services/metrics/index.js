@@ -68,10 +68,60 @@ async function runAllSnapshotters() {
   }
 }
 
+// --- Email report cron ---
+// Runs on the configured hour (default 08:00 Amsterdam) on the configured day
+// of the month. Checks every hour whether it's time to send.
+
+async function checkEmailReportSchedule() {
+  try {
+    const { supabase: sb } = require('../../db/client');
+    const { data: config } = await sb
+      .from('email_report_config')
+      .select('*')
+      .eq('id', '00000000-0000-0000-0000-000000000001')
+      .maybeSingle();
+
+    if (!config || config.frequency === 'disabled') return;
+    if (!config.recipients || config.recipients.length === 0) return;
+
+    // Check if it's the right day and hour
+    const nowAmsterdam = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Amsterdam' }));
+    const dayOfMonth = nowAmsterdam.getDate();
+    const hour = nowAmsterdam.getHours();
+
+    if (dayOfMonth !== (config.day_of_month || 28)) return;
+    if (hour !== (config.hour || 8)) return;
+
+    // Check if already sent this month
+    if (config.last_sent_at) {
+      const lastSent = new Date(config.last_sent_at);
+      const monthStart = new Date(nowAmsterdam.getFullYear(), nowAmsterdam.getMonth(), 1);
+      if (lastSent >= monthStart) return; // Already sent this month
+    }
+
+    const { sendReportEmail } = require('../email');
+    await sendReportEmail(config);
+
+    await sb
+      .from('email_report_config')
+      .update({ last_sent_at: new Date().toISOString() })
+      .eq('id', '00000000-0000-0000-0000-000000000001');
+
+    const log = (msg) => {
+      if (process.env.NODE_ENV !== 'production') return;
+      console.log(`[email-report] ${msg}`);
+    };
+    log(`Maandrapport verstuurd naar ${config.recipients.length} ontvanger(s).`);
+  } catch (err) {
+    // Log but don't crash — next check will retry
+    console.error('[email-report] mislukt:', err?.message || err);
+  }
+}
+
 function startCron() {
   if (process.env.NODE_ENV === 'test') return null;
 
-  // Schedule first run
+  // Schedule nightly snapshotters
   const scheduleNext = () => {
     const ms = getNextRunMs();
     const handle = setTimeout(async () => {
@@ -81,6 +131,15 @@ function startCron() {
     if (handle.unref) handle.unref();
     return handle;
   };
+
+  // Email report: check every hour
+  const emailHandle = setInterval(async () => {
+    await checkEmailReportSchedule();
+  }, 60 * 60 * 1000); // 1 hour
+  if (emailHandle.unref) emailHandle.unref();
+
+  // Also check immediately at startup (in case we're starting at the right time)
+  setTimeout(() => checkEmailReportSchedule(), 10_000);
 
   return scheduleNext();
 }

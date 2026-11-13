@@ -4,6 +4,10 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import StatusBadge from '../components/shared/StatusBadge';
 import ChannelStatus from '../components/shared/ChannelStatus';
+import MonthlyStats from '../components/dashboard/MonthlyStats';
+import MonthComparison from '../components/dashboard/MonthComparison';
+import ChannelDistribution from '../components/dashboard/ChannelDistribution';
+import DailyActivityChart from '../components/dashboard/DailyActivityChart';
 import '../components/shared/status-strip.css';
 import './dashboard.css';
 
@@ -83,6 +87,9 @@ export default function Dashboard() {
   const weekSummary = summaryQuery.data?.weekSummary || null;
   const teamWeekly = summaryQuery.data?.teamWeekly || [];
   const recentPublications = summaryQuery.data?.recentPublications || [];
+  const monthlyStats = summaryQuery.data?.monthlyStats || null;
+  const channelDistribution = summaryQuery.data?.channelDistribution || [];
+  const dailyActivity = summaryQuery.data?.dailyActivity || [];
 
   const isEmptyDashboard = role !== 'viewer' && !user?.onboarded_at;
   const prefix = viewScope === 'personal' ? 'Jouw ' : '';
@@ -156,6 +163,16 @@ export default function Dashboard() {
           </div>
         )}
       </section>
+
+      {/* Monthly stats + comparison (#27) */}
+      <MonthlyStats stats={monthlyStats} />
+      <MonthComparison stats={monthlyStats} />
+
+      {/* Channel distribution + daily activity (#27) */}
+      <div className="dash-panels">
+        <ChannelDistribution data={channelDistribution} />
+        <DailyActivityChart data={dailyActivity} />
+      </div>
 
       {/* Team totals (owner sees both personal + team) */}
       {teamCounts && (

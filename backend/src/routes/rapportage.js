@@ -3,10 +3,13 @@ const { supabase } = require('../db/client');
 const { requireRole } = require('../middleware/auth');
 const dbSnapshotter = require('../services/metrics/db_snapshotter');
 const { upsertMetric } = require('../services/metrics/upsert');
+const { fetchPostMetrics, getBufferToken } = require('../services/metrics/buffer_snapshotter');
+const { getDraftTitle } = require('../services/draftUtils');
 
 const router = express.Router();
 
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || '';
+const EMAIL_CONFIG_ID = '00000000-0000-0000-0000-000000000001';
 
 function normalizeMetrics(pub) {
   if (!pub.metrics || typeof pub.metrics !== 'object') return null;
@@ -35,14 +38,19 @@ router.get('/', async (req, res, next) => {
     const now = new Date();
 
     let from;
-    const to = now;
-    if (range === 'month') {
+    let to = now;
+    if (range === 'quarter') {
+      from = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    } else if (range === 'month') {
       from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     } else {
       from = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     }
     if (req.query.from) {
       from = new Date(req.query.from);
+    }
+    if (req.query.to) {
+      to = new Date(req.query.to);
     }
 
     // Previous period (same length, for trend calculation)
@@ -223,6 +231,79 @@ router.get('/', async (req, res, next) => {
     // --- Weekly pageviews (#8) ---
     const pageviewsWeekly = getValue('website.pageviews.weekly') || [];
 
+    // --- Per-post metrics (Phase 1) ---
+    const { data: perPostPubs } = await supabase
+      .from('publications')
+      .select('id, draft_id, channel, published_at, metrics, metrics_updated_at, external_id')
+      .eq('status', 'success')
+      .not('external_id', 'is', null)
+      .order('published_at', { ascending: false })
+      .limit(50);
+
+    // Fetch draft titles for per-post display
+    const draftIds = [...new Set((perPostPubs || []).map((p) => p.draft_id).filter(Boolean))];
+    let draftTitleMap = {};
+    if (draftIds.length > 0) {
+      const { data: draftsForTitles } = await supabase
+        .from('drafts')
+        .select('id, form_data')
+        .in('id', draftIds);
+      for (const d of draftsForTitles || []) {
+        draftTitleMap[d.id] = getDraftTitle(d.form_data);
+      }
+    }
+
+    const perPost = (perPostPubs || []).map((p) => ({
+      publicationId: p.id,
+      draftId: p.draft_id,
+      channel: p.channel,
+      title: draftTitleMap[p.draft_id] || 'Zonder titel',
+      publishedAt: p.published_at,
+      metrics: normalizeMetrics(p),
+      metricsUpdatedAt: p.metrics_updated_at,
+    }));
+
+    // --- This month vs last month (Phase 1 + #27) ---
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthEnd = monthStart;
+
+    const thisMonthPubs = (pubRowsAll || []).filter(
+      (p) => p.published_at && new Date(p.published_at) >= monthStart
+    );
+    const lastMonthPubs = (pubRowsAll || []).filter(
+      (p) => p.published_at && new Date(p.published_at) >= prevMonthStart && new Date(p.published_at) < prevMonthEnd
+    );
+
+    const thisMonthEng = aggregateEngagement(thisMonthPubs);
+    const lastMonthEng = aggregateEngagement(lastMonthPubs);
+
+    const thisMonthVsLast = {
+      current: { posts: thisMonthPubs.length, likes: thisMonthEng.total.likes, reach: thisMonthEng.total.reach, comments: thisMonthEng.total.comments, clicks: thisMonthEng.total.clicks },
+      previous: { posts: lastMonthPubs.length, likes: lastMonthEng.total.likes, reach: lastMonthEng.total.reach, comments: lastMonthEng.total.comments, clicks: lastMonthEng.total.clicks },
+      change: {
+        posts: trendPct(thisMonthPubs.length, lastMonthPubs.length),
+        likes: trendPct(thisMonthEng.total.likes, lastMonthEng.total.likes),
+        reach: trendPct(thisMonthEng.total.reach, lastMonthEng.total.reach),
+        comments: trendPct(thisMonthEng.total.comments, lastMonthEng.total.comments),
+        clicks: trendPct(thisMonthEng.total.clicks, lastMonthEng.total.clicks),
+      },
+    };
+
+    // --- Activity timeline (Phase 1) ---
+    const { data: activityRows } = await supabase
+      .from('activity_log')
+      .select('action, metadata, user_name, created_at')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    const activityTimeline = (activityRows || []).map((r) => ({
+      date: r.created_at,
+      action: r.action,
+      title: r.metadata?.title || '',
+      userName: r.user_name || '',
+    }));
+
     return res.json({
       vacatures: {
         actief: actiefCount,
@@ -244,6 +325,11 @@ router.get('/', async (req, res, next) => {
           ...counts,
         })),
         contentPerWeek: getValue('content.published_per_week') || {},
+        perPost,
+        thisMonthVsLast,
+      },
+      activity: {
+        timeline: activityTimeline,
       },
       website: {
         stats: websiteStats,
@@ -317,6 +403,184 @@ router.post('/refresh', requireRole(['owner', 'manager']), async (req, res, next
     const result = await dbSnapshotter.run();
     return res.json({ success: true, ...result });
   } catch (error) {
+    return next(error);
+  }
+});
+
+// GET /api/rapportage/post/:publicationId/metrics — on-demand per-post metrics
+router.get('/post/:publicationId/metrics', async (req, res, next) => {
+  try {
+    const { publicationId } = req.params;
+
+    const { data: pub, error } = await supabase
+      .from('publications')
+      .select('id, external_id, channel, metrics, metrics_updated_at')
+      .eq('id', publicationId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!pub) return res.status(404).json({ error: 'Publicatie niet gevonden.' });
+
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    const needsRefresh = pub.external_id && (!pub.metrics_updated_at || new Date(pub.metrics_updated_at) < sixHoursAgo);
+
+    if (needsRefresh) {
+      try {
+        const token = await getBufferToken();
+        if (token) {
+          const postData = await fetchPostMetrics(pub.external_id, token);
+          if (postData?.metrics) {
+            const raw = {};
+            for (const m of postData.metrics) {
+              if (m?.name && typeof m.value !== 'undefined') {
+                raw[m.name.toLowerCase()] = Number(m.value) || 0;
+              }
+            }
+            const normalized = {
+              likes: raw.reactions || raw.likes || 0,
+              comments: raw.comments || 0,
+              reach: raw.impressions || raw.reach || 0,
+              clicks: raw.clicks || 0,
+              shares: raw.shares || raw.reposts || 0,
+            };
+            const now = new Date().toISOString();
+            await supabase
+              .from('publications')
+              .update({ metrics: normalized, metrics_updated_at: now })
+              .eq('id', pub.id);
+
+            return res.json({ metrics: normalized, metricsUpdatedAt: now, refreshed: true });
+          }
+        }
+      } catch (fetchErr) {
+        // If on-demand fetch fails, return cached data
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[rapportage] on-demand Buffer fetch failed:', fetchErr.message);
+        }
+      }
+    }
+
+    return res.json({
+      metrics: normalizeMetrics(pub),
+      metricsUpdatedAt: pub.metrics_updated_at,
+      refreshed: false,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// GET /api/rapportage/preferences — user's dashboard preferences
+router.get('/preferences', async (req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from('user_dashboard_preferences')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return res.json(data || { visible_widgets: [], date_range_default: 'month' });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// PUT /api/rapportage/preferences — update user's dashboard preferences
+router.put('/preferences', async (req, res, next) => {
+  try {
+    const { visible_widgets, date_range_default } = req.body || {};
+
+    const widgets = Array.isArray(visible_widgets) ? visible_widgets : [];
+    const dateRange = ['week', 'month', 'quarter'].includes(date_range_default) ? date_range_default : 'month';
+
+    const { error } = await supabase
+      .from('user_dashboard_preferences')
+      .upsert({
+        user_id: req.user.id,
+        visible_widgets: widgets,
+        date_range_default: dateRange,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+
+    if (error) throw error;
+
+    return res.json({ success: true });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// GET /api/rapportage/email-config — owner only
+router.get('/email-config', requireRole(['owner']), async (req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from('email_report_config')
+      .select('*')
+      .eq('id', EMAIL_CONFIG_ID)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return res.json(data || { frequency: 'disabled', recipients: [], include_sections: ['vacatures', 'marketing', 'website'], include_ai_insights: true, day_of_month: 28, hour: 8 });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// PUT /api/rapportage/email-config — owner only
+router.put('/email-config', requireRole(['owner']), async (req, res, next) => {
+  try {
+    const { frequency, recipients, include_sections, include_ai_insights, day_of_month, hour } = req.body || {};
+
+    const freq = ['monthly', 'disabled'].includes(frequency) ? frequency : 'disabled';
+    const recips = Array.isArray(recipients) ? recipients.filter((r) => typeof r === 'string' && r.includes('@')) : [];
+    const sections = Array.isArray(include_sections) ? include_sections : ['vacatures', 'marketing', 'website'];
+    const dayOfMonth = Number(day_of_month) >= 1 && Number(day_of_month) <= 28 ? Number(day_of_month) : 28;
+    const hourVal = Number(hour) >= 0 && Number(hour) <= 23 ? Number(hour) : 8;
+
+    const { error } = await supabase
+      .from('email_report_config')
+      .update({
+        frequency: freq,
+        recipients: recips,
+        include_sections: sections,
+        include_ai_insights: include_ai_insights !== false,
+        day_of_month: dayOfMonth,
+        hour: hourVal,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', EMAIL_CONFIG_ID);
+
+    if (error) throw error;
+
+    return res.json({ success: true });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// POST /api/rapportage/email-config/test — send test email (owner only)
+router.post('/email-config/test', requireRole(['owner']), async (req, res, next) => {
+  try {
+    const { sendReportEmail } = require('../services/email');
+    const { data: config } = await supabase
+      .from('email_report_config')
+      .select('*')
+      .eq('id', EMAIL_CONFIG_ID)
+      .maybeSingle();
+
+    if (!config || !config.recipients || config.recipients.length === 0) {
+      return res.status(400).json({ error: 'Geen ontvangers geconfigureerd.' });
+    }
+
+    await sendReportEmail(config, true);
+    return res.json({ success: true, message: 'Test-e-mail verstuurd.' });
+  } catch (error) {
+    if (error.message && error.message.includes('SMTP_HOST')) {
+      return res.status(400).json({ error: 'E-mail niet geconfigureerd (SMTP_HOST ontbreekt).' });
+    }
     return next(error);
   }
 });

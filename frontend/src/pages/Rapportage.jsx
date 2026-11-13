@@ -15,6 +15,8 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import Card, { CardHeader, CardBody, CardLoading, CardEmpty } from '../components/shared/Card';
+import PostMetricsTable from '../components/rapportage/PostMetricsTable';
+import EmailReportSettings from '../components/rapportage/EmailReportSettings';
 import '../components/shared/card.css';
 import './rapportage.css';
 
@@ -69,11 +71,24 @@ export default function Rapportage() {
   const { role } = useAuth();
   const queryClient = useQueryClient();
   const [range, setRange] = useState('week');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const [showTopPages, setShowTopPages] = useState(false);
+  // Stable timestamp for young-post detection (initialized once at mount).
+  const [mountTime] = useState(() => Date.now());
+
+  const queryParams = useMemo(() => {
+    if (range === 'custom' && customFrom) {
+      let qs = `range=custom&from=${customFrom}`;
+      if (customTo) qs += `&to=${customTo}`;
+      return qs;
+    }
+    return `range=${range}`;
+  }, [range, customFrom, customTo]);
 
   const rapportageQuery = useQuery({
-    queryKey: ['rapportage', range],
-    queryFn: () => api(`/rapportage?range=${range}`),
+    queryKey: ['rapportage', queryParams],
+    queryFn: () => api(`/rapportage?${queryParams}`),
   });
 
   const refreshMutation = useMutation({
@@ -143,7 +158,26 @@ export default function Rapportage() {
         <select value={range} onChange={(e) => setRange(e.target.value)}>
           <option value="week">Deze week</option>
           <option value="month">Deze maand</option>
+          <option value="quarter">Dit kwartaal</option>
+          <option value="custom">Aangepast</option>
         </select>
+        {range === 'custom' && (
+          <span className="rapportage-custom-dates">
+            <input
+              type="date"
+              value={customFrom}
+              onChange={(e) => setCustomFrom(e.target.value)}
+              placeholder="Van"
+            />
+            <span>t/m</span>
+            <input
+              type="date"
+              value={customTo}
+              onChange={(e) => setCustomTo(e.target.value)}
+              placeholder="Tot"
+            />
+          </span>
+        )}
         {(role === 'owner' || role === 'manager') && (
           <button
             type="button"
@@ -232,6 +266,51 @@ export default function Rapportage() {
             <span className="rapportage-updated"> · Bijgewerkt: {formatRelativeTime(meta.lastUpdated.marketing)}</span>
           )}
         </p>
+
+        {/* Month comparison */}
+        {marketing?.thisMonthVsLast && (
+          <Card>
+            <CardHeader title="Deze maand vs. vorige maand" />
+            <CardBody>
+              <div className="rapportage-table-wrap">
+                <table className="rapportage-table">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Deze maand</th>
+                      <th>Vorige maand</th>
+                      <th>Verschil</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { label: 'Posts', key: 'posts' },
+                      { label: 'Bereik', key: 'reach' },
+                      { label: 'Likes', key: 'likes' },
+                      { label: 'Reacties', key: 'comments' },
+                      { label: 'Clicks', key: 'clicks' },
+                    ].map((row) => {
+                      const mvl = marketing.thisMonthVsLast;
+                      const change = mvl.change[row.key] || 0;
+                      return (
+                        <tr key={row.key}>
+                          <td>{row.label}</td>
+                          <td>{mvl.current[row.key] ?? 0}</td>
+                          <td>{mvl.previous[row.key] ?? 0}</td>
+                          <td>
+                            <span className={`rapportage-trend ${change > 0 ? 'rapportage-trend-up' : change < 0 ? 'rapportage-trend-down' : ''}`}>
+                              {change > 0 ? '\u2191' : change < 0 ? '\u2193' : '\u2500'} {Math.abs(change)}%
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardBody>
+          </Card>
+        )}
 
         {/* #2 Compact engagement card */}
         <Card padding="sm">
@@ -340,7 +419,41 @@ export default function Rapportage() {
             </CardBody>
           </Card>
         )}
+
+        {/* Per-post metrics table */}
+        {(marketing?.perPost || []).length > 0 && (
+          <Card>
+            <CardHeader title="Per-post prestaties" />
+            <CardBody>
+              <PostMetricsTable perPost={marketing.perPost} now={mountTime} />
+            </CardBody>
+          </Card>
+        )}
       </section>
+
+      {/* ━━━ ACTIVITY TIMELINE ━━━ */}
+      {rapportageQuery.data?.activity?.timeline?.length > 0 && (
+        <section className="rapportage-section">
+          <h2 className="rapportage-section-title">Recente activiteit</h2>
+          <Card>
+            <CardBody>
+              <div className="rapportage-activity-list">
+                {rapportageQuery.data.activity.timeline.map((item, i) => (
+                  <div key={i} className="rapportage-activity-item">
+                    <span className="rapportage-activity-dot" />
+                    <div>
+                      <span className="rapportage-activity-text">
+                        {item.userName}{item.title ? `: ${item.title}` : ''} ({item.action})
+                      </span>
+                      <span className="rapportage-activity-time">{formatRelativeTime(item.date)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardBody>
+          </Card>
+        </section>
+      )}
 
       {/* ━━━ SECTION 3: WEBSITE ━━━ */}
       <section className="rapportage-section">
@@ -471,6 +584,14 @@ export default function Rapportage() {
           </Card>
         </div>
       </section>
+
+      {/* ━━━ EMAIL REPORT SETTINGS (owner only) ━━━ */}
+      {role === 'owner' && (
+        <section className="rapportage-section">
+          <h2 className="rapportage-section-title">E-mail rapportage</h2>
+          <EmailReportSettings />
+        </section>
+      )}
     </div>
   );
 }

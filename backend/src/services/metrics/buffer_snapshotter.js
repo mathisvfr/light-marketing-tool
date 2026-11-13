@@ -10,7 +10,7 @@ const { upsertMetric } = require('./upsert');
 
 const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://api.buffer.com';
 // Buffer Free tier: 3000 requests / 30 days. Keep nightly snapshot minimal.
-const MAX_API_CALLS = 5;
+const MAX_API_CALLS = 15;
 const CALL_SPACING_MS = 3000;
 
 async function getBufferToken() {
@@ -119,10 +119,21 @@ async function run() {
         perChannel[ch].clicks += metrics.clicks || 0;
         perChannel[ch].shares += metrics.shares || metrics.reposts || 0;
 
-        // Update the publication's metrics_updated_at so next run picks older ones first
+        // Write normalized per-post metrics to publications.metrics JSONB
+        const normalizedMetrics = {
+          likes: metrics.reactions || metrics.likes || 0,
+          comments: metrics.comments || 0,
+          reach: metrics.impressions || metrics.reach || 0,
+          clicks: metrics.clicks || 0,
+          shares: metrics.shares || metrics.reposts || 0,
+        };
+
         await supabase
           .from('publications')
-          .update({ metrics_updated_at: new Date().toISOString() })
+          .update({
+            metrics: normalizedMetrics,
+            metrics_updated_at: new Date().toISOString(),
+          })
           .eq('id', pub.id);
       }
     } catch (err) {
@@ -161,4 +172,4 @@ async function run() {
   return results;
 }
 
-module.exports = { run };
+module.exports = { run, fetchPostMetrics, getBufferToken };
