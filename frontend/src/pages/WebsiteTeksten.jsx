@@ -149,7 +149,13 @@ function getFieldLabel(key) {
 }
 
 function getSectionMeta(name) {
-  return SECTION_META[name] || { label: name, description: '' };
+  const key = (name || '').toLowerCase().replace(/\s+/g, '');
+  // Try exact match first, then normalized lowercase lookup
+  if (SECTION_META[name]) return SECTION_META[name];
+  // Map known backend variants to our keys
+  const ALIASES = { 'overons': 'about', 'diensten': 'services', 'calltoaction': 'cta', 'navigatie': 'nav' };
+  const resolved = ALIASES[key] || key;
+  return SECTION_META[resolved] || { label: name, description: '' };
 }
 
 export default function WebsiteTeksten() {
@@ -168,7 +174,17 @@ export default function WebsiteTeksten() {
 
   const statusQuery = useQuery({
     queryKey: ['website-texts-translation-status'],
-    queryFn: () => api('/website-texts/translation-status'),
+    queryFn: async () => {
+      const data = await api('/website-texts/translation-status');
+      // Stop polling when all translations are complete.
+      // Handled inside queryFn (an event callback) to avoid calling
+      // setState in a render body or effect.
+      if (data && (!data.pending || data.pending.length === 0)) {
+        setIsTranslating(false);
+        queryClient.invalidateQueries({ queryKey: ['website-texts'] });
+      }
+      return data;
+    },
     refetchInterval: isTranslating ? 3000 : false,
     enabled: isTranslating,
   });
@@ -177,14 +193,6 @@ export default function WebsiteTeksten() {
     () => statusQuery.data?.pending || [],
     [statusQuery.data]
   );
-
-  // Stop polling when all translations are complete
-  if (isTranslating && statusQuery.data && pendingKeys.length === 0) {
-    setTimeout(() => {
-      setIsTranslating(false);
-      queryClient.invalidateQueries({ queryKey: ['website-texts'] });
-    }, 0);
-  }
 
   const sections = useMemo(
     () => textsQuery.data?.sections || {},

@@ -38,6 +38,7 @@ export default function Gebruikers() {
   const [confirm, setConfirm] = useState(null);
   const [resetPasswordTarget, setResetPasswordTarget] = useState(null);
   const [newPassword, setNewPassword] = useState('');
+  const [resetPasswordError, setResetPasswordError] = useState('');
 
   const usersQuery = useQuery({
     queryKey: ['users-list'],
@@ -199,7 +200,7 @@ export default function Gebruikers() {
                   <td className="users-actions">
                     <button
                       type="button"
-                      onClick={() => { setResetPasswordTarget(item); setNewPassword(''); setError(''); }}
+                      onClick={() => { setResetPasswordTarget(item); setNewPassword(''); setResetPasswordError(''); }}
                       disabled={updateRoleMutation.isPending || deleteUserMutation.isPending}
                     >
                       Wachtwoord
@@ -293,18 +294,18 @@ export default function Gebruikers() {
 
       <Modal
         open={Boolean(resetPasswordTarget)}
-        onOpenChange={(next) => { if (!next) { setResetPasswordTarget(null); setNewPassword(''); } }}
+        onOpenChange={(next) => { if (!next) { setResetPasswordTarget(null); setNewPassword(''); setResetPasswordError(''); } }}
         title={`Wachtwoord resetten — ${resetPasswordTarget?.name || ''}`}
         size="sm"
       >
         <form
           onSubmit={async (e) => {
             e.preventDefault();
-            setError('');
+            setResetPasswordError('');
             try {
               await resetPasswordMutation.mutateAsync({ userId: resetPasswordTarget.id, newPassword });
             } catch (err) {
-              setError(err.message || 'Wachtwoord resetten mislukt.');
+              setResetPasswordError(err.message || 'Wachtwoord resetten mislukt.');
             }
           }}
           className="users-modal-form"
@@ -320,11 +321,12 @@ export default function Gebruikers() {
               autoFocus
             />
           </label>
+          <FormMessage variant="error">{resetPasswordError}</FormMessage>
           <ModalFooter>
             <button
               type="button"
               className="confirm-btn-cancel"
-              onClick={() => { setResetPasswordTarget(null); setNewPassword(''); }}
+              onClick={() => { setResetPasswordTarget(null); setNewPassword(''); setResetPasswordError(''); }}
             >
               Annuleren
             </button>

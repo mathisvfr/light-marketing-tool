@@ -362,7 +362,7 @@ router.post('/', async (req, res, next) => {
         .eq('id', req.user.id)
         .then(({ error: onboardErr }) => {
           if (onboardErr) {
-            console.error('Auto-onboard update failed:', onboardErr);
+            if (process.env.NODE_ENV !== 'production') console.error('Auto-onboard update failed:', onboardErr);
           }
         });
     }
@@ -606,7 +606,7 @@ router.post('/:id/generate', async (req, res, next) => {
 
     const t0 = Date.now();
     const generated = await generate(draft.type, generationFormData);
-    console.log(`[timing] generate(${draft.type}) ${Date.now() - t0}ms`);
+    if (process.env.NODE_ENV !== 'production') console.log(`[timing] generate(${draft.type}) ${Date.now() - t0}ms`);
 
     // Save generated content immediately (criticus_passed = null signals "pending")
     let updatePayload;
@@ -787,7 +787,7 @@ router.post('/:id/generate', async (req, res, next) => {
     // Criticus — independent DB write
     criticus({ type: draft.type, formData: draft.form_data, content: generated })
       .then(async (result) => {
-        console.log(`[timing] criticus ${Date.now() - tBg}ms`);
+        if (process.env.NODE_ENV !== 'production') console.log(`[timing] criticus ${Date.now() - tBg}ms`);
         await supabase.from('drafts').update({
           criticus_passed: result.passed,
           criticus_notes: result.notes || null,
@@ -818,7 +818,7 @@ router.post('/:id/generate', async (req, res, next) => {
     if (renderInfo) {
       renderSocialImage(renderInfo.name, renderInfo.fields)
         .then(async (renderedImagePath) => {
-          console.log(`[timing] render(${renderInfo.name}) ${Date.now() - tBg}ms`);
+          if (process.env.NODE_ENV !== 'production') console.log(`[timing] render(${renderInfo.name}) ${Date.now() - tBg}ms`);
           await supabase.from('drafts').update({
             image_path: renderedImagePath,
             updated_at: new Date().toISOString(),
@@ -1790,19 +1790,23 @@ router.post('/bulk-archive', async (req, res, next) => {
     const succeeded = [];
 
     for (const draft of eligible) {
-      const { error } = await supabase
-        .from('drafts')
-        .update({
-          pre_archive_status: draft.status,
-          status: 'archived',
-          archived_at: now,
-          updated_at: now,
-        })
-        .eq('id', draft.id);
+      try {
+        const { error } = await supabase
+          .from('drafts')
+          .update({
+            pre_archive_status: draft.status,
+            status: 'archived',
+            archived_at: now,
+            updated_at: now,
+          })
+          .eq('id', draft.id);
 
-      if (error) throw error;
-      succeeded.push({ id: draft.id, status: 'archived' });
-      logActivity(req.user.id, req.user.name, 'draft.archived', 'draft', draft.id, { title: getDraftTitle(draft.form_data) });
+        if (error) throw error;
+        succeeded.push({ id: draft.id, status: 'archived' });
+        logActivity(req.user.id, req.user.name, 'draft.archived', 'draft', draft.id, { title: getDraftTitle(draft.form_data) });
+      } catch (archiveErr) {
+        skipped.push({ id: draft.id, reason: 'update-failed', error: archiveErr.message || 'Archiveren mislukt.' });
+      }
     }
 
     return res.json({

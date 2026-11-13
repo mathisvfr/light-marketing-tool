@@ -12,7 +12,7 @@ const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || '';
 const EMAIL_CONFIG_ID = '00000000-0000-0000-0000-000000000001';
 
 function normalizeMetrics(pub) {
-  if (!pub.metrics || typeof pub.metrics !== 'object') return null;
+  if (!pub.metrics || typeof pub.metrics !== 'object') return { likes: 0, comments: 0, reach: 0, clicks: 0, shares: 0 };
   const m = {};
   for (const [k, v] of Object.entries(pub.metrics)) {
     m[k.toLowerCase()] = Number(v) || 0;
@@ -355,6 +355,11 @@ router.get('/', async (req, res, next) => {
 // POST /api/rapportage/application
 router.post('/application', async (req, res, next) => {
   try {
+    if (!INTERNAL_API_SECRET && process.env.NODE_ENV === 'production') {
+      return res.status(500).json({ error: 'INTERNAL_API_SECRET is niet geconfigureerd.' });
+    }
+    // In development, an empty INTERNAL_API_SECRET intentionally skips auth
+    // so local testing works without extra config.
     if (INTERNAL_API_SECRET) {
       const provided = req.headers['x-internal-secret'] || '';
       if (provided !== INTERNAL_API_SECRET) {
@@ -381,7 +386,7 @@ router.post('/application', async (req, res, next) => {
       .select('id, value')
       .eq('metric_key', 'website.applications')
       .eq('bucket_date', today)
-      .eq('dimensions', { vacature_id, titel: vacature_titel || '' })
+      .contains('dimensions', { vacature_id })
       .maybeSingle();
 
     if (existing) {
