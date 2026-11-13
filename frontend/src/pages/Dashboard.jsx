@@ -160,7 +160,7 @@ export default function Dashboard() {
       {/* Team totals (owner sees both personal + team) */}
       {teamCounts && (
         <section className="dash-team">
-          <h3 className="dash-section-title">Team totaal</h3>
+          <h2 className="dash-section-title">Team totaal</h2>
           <div className="dash-team-row">
             <div className="dash-team-stat">
               <span className="dash-team-num">{teamCounts.pendingApproval}</span>
@@ -262,7 +262,7 @@ export default function Dashboard() {
 
       {/* Channel health */}
       <section className="dash-channels">
-        <h3 className="dash-section-title">Kanaalstatus</h3>
+        <h2 className="dash-section-title">Kanaalstatus</h2>
         {channelHealth.length === 0 ? (
           <p className="dash-panel-empty">Nog geen kanaalstatus beschikbaar.</p>
         ) : (
