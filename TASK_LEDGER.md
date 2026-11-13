@@ -31,6 +31,8 @@ useful for the next agent picking up work. Move fully-completed rows below the
 
 | 11 | Website teksten feature (DB + backend route + frontend page) | `main` | done (2026-11-13) | `backend/src/db/migrations/030_website_texts.sql` (new), `backend/src/routes/website-texts.js` (new), `frontend/src/pages/WebsiteTeksten.jsx` (new), `frontend/src/pages/website-teksten.css` (new), `backend/src/index.js` (route registration), `frontend/src/App.jsx` (route), `frontend/src/components/layout/AppShell.jsx` (nav item) | claude (agent-a25481f1) | Owner-only page to edit website i18n texts with auto-translation to all locales |
 
+| 12 | Calendar/scheduling backend (#10, #11) | `main` | done | `backend/src/db/migrations/035_calendar_scheduling.sql` (new), `backend/src/routes/calendar.js` (new), `backend/src/services/scheduledActivation.js` (new), `backend/src/routes/publish.js` (GET / only — scheduledFor fields), `backend/src/index.js` (route + cron registration) | claude (agent-a62314c0) | Design spec: docs/designs/content-calendar-scheduling.md |
+
 ## Archive
 
 <!-- Move completed rows here once older than a week. Nothing yet. -->

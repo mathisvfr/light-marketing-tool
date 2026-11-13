@@ -57,7 +57,7 @@ router.get('/', async (_req, res, next) => {
 
     const { data: activeVacatures, error: activeVacaturesError } = await supabase
       .from('drafts')
-      .select('id, type, form_data, updated_at')
+      .select('id, type, form_data, updated_at, scheduled_for')
       .eq('type', 'vacature')
       .eq('status', 'actief')
       .order('updated_at', { ascending: false })
@@ -69,7 +69,7 @@ router.get('/', async (_req, res, next) => {
 
     const { data: blogDrafts, error: blogError } = await supabase
       .from('drafts')
-      .select('id, type, form_data, status, updated_at, blog_titel')
+      .select('id, type, form_data, status, updated_at, blog_titel, scheduled_for')
       .eq('type', 'blog')
       .in('status', ['published', 'approved'])
       .order('updated_at', { ascending: false })
@@ -156,6 +156,7 @@ router.get('/', async (_req, res, next) => {
         title: getDraftTitle(draft.form_data),
         status: 'actief',
         updatedAt: draft.updated_at,
+        scheduledFor: draft.scheduled_for || null,
         channels: jobitInfo?.channels || [],
         jobitActive: jobitInfo?.active ?? null,
       };
@@ -166,6 +167,7 @@ router.get('/', async (_req, res, next) => {
       title: draft.blog_titel || getDraftTitle(draft.form_data),
       status: draft.status,
       updatedAt: draft.updated_at,
+      scheduledFor: draft.scheduled_for || null,
       categorie: draft.form_data?.categorie || '',
     }));
 
