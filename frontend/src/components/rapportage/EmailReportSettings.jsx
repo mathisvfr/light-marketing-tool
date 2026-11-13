@@ -42,7 +42,7 @@ export default function EmailReportSettings() {
   }
 
   const saveMutation = useMutation({
-    mutationFn: (body) => api('/rapportage/email-config', { method: 'PUT', body }),
+    mutationFn: (body) => api('/rapportage/email-config', { method: 'PUT', body: JSON.stringify(body) }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['email-report-config'] }),
   });
 
