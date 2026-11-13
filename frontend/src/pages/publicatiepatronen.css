@@ -53,7 +53,7 @@
 
 .patronen-chip.active {
   background: var(--color-primary, #be1e2d);
-  color: #fff;
+  color: var(--color-bg);
   border-color: var(--color-primary, #be1e2d);
   font-weight: 600;
 }
@@ -81,7 +81,7 @@
 
 .patronen-preset.active {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-bg);
   border-color: var(--color-primary);
 }
 
