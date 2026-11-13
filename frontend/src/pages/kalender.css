@@ -1,4 +1,13 @@
-.kal-layout {
+/* ── Page layout: calendar + side panel ── */
+.kal-page-layout {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.kal-main {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -10,8 +19,21 @@
   padding: 2rem;
 }
 
-/* ---- Header ---- */
+/* ── Header ── */
 .kal-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.kal-header-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.kal-header-right {
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -68,12 +90,74 @@
 }
 
 .kal-count {
-  margin-left: auto;
   font-size: 0.82rem;
   color: var(--color-text-subtle);
 }
 
-/* ---- Week grid ---- */
+/* ── View toggle ── */
+.kal-view-toggle {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.kal-view-btn {
+  all: unset;
+  cursor: pointer;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  transition: background 0.15s, color 0.15s;
+}
+
+.kal-view-btn:first-child {
+  border-right: 1px solid var(--color-border);
+}
+
+.kal-view-btn:hover {
+  background: var(--grey-100);
+}
+
+.kal-view-btn.active {
+  background: var(--color-primary, #d32f2f);
+  color: #fff;
+}
+
+/* ── Type filters ── */
+.kal-filters {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.kal-filter-btn {
+  all: unset;
+  cursor: pointer;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.kal-filter-btn:hover {
+  background: var(--grey-100);
+  color: var(--color-text);
+}
+
+.kal-filter-btn.active {
+  background: var(--color-primary, #d32f2f);
+  color: #fff;
+  border-color: var(--color-primary, #d32f2f);
+}
+
+/* ── Shared grid base ── */
 .kal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -99,7 +183,8 @@
   display: none;
 }
 
-.kal-day {
+/* ── Week grid ── */
+.kal-grid-week .kal-day {
   min-height: 8rem;
   padding: 0.4rem;
   border-right: 1px solid var(--grey-100);
@@ -109,12 +194,58 @@
   gap: 0.3rem;
 }
 
-.kal-day:nth-child(7n + 14) {
+.kal-grid-week .kal-day:nth-child(7n + 14) {
   border-right: none;
 }
 
+/* ── Month grid ── */
+.kal-grid-month .kal-day-header-month {
+  padding: 0.4rem;
+  font-size: 0.72rem;
+}
+
+.kal-grid-month .kal-day {
+  min-height: 5rem;
+  padding: 0.3rem;
+  border-right: 1px solid var(--grey-100);
+  border-bottom: 1px solid var(--grey-100);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.kal-grid-month .kal-day:hover {
+  background: var(--grey-50);
+}
+
+.kal-grid-month .kal-day:nth-child(7n + 14) {
+  border-right: none;
+}
+
+.kal-day-month.is-other-month {
+  opacity: 0.35;
+}
+
+.kal-day-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+}
+
+.kal-day-overflow {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  padding: 0.1rem 0.25rem;
+  border-radius: 4px;
+  background: var(--grey-100);
+}
+
+/* ── Day cells (shared) ── */
 .kal-day.is-today {
-  background: var(--color-error-soft);
+  background: color-mix(in srgb, var(--color-primary, #d32f2f) 6%, transparent);
 }
 
 .kal-day-num {
@@ -143,7 +274,7 @@
   flex: 1;
 }
 
-/* ---- Chips ---- */
+/* ── Chips ── */
 .kal-chip {
   all: unset;
   cursor: pointer;
@@ -162,24 +293,27 @@
   opacity: 0.8;
 }
 
-/* Channel colors */
-.kal-chip.ch-linkedin {
-  background: var(--color-info-soft);
-  color: var(--color-info-text);
+.kal-chip-compact {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  transition: opacity 0.15s;
 }
 
-.kal-chip.ch-facebook {
-  background: #e0e7ff;
-  color: #3730a3;
-}
-
-.kal-chip.ch-instagram {
-  background: #fce7f3;
-  color: #9d174d;
+.kal-chip-compact:hover {
+  opacity: 0.8;
 }
 
 /* Published items are slightly muted */
-.kal-chip.published {
+.kal-chip.published,
+.kal-chip-compact.published {
   opacity: 0.65;
 }
 
@@ -201,20 +335,19 @@
   white-space: nowrap;
 }
 
-/* ---- Detail panel (overlay) ---- */
+/* ── Detail panel (slide-in) ── */
 .kal-detail-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.3);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-end;
   z-index: 100;
 }
 
 .kal-detail {
   background: var(--color-bg);
-  border-radius: 12px;
   padding: 1.25rem;
   max-width: 24rem;
   width: 90%;
@@ -224,10 +357,23 @@
   gap: 0.6rem;
 }
 
+.kal-detail-slide {
+  height: 100vh;
+  border-radius: 0;
+  animation: slideInRight 0.2s ease-out;
+  overflow-y: auto;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
 .kal-detail-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .kal-detail-badge {
@@ -236,10 +382,6 @@
   font-size: 0.75rem;
   font-weight: 700;
 }
-
-.kal-detail-badge.ch-linkedin { background: var(--color-info-soft); color: var(--color-info-text); }
-.kal-detail-badge.ch-facebook { background: #e0e7ff; color: #3730a3; }
-.kal-detail-badge.ch-instagram { background: #fce7f3; color: #9d174d; }
 
 .kal-detail-type {
   font-size: 0.75rem;
@@ -253,7 +395,8 @@
   color: var(--color-warning-text);
 }
 
-.kal-detail-type.published {
+.kal-detail-type.published,
+.kal-detail-type.actief {
   background: var(--color-success-soft);
   color: var(--color-success-text);
 }
@@ -284,6 +427,33 @@
   font-size: 0.9rem;
 }
 
+.kal-detail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--grey-100);
+  border-bottom: 1px solid var(--grey-100);
+}
+
+.kal-detail-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
+
+.kal-detail-label {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.kal-detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.35rem;
+}
+
 .kal-detail-link {
   font-size: 0.85rem;
   font-weight: 600;
@@ -295,14 +465,327 @@
   text-decoration: underline;
 }
 
-/* ---- Responsive ---- */
+.kal-detail-action-btn {
+  all: unset;
+  cursor: pointer;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  text-align: center;
+  transition: background 0.15s;
+}
+
+.kal-detail-action-btn:hover {
+  background: var(--grey-100);
+}
+
+.kal-detail-action-danger {
+  color: var(--color-error-text, #b91c1c);
+  border-color: var(--color-error-text, #b91c1c);
+}
+
+.kal-detail-action-danger:hover {
+  background: var(--color-error-soft, #fef2f2);
+}
+
+/* Day detail list (month view day click) */
+.kal-day-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.kal-day-detail-item {
+  all: unset;
+  cursor: pointer;
+}
+
+/* ── Cross-post section ── */
+.kal-crosspost {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--grey-100);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.kal-crosspost-label {
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.kal-crosspost-btn {
+  all: unset;
+  cursor: pointer;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  background: var(--color-primary, #d32f2f);
+  color: #fff;
+  text-align: center;
+  transition: opacity 0.15s;
+}
+
+.kal-crosspost-btn:hover {
+  opacity: 0.9;
+}
+
+.kal-crosspost-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kal-crosspost-success {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-success-text, #065f46);
+}
+
+.kal-crosspost-error {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-error-text, #b91c1c);
+}
+
+.kal-detail-crosspost-note {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  padding: 0.4rem 0.6rem;
+  background: var(--grey-50);
+  border-radius: 6px;
+  font-style: italic;
+}
+
+/* ── Side panel (schedule queue) ── */
+.kal-side-panel {
+  width: 280px;
+  flex-shrink: 0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: calc(100vh - 8rem);
+  overflow-y: auto;
+  position: sticky;
+  top: 5rem;
+}
+
+.kal-side-title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.kal-side-loading,
+.kal-side-empty {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.kal-side-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.kal-side-card {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  cursor: grab;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.kal-side-card:hover {
+  border-color: var(--color-primary, #d32f2f);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.kal-side-card:active {
+  cursor: grabbing;
+}
+
+.kal-side-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.kal-side-type-badge {
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.kal-side-card-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kal-side-card-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.kal-side-btn {
+  all: unset;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  text-align: center;
+  transition: background 0.15s;
+}
+
+.kal-side-btn:hover {
+  background: var(--grey-100);
+}
+
+.kal-side-btn-primary {
+  background: var(--color-primary, #d32f2f);
+  color: #fff;
+  border-color: var(--color-primary, #d32f2f);
+}
+
+.kal-side-btn-primary:hover {
+  opacity: 0.9;
+  background: var(--color-primary, #d32f2f);
+}
+
+.kal-side-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kal-side-picker {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.kal-side-datetime {
+  flex: 1;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.78rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* ── Drop time dialog ── */
+.kal-drop-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 110;
+}
+
+.kal-drop-dialog {
+  background: var(--color-bg);
+  border-radius: 12px;
+  padding: 1.25rem;
+  max-width: 20rem;
+  width: 90%;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.kal-drop-dialog-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.kal-drop-dialog-time {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.kal-drop-dialog-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .kal-side-panel {
+    width: 240px;
+  }
+}
+
 @media (max-width: 768px) {
+  .kal-page-layout {
+    flex-direction: column;
+  }
+
+  .kal-side-panel {
+    width: 100%;
+    position: static;
+    max-height: none;
+    border-radius: 12px;
+    order: 2;
+  }
+
   .kal-day-header-full { display: none; }
   .kal-day-header-short { display: inline; }
 
-  .kal-day {
+  .kal-header-top {
+    flex-wrap: wrap;
+  }
+
+  .kal-header-right {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .kal-grid-week .kal-day {
     min-height: 5rem;
     padding: 0.25rem;
+  }
+
+  .kal-grid-month .kal-day {
+    min-height: 3.5rem;
+    padding: 0.2rem;
   }
 
   .kal-chip {
@@ -318,5 +801,28 @@
 
   .kal-month {
     font-size: 1rem;
+  }
+
+  .kal-detail-slide {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 85vh;
+    border-radius: 12px 12px 0 0;
+    animation: slideInBottom 0.2s ease-out;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+
+  .kal-detail-overlay {
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  @keyframes slideInBottom {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
   }
 }

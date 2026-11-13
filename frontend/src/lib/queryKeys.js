@@ -120,6 +120,24 @@ const rapportage = {
   }),
 };
 
+// ── Calendar ─────────────────────────────────────────────────────────
+const calendarAll = ['calendar'];
+const calendar = {
+  all: calendarAll,
+  range: (from, to) => ({
+    queryKey: [...calendarAll, { from, to }],
+    staleTime: 30_000, // 30s — calendar items change when scheduling
+  }),
+  slots: (from, to, channel) => ({
+    queryKey: [...calendarAll, 'slots', { from, to, channel }],
+    staleTime: 15_000,
+  }),
+  unscheduled: () => ({
+    queryKey: [...calendarAll, 'unscheduled'],
+    staleTime: 30_000,
+  }),
+};
+
 // ── Health ──────────────────────────────────────────────────────────
 const health = {
   check: () => ({
@@ -136,6 +154,7 @@ export const queryKeys = {
   users,
   media,
   integrations,
+  calendar,
   rapportage,
   health,
 };
