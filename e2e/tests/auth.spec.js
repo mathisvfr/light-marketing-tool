@@ -56,13 +56,19 @@ test.describe('Authenticatie', () => {
 });
 
 // Role enforcement tests need a recruiter/viewer account.
-// These are placeholder specs — implement when test seeding is ready.
-test.describe.skip('Rolafscherming', () => {
-  test('recruiter kan /gebruikers niet bereiken', async ({ page }) => {
-    // TODO: Login as recruiter, navigate to /gebruikers, expect access denied
+// These use the auth fixture's role-specific pages.
+test.describe('Rolafscherming', () => {
+  authTest('recruiter kan /gebruikers niet bereiken', async ({ recruiterPage }) => {
+    await recruiterPage.goto('/gebruikers');
+
+    // Should see an access-denied message (RoleRoute renders this)
+    await expect(recruiterPage.getByText('Je hebt geen toegang tot deze pagina')).toBeVisible();
   });
 
-  test('viewer kan /merk-instellingen niet bereiken', async ({ page }) => {
-    // TODO: Login as viewer, navigate to /merk-instellingen, expect access denied
+  authTest('viewer kan /merk-instellingen niet bereiken', async ({ viewerPage }) => {
+    await viewerPage.goto('/merk-instellingen');
+
+    // Should see an access-denied message
+    await expect(viewerPage.getByText('Je hebt geen toegang tot deze pagina')).toBeVisible();
   });
 });

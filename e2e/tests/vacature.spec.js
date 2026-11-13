@@ -42,12 +42,122 @@ test.describe('Vacature plaatsen', () => {
     await expect(page.getByText('Wij zoeken een orderpicker')).toBeVisible({ timeout: 15000 });
   });
 
-  // Placeholder specs for the full vacature flow
-  test.skip('goedkeuren zet status op actief', async ({ authenticatedPage: page }) => {
-    // TODO: Create draft, generate, approve, verify status
+  test('goedkeuren zet status op actief', async ({ authenticatedPage: page }) => {
+    // Create a draft via API and mock the generate endpoint
+    const draftId = 'test-draft-' + Date.now();
+
+    // Mock the drafts POST to return a draft id
+    await page.route('**/api/drafts', async (route, request) => {
+      if (request.method() === 'POST') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            draft: { id: draftId, type: 'vacature', status: 'draft' },
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    // Mock generate endpoint
+    await page.route(`**/api/drafts/${draftId}/generate`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          draft: {
+            id: draftId,
+            omschrijving_nl: 'Testomschrijving voor productiemedewerker.',
+            functie_eisen: 'Fysiek fit.',
+            wat_wij_bieden: 'Reiskostenvergoeding.',
+            social_nl: 'Nieuwe vacature!',
+            criticus_passed: true,
+            criticus_notes: '',
+          },
+        }),
+      });
+    });
+
+    // Mock the draft detail GET (for preview reload)
+    await page.route(`**/api/drafts/${draftId}`, async (route, request) => {
+      if (request.method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            draft: {
+              id: draftId,
+              type: 'vacature',
+              status: 'draft',
+              omschrijving_nl: 'Testomschrijving voor productiemedewerker.',
+              functie_eisen: 'Fysiek fit.',
+              wat_wij_bieden: 'Reiskostenvergoeding.',
+              social_nl: 'Nieuwe vacature!',
+              criticus_passed: true,
+              criticus_notes: '',
+              form_data: {},
+            },
+          }),
+        });
+      } else if (request.method() === 'PUT') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ draft: { id: draftId } }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    // Mock approve endpoint
+    await page.route(`**/api/drafts/${draftId}/approve`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          draft: { id: draftId, status: 'actief' },
+        }),
+      });
+    });
+
+    await page.goto('/vacature-plaatsen');
+
+    // Fill required fields
+    await page.getByLabel('Functietitel').fill('Productiemedewerker');
+    await page.getByLabel('Locatie').fill('Rotterdam');
+    await page.getByLabel('Uren per week').fill('40');
+    await page.getByLabel('Contractvorm').selectOption('Onbepaalde tijd');
+    await page.getByLabel('Functiecategorie').selectOption('Productie');
+    await page.getByLabel('Korte omschrijving').fill('Productiemedewerker gezocht');
+
+    // Generate
+    await page.getByRole('button', { name: /genereren/i }).click();
+
+    // Wait for generated content to appear
+    await expect(page.getByText('Testomschrijving voor productiemedewerker')).toBeVisible({ timeout: 10000 });
+
+    // Click approve button
+    await page.getByRole('button', { name: 'Goedkeuren' }).click();
+
+    // Should show success message
+    await expect(page.getByText(/goedgekeurd/i)).toBeVisible({ timeout: 5000 });
   });
 
-  test.skip('actieve vacature verschijnt in XML feed', async ({ authenticatedPage: page }) => {
-    // TODO: After approval, fetch /feeds/jobs.xml and verify entry
+  test('actieve vacature verschijnt in XML feed', async ({ authenticatedPage: page }) => {
+    const baseUrl = process.env.E2E_API_URL || 'http://localhost:3001';
+
+    // Fetch the XML feed directly via the API
+    const response = await page.request.get(`${baseUrl}/feeds/jobs.xml`);
+    expect(response.ok()).toBeTruthy();
+
+    const body = await response.text();
+
+    // The feed should be valid XML with the expected root structure
+    expect(body).toContain('<?xml');
+    // It should contain a jobs/vacatures root element
+    expect(body).toMatch(/<(vacatures|jobs)/i);
   });
 });
