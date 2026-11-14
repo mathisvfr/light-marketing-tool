@@ -366,12 +366,12 @@ export default function WebsiteTeksten() {
   const hasEdits = Object.keys(edits).length > 0;
   const editCount = Object.keys(edits).length;
 
+  // If no active section yet, default to first
+  const currentActive = activeSection || orderedSectionNames[0] || null;
+
   // Iframe URL follows the active section
   const iframePath = SECTION_URLS[resolveSection(currentActive || '')] || '/';
   const iframeSrc = `${WEBSITE_BASE}${iframePath}?_cb=${iframeBust}`;
-
-  // If no active section yet, default to first
-  const currentActive = activeSection || orderedSectionNames[0] || null;
 
   return (
     <div className="wt-page">
