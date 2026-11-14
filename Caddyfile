@@ -46,7 +46,8 @@ lightpersoneelsdiensten.nl {
 
   header {
     X-Content-Type-Options "nosniff"
-    X-Frame-Options "DENY"
+    # Allow embedding in the marketing tool iframe only
+    Content-Security-Policy "frame-ancestors 'self' https://tool.lightpersoneelsdiensten.nl"
     Referrer-Policy "strict-origin-when-cross-origin"
     Permissions-Policy "camera=(), microphone=(), geolocation=()"
     Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"

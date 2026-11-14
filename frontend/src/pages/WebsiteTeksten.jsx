@@ -48,6 +48,22 @@ const SECTION_META = {
 
 const SECTION_ALIASES = { overons: 'about', diensten: 'services', calltoaction: 'cta', navigatie: 'nav' };
 
+// Map sections to website pages so the live preview iframe navigates to the right page
+const SECTION_URLS = {
+  hero: '/',
+  tiles: '/',
+  cta: '/',
+  about: '/over-ons',
+  services: '/diensten',
+  contact: '/contact',
+  vacatures: '/vacatures',
+  blog: '/blog',
+  meta: '/',
+  footer: '/',
+  nav: '/',
+};
+const WEBSITE_BASE = 'https://lightpersoneelsdiensten.nl';
+
 const PREVIEW_MAP = {
   hero: HeroPreview,
   tiles: TilesPreview,
@@ -177,6 +193,9 @@ export default function WebsiteTeksten() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
+  const [iframeBust, setIframeBust] = useState(0);
+  const [showIframe, setShowIframe] = useState(true);
+  const iframeRef = useRef(null);
   const sectionRefs = useRef({});
 
   const textsQuery = useQuery({
@@ -312,11 +331,13 @@ export default function WebsiteTeksten() {
 
     try {
       await saveMutation.mutateAsync(changedTexts);
-      setSuccess('Teksten opgeslagen. Vertalingen worden bijgewerkt...');
+      setSuccess('Teksten opgeslagen. Vertalingen worden bijgewerkt... De website wordt binnen een minuut bijgewerkt.');
       setEdits({});
       setIsTranslating(true);
       queryClient.invalidateQueries({ queryKey: ['website-texts'] });
       queryClient.invalidateQueries({ queryKey: ['website-texts-translation-status'] });
+      // Refresh the live preview iframe after a short delay (website cache = 60s)
+      setTimeout(() => setIframeBust((n) => n + 1), 5000);
     } catch (err) {
       setError(err.message || 'Opslaan mislukt.');
     }
@@ -344,6 +365,10 @@ export default function WebsiteTeksten() {
 
   const hasEdits = Object.keys(edits).length > 0;
   const editCount = Object.keys(edits).length;
+
+  // Iframe URL follows the active section
+  const iframePath = SECTION_URLS[resolveSection(currentActive || '')] || '/';
+  const iframeSrc = `${WEBSITE_BASE}${iframePath}?_cb=${iframeBust}`;
 
   // If no active section yet, default to first
   const currentActive = activeSection || orderedSectionNames[0] || null;
@@ -376,6 +401,38 @@ export default function WebsiteTeksten() {
           {pendingKeys.length > 0 && ` (${pendingKeys.length} in behandeling)`}
         </div>
       )}
+
+      <div className="wt-layout">
+        {/* Live website preview */}
+        <div className={`wt-iframe-panel${showIframe ? '' : ' collapsed'}`}>
+          <div className="wt-iframe-header">
+            <span className="wt-iframe-title">Live website</span>
+            <button
+              type="button"
+              className="wt-iframe-toggle"
+              onClick={() => setShowIframe(!showIframe)}
+              title={showIframe ? 'Preview verbergen' : 'Preview tonen'}
+            >
+              {showIframe ? '◀' : '▶'}
+            </button>
+            <button
+              type="button"
+              className="wt-iframe-refresh"
+              onClick={() => setIframeBust((n) => n + 1)}
+              title="Ververs preview"
+            >
+              ↻
+            </button>
+          </div>
+          {showIframe && (
+            <iframe
+              ref={iframeRef}
+              src={iframeSrc}
+              className="wt-iframe"
+              title="Website preview"
+            />
+          )}
+        </div>
 
       <div className="wt-split">
         {/* Section sidebar */}
@@ -510,6 +567,7 @@ export default function WebsiteTeksten() {
           })}
         </div>
       </div>
+      </div>{/* close wt-layout */}
 
       {/* Sticky bottom save bar when edits exist */}
       {hasEdits && (
