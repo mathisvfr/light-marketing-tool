@@ -409,14 +409,6 @@ export default function WebsiteTeksten() {
             <span className="wt-iframe-title">Live website</span>
             <button
               type="button"
-              className="wt-iframe-toggle"
-              onClick={() => setShowIframe(!showIframe)}
-              title={showIframe ? 'Preview verbergen' : 'Preview tonen'}
-            >
-              {showIframe ? '◀' : '▶'}
-            </button>
-            <button
-              type="button"
               className="wt-iframe-refresh"
               onClick={() => setIframeBust((n) => n + 1)}
               title="Ververs preview"
@@ -508,18 +500,6 @@ export default function WebsiteTeksten() {
                       <div key={key} className={`wt-field${isEdited ? ' wt-field-edited' : ''}`}>
                         <div className="wt-field-header">
                           <label className="wt-field-title" htmlFor={`wt-${key}`}>{getFieldLabel(key)}</label>
-                          <div className="wt-locale-pills">
-                            <span className={`wt-locale-pill${locales.nl ? ' has-value' : ''}`}>nl</span>
-                            {LOCALES.map((loc) => (
-                              <span
-                                key={loc}
-                                className={`wt-locale-pill${locales[loc] ? ' has-value' : ''}`}
-                                title={locales[loc] || `Geen ${loc} vertaling`}
-                              >
-                                {loc}
-                              </span>
-                            ))}
-                          </div>
                           {isEdited && (
                             <button
                               type="button"
