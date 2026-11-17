@@ -492,7 +492,7 @@ const SUPPORTED_BLOG_TRANSLATION_LANGS = ['pl', 'bg', 'sk', 'lv', 'en', 'hu', 'r
 // Goedkoper model voor vertalingen — Haiku is snel, goedkoop en prima voor
 // rechtstreekse vertalingen. Gemini Flash wordt al automatisch gebruikt als
 // AI_PROVIDER=gemini staat.
-const TRANSLATION_MODEL = process.env.TRANSLATION_MODEL || 'claude-haiku-4-5-20251001';
+const TRANSLATION_MODEL = process.env.TRANSLATION_MODEL || 'claude-haiku-5-5';
 
 async function translateBlog(lang, formData, nlContent) {
   if (!SUPPORTED_BLOG_TRANSLATION_LANGS.includes(lang)) {

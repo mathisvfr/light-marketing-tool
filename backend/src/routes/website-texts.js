@@ -5,7 +5,7 @@ const { logActivity } = require('../services/activityLog');
 
 const router = express.Router();
 
-const TRANSLATION_MODEL = 'claude-haiku-4-5-20251001';
+const TRANSLATION_MODEL = 'claude-haiku-5-5';
 const LOCALES = ['pl', 'en', 'bg', 'sk', 'lv', 'hu', 'ro', 'uk', 'de', 'es', 'ru'];
 
 const LOCALE_NAMES = {
