@@ -13,22 +13,21 @@ const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://graph.buffer.com';
 const MAX_API_CALLS = 15;
 const CALL_SPACING_MS = 3000;
 
+// Alleen deze kanalen lopen via Buffer. Website-publicaties (blog-ids) staan
+// ook in publications met status 'success'; die naar Buffer sturen gaf elke
+// nacht fouten en hield ze bovenaan de wachtrij.
+const BUFFER_CHANNELS = ['linkedin', 'facebook', 'instagram'];
+
 async function getBufferToken() {
-  // Prefer env var (this is what's actually configured in production)
-  if (process.env.BUFFER_API_KEY) {
-    return process.env.BUFFER_API_KEY;
-  }
-  // Fall back to DB lookup, handling table-not-found gracefully
+  // Zelfde bron als publiceren: key uit Merk instellingen (DB) gaat vóór de
+  // BUFFER_API_KEY env-var. Andersom gebruikte de snapshotter een verouderde
+  // env-key en kreeg hij HTTP 401 terwijl publiceren gewoon werkte.
   try {
-    const { data } = await supabase
-      .from('channel_credentials')
-      .select('access_token')
-      .eq('provider', 'buffer')
-      .maybeSingle();
-    return data?.access_token || null;
+    const { getBufferCredential } = require('../channels/buffer');
+    const credential = await getBufferCredential();
+    return credential?.access_token || null;
   } catch {
-    // Table may not exist — that's fine, return null
-    return null;
+    return process.env.BUFFER_API_KEY || null;
   }
 }
 
@@ -76,6 +75,7 @@ async function run() {
     .from('publications')
     .select('id, external_id, channel, metrics_updated_at')
     .eq('status', 'success')
+    .in('channel', BUFFER_CHANNELS)
     .not('external_id', 'is', null)
     .gte('published_at', thirtyDaysAgo.toISOString())
     .order('metrics_updated_at', { ascending: true, nullsFirst: true })

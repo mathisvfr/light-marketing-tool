@@ -24,7 +24,7 @@ function getTransporter() {
 
 async function sendEmail({ to, subject, html }) {
   return getTransporter().sendMail({
-    from: process.env.EMAIL_FROM || 'rapportage@lightpersoneelsdiensten.nl',
+    from: process.env.EMAIL_FROM || 'Light Marketing Tool <vacature@lightpersoneelsdiensten.nl>',
     to: Array.isArray(to) ? to.join(', ') : to,
     subject,
     html,

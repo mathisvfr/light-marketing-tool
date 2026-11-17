@@ -426,6 +426,7 @@ async function deletePost({ externalId }) {
 }
 
 module.exports = {
+  getBufferCredential,
   publish,
   editPost,
   deletePost,

@@ -319,7 +319,7 @@ function getSmtpTransporter() {
 }
 
 async function smtpTransport({ to, subject, body, html }) {
-  const from = process.env.NOTIFICATION_FROM || 'Light Marketing Tool <noreply@lightpersoneelsdiensten.nl>';
+  const from = process.env.NOTIFICATION_FROM || 'Light Marketing Tool <vacature@lightpersoneelsdiensten.nl>';
   const listUnsubUrl = process.env.PUBLIC_APP_URL
     ? `${process.env.PUBLIC_APP_URL.replace(/\/$/, '')}/notificaties/uitschrijven`
     : null;
