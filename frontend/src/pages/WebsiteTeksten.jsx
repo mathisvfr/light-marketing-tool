@@ -194,7 +194,8 @@ export default function WebsiteTeksten() {
   const [success, setSuccess] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
   const [iframeBust, setIframeBust] = useState(0);
-  const [showIframe, setShowIframe] = useState(true);
+  // Toggle-knop is verwijderd; het live-website-paneel staat altijd open.
+  const showIframe = true;
   const iframeRef = useRef(null);
   const sectionRefs = useRef({});
 
@@ -268,18 +269,6 @@ export default function WebsiteTeksten() {
       return getServerValue(key);
     },
     [edits, getServerValue]
-  );
-
-  const getLocalesForKey = useCallback(
-    (key) => {
-      for (const sectionKeys of Object.values(sections)) {
-        if (sectionKeys[key]) {
-          return sectionKeys[key];
-        }
-      }
-      return {};
-    },
-    [sections]
   );
 
   const sectionTranslationStatus = useMemo(() => {
@@ -493,7 +482,6 @@ export default function WebsiteTeksten() {
                     const value = getValueForKey(key);
                     const serverValue = getServerValue(key);
                     const isEdited = Object.prototype.hasOwnProperty.call(edits, key);
-                    const locales = getLocalesForKey(key);
                     const isMeta = key.startsWith('meta.');
 
                     return (

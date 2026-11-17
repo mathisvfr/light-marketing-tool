@@ -9,7 +9,7 @@ const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8 MB
 const MAX_TEXT_CHARS = 50_000;          // cap prompt payload
 
 function requireWriteRole(req, res, next) {
-  if (!['owner', 'recruiter'].includes(req.user?.role)) {
+  if (!['owner', 'manager', 'recruiter'].includes(req.user?.role)) {
     return res.status(403).json({ error: 'Je hebt geen toegang tot deze actie.' });
   }
   return next();

@@ -176,6 +176,12 @@ function normalizeTranslations(value) {
         wat_wij_bieden: entry.wat_wij_bieden || '',
         social: entry.social || '',
       };
+      // Foutmarkering van een mislukte achtergrondvertaling, alleen zolang er
+      // nog geen inhoud is.
+      const hasContent = entry.omschrijving || entry.functie_eisen || entry.wat_wij_bieden || entry.social;
+      if (entry.error && !hasContent) {
+        result[lang].error = String(entry.error);
+      }
     }
   }
   return result;
@@ -796,11 +802,16 @@ router.post('/:id/generate', async (req, res, next) => {
       })
       .catch(async (err) => {
         console.error('Background criticus failed:', err);
-        await supabase.from('drafts').update({
-          criticus_passed: false,
-          criticus_notes: 'Criticus-check mislukt. Probeer opnieuw te genereren.',
-          updated_at: new Date().toISOString(),
-        }).eq('id', draft.id).catch(() => {});
+        // Supabase query builders are thenables without .catch — use try/await.
+        try {
+          await supabase.from('drafts').update({
+            criticus_passed: false,
+            criticus_notes: 'Criticus-check mislukt. Probeer opnieuw te genereren.',
+            updated_at: new Date().toISOString(),
+          }).eq('id', draft.id);
+        } catch (_writeErr) {
+          // Nothing left to do; the UI poll times out on its own.
+        }
       });
 
     // Image render — independent DB write
@@ -858,8 +869,29 @@ router.post('/:id/generate', async (req, res, next) => {
               .update({ translations: merged, updated_at: new Date().toISOString() })
               .eq('id', draft.id);
           })
-          .catch((err) => {
+          .catch(async (err) => {
             console.error(`Vertaling ${lang} mislukt voor draft ${draft.id}:`, err.message || err);
+            // Schrijf een foutmarkering zodat de UI stopt met wachten en de
+            // gebruiker ziet dat deze taal opnieuw gegenereerd moet worden.
+            try {
+              const { data: currentRow } = await supabase
+                .from('drafts')
+                .select('translations')
+                .eq('id', draft.id)
+                .maybeSingle();
+              const current = currentRow?.translations && typeof currentRow.translations === 'object'
+                ? currentRow.translations
+                : {};
+              await supabase
+                .from('drafts')
+                .update({
+                  translations: { ...current, [lang]: { error: 'Vertaling mislukt. Genereer opnieuw.' } },
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', draft.id);
+            } catch (_writeErr) {
+              // Best-effort.
+            }
           });
       }
     }
@@ -931,7 +963,7 @@ router.put('/:id', async (req, res, next) => {
 
     const { data: draft, error: draftError } = await supabase
       .from('drafts')
-      .select('id, created_by, status')
+      .select('id, created_by, status, translations')
       .eq('id', draftId)
       .maybeSingle();
 
@@ -947,24 +979,36 @@ router.put('/:id', async (req, res, next) => {
       return res.status(403).json({ error: 'Je mag dit concept niet aanpassen.' });
     }
 
+    // Criticus en vertalingen lopen op de achtergrond. Een save van een client
+    // die die resultaten nog niet gezien heeft mag ze niet wissen: talen die de
+    // client niet meestuurt blijven staan, en criticus alleen overschrijven als
+    // de client expliciet een boolean meegeeft.
+    const mergedTranslations = {
+      ...normalizeTranslations(draft.translations),
+      ...normalizeTranslations(req.body?.translations),
+    };
+    const hasCriticusVerdict = typeof req.body?.criticus_passed === 'boolean';
+
     const payload = {
       omschrijving_nl: req.body?.omschrijving_nl || null,
       functie_eisen: req.body?.functie_eisen || null,
       wat_wij_bieden: req.body?.wat_wij_bieden || null,
       social_nl: req.body?.social_nl || null,
-      translations: normalizeTranslations(req.body?.translations),
+      translations: mergedTranslations,
       linkedin_post: req.body?.linkedin_post || null,
       instagram_caption: req.body?.instagram_caption || null,
       image_path: req.body?.image_path || null,
       blog_titel: req.body?.blog_titel || null,
       blog_html: req.body?.blog_html || null,
-      criticus_passed: typeof req.body?.criticus_passed === 'boolean' ? req.body.criticus_passed : null,
-      criticus_notes: req.body?.criticus_notes || null,
       // Status is NEVER set from the client — preserve current DB status.
       // Status changes only through dedicated routes: /approve, /submit, /reject, /expire.
       status: draft.status,
       updated_at: new Date().toISOString(),
     };
+    if (hasCriticusVerdict) {
+      payload.criticus_passed = req.body.criticus_passed;
+      payload.criticus_notes = req.body?.criticus_notes || null;
+    }
 
     const { data: updatedDraft, error: updateError } = await supabase
       .from('drafts')

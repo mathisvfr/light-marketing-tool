@@ -182,7 +182,15 @@ router.get('/', async (_req, res, next) => {
   }
 });
 
-router.post('/:id', requireRole(['owner', 'manager']), async (req, res, next) => {
+// '/:id' is registered before the static POST routes ('/bulk', '/jobit-sync'),
+// so non-UUID segments must fall through to them instead of hitting Postgres
+// with "invalid input syntax for type uuid".
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function onlyUuidId(req, _res, next) {
+  return UUID_RE.test(req.params.id) ? next() : next('route');
+}
+
+router.post('/:id', onlyUuidId, requireRole(['owner', 'manager']), async (req, res, next) => {
   try {
     const draftId = req.params.id;
 

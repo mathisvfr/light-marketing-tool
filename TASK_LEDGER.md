@@ -37,6 +37,8 @@ useful for the next agent picking up work. Move fully-completed rows below the
 
 | 14 | Rapportage uitbreiding: per-post metrics, dashboard enhancements, customizable dashboard, email reports (#24, #27) | `main` | done | `backend/src/services/metrics/buffer_snapshotter.js`, `backend/src/routes/rapportage.js`, `backend/src/routes/dashboard.js`, `backend/src/services/metrics/index.js`, `backend/src/services/email.js` (new), `backend/src/services/email-templates/report.js` (new), `backend/src/db/migrations/036_dashboard_preferences_and_email_reports.sql` (new), `frontend/src/pages/Dashboard.jsx`, `frontend/src/pages/dashboard.css`, `frontend/src/pages/Rapportage.jsx`, `frontend/src/pages/rapportage.css`, `frontend/src/components/dashboard/MonthlyStats.jsx` (new), `frontend/src/components/dashboard/MonthComparison.jsx` (new), `frontend/src/components/dashboard/ChannelDistribution.jsx` (new), `frontend/src/components/dashboard/DailyActivityChart.jsx` (new), `frontend/src/components/rapportage/PostMetricsTable.jsx` (new), `frontend/src/components/rapportage/EmailReportSettings.jsx` (new) | claude (agent-ac55df47) | Design doc: docs/designs/rapportage-en-email.md |
 
+| 15 | Feedback-fixes 17-11: briefing-upload manager, vacature draftId verlies (vertaling/criticus), approve-checklist, publish route-volgorde | `main` | done (2026-11-17) | `backend/src/routes/uploads.js`, `backend/src/routes/publish.js`, `backend/src/routes/drafts.js`, `frontend/src/pages/VacaturePlaatsen.jsx`, `frontend/src/pages/ContentWachtrij.jsx` | claude (this session) | Backend 102/102, build groen. Lint: 2 bestaande fouten in WebsiteTeksten.jsx (niet van deze taak). Nog niet gecommit/gedeployed. |
+
 ## Archive
 
 <!-- Move completed rows here once older than a week. Nothing yet. -->

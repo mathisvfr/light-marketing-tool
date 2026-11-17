@@ -641,10 +641,25 @@ export default function ContentWachtrij() {
     }
   }
 
-  function handleApprove(draft) {
+  async function handleApprove(draft) {
     setError('');
     const isMarketingOrBlog = draft.type === 'marketing-post' || draft.type === 'blog';
-    const checklist = buildVacatureChecklist(draft) || buildMarketingChecklist(draft);
+    // De lijst-endpoint levert alleen titel/status, geen inhoud of form_data.
+    // Voor de checklist het volledige concept ophalen; anders staat alles op
+    // "ontbreekt" terwijl de vacature gewoon compleet is.
+    let checklist;
+    try {
+      const full = await queryClient.fetchQuery({
+        queryKey: ['draft-detail', draft.id],
+        queryFn: () => api(`/drafts/${draft.id}`),
+        staleTime: 0,
+      });
+      const fullDraft = { ...draft, ...(full?.draft || {}) };
+      checklist = buildVacatureChecklist(fullDraft) || buildMarketingChecklist(fullDraft);
+    } catch {
+      // Checklist is advies; zonder volledige data tonen we 'm niet.
+      checklist = null;
+    }
     setConfirm({
       title: isMarketingOrBlog ? 'Goedkeuren en publiceren' : 'Goedkeuren',
       message: isMarketingOrBlog

@@ -101,7 +101,8 @@ function createLangTabs(content, selectedLangs) {
     const ready = Boolean(
       entry && (entry.omschrijving || entry.functie_eisen || entry.wat_wij_bieden || entry.social)
     );
-    tabs.push({ key: lang, label: langLabel(lang), pending: !ready });
+    const failed = !ready && Boolean(entry?.error);
+    tabs.push({ key: lang, label: langLabel(lang), pending: !ready && !failed, failed });
   }
   return tabs;
 }
@@ -135,6 +136,9 @@ export default function VacaturePlaatsen() {
   const [searchParams, setSearchParams] = useSearchParams();
   const draftIdParam = searchParams.get('draftId');
   const [draftId, setDraftId] = useState(draftIdParam);
+  // URL wint (navigatie naar een ander concept), lokale state is de fallback
+  // voor het geval de URL de draftId even kwijt is.
+  const effectiveDraftId = draftIdParam || draftId;
   const [formEdits, setFormEdits] = useState({});
   const [contentEdits, setContentEdits] = useState({});
   // Active language tab wordt uit URL afgeleid zodat bookmarks + browser-back
@@ -142,9 +146,13 @@ export default function VacaturePlaatsen() {
   // lees vertaald naar de nieuwe `lang`-param.
   const activeLangTab = readLangFromParams(searchParams) || 'nl';
   function setActiveLangTab(lang) {
+    // Niet de `prev` van setSearchParams gebruiken: react-router geeft daar de
+    // params uit de render van de aanroepende closure. Na een async generate
+    // zijn dat de params van vóór het aanmaken van het concept, waardoor
+    // draftId uit de URL verdween en vertalingen/criticus nooit binnenkwamen.
     setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
+      () => {
+        const next = new URLSearchParams(window.location.search);
         next.set('lang', lang);
         next.delete('tab');
         return next;
@@ -166,9 +174,9 @@ export default function VacaturePlaatsen() {
   const [documentUploading, setDocumentUploading] = useState(false);
 
   const existingDraftQuery = useQuery({
-    queryKey: ['draft-detail-vacature', draftIdParam],
-    queryFn: () => api(`/drafts/${draftIdParam}`),
-    enabled: Boolean(draftIdParam),
+    queryKey: ['draft-detail-vacature', effectiveDraftId],
+    queryFn: () => api(`/drafts/${effectiveDraftId}`),
+    enabled: Boolean(effectiveDraftId),
   });
 
   const loadedDraft = existingDraftQuery.data?.draft;
@@ -216,8 +224,6 @@ export default function VacaturePlaatsen() {
     };
   }, [loadedDraft, contentEdits]);
 
-  const effectiveDraftId = draftId || draftIdParam;
-
   const autosave = useAutosaveDraft(effectiveDraftId, form);
 
   // Poll voor achtergrond-tasks: criticus, image render, én per-taal vertalingen.
@@ -231,7 +237,12 @@ export default function VacaturePlaatsen() {
   const selectedLangsForPoll = Array.isArray(form.talen) ? form.talen : [];
   const missingTranslations = selectedLangsForPoll.filter((lang) => {
     const entry = loadedDraft?.translations?.[lang];
+    if (entry?.error) return false; // mislukt: niet blijven wachten
     return !entry || !(entry.omschrijving || entry.functie_eisen || entry.wat_wij_bieden || entry.social);
+  });
+  const failedTranslations = selectedLangsForPoll.filter((lang) => {
+    const entry = loadedDraft?.translations?.[lang];
+    return Boolean(entry?.error) && !(entry.omschrijving || entry.functie_eisen || entry.wat_wij_bieden || entry.social);
   });
   const pollGaveUpRef = useRef(false);
 
@@ -255,10 +266,8 @@ export default function VacaturePlaatsen() {
         clearInterval(interval);
         return;
       }
-      // Guard: als de URL nog geen draftId heeft (bijv. race na createDraft
-      // waar setSearchParams nog niet gepropageerd is), niet refetchen — dat
-      // zou /drafts/null bij de backend afvuren.
-      if (!draftIdParam) {
+      // Guard: zonder concept-id niet refetchen (zou /drafts/null afvuren).
+      if (!effectiveDraftId) {
         return;
       }
       // Één enkele refetch — geen aparte api() + setState-flow meer. Dat
@@ -276,7 +285,7 @@ export default function VacaturePlaatsen() {
     // existingDraftQuery bewust NIET in deps — dat object wijzigt bij
     // elke background-status-tick en zou een refetch-storm veroorzaken.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [criticusPassed, imagePath, effectiveDraftId, isGenerating, missingTranslations.length, draftIdParam]);
+  }, [criticusPassed, imagePath, effectiveDraftId, isGenerating, missingTranslations.length]);
 
   // Referenced by the "Ververs vertalingen" button — forces een re-fetch en
   // reset de teller zodat het poll-loop opnieuw op gang komt als het gestopt was.
@@ -898,15 +907,21 @@ export default function VacaturePlaatsen() {
                     key: 'translations',
                     label: 'Vertalingen',
                     state:
-                      missingTranslations.length === 0
-                        ? 'ready'
-                        : 'pending',
+                      missingTranslations.length > 0
+                        ? 'pending'
+                        : failedTranslations.length > 0
+                          ? 'failed'
+                          : 'ready',
                     detail:
                       selectedLangs.length -
-                        missingTranslations.length +
+                        missingTranslations.length -
+                        failedTranslations.length +
                       '/' +
                       selectedLangs.length +
-                      ' klaar',
+                      ' klaar' +
+                      (failedTranslations.length > 0
+                        ? ` — mislukt: ${failedTranslations.map(langLabel).join(', ')}`
+                        : ''),
                     onRetry: missingTranslations.length > 0 ? refreshTranslationsNow : undefined,
                   }
                 : null,
@@ -983,6 +998,7 @@ export default function VacaturePlaatsen() {
                 >
                   {tab.label}
                   {tab.pending ? ' …' : ''}
+                  {tab.failed ? ' ⚠' : ''}
                 </button>
               );
             })}
@@ -1003,6 +1019,16 @@ export default function VacaturePlaatsen() {
               lege textareas — anders lijkt het alsof je moet schrijven. */}
           {(() => {
             const activeTab = tabs.find((t) => t.key === activeLangTab) || tabs[0];
+            if (activeTab.failed) {
+              return (
+                <div className="preview-pane preview-pane-pending">
+                  <p>
+                    De vertaling naar <strong>{langLabel(activeLangTab)}</strong> is mislukt. Klik op
+                    &quot;Opnieuw genereren&quot; om het nog een keer te proberen. Bij goedkeuren wordt deze taal ook automatisch opnieuw vertaald.
+                  </p>
+                </div>
+              );
+            }
             if (activeTab.pending) {
               return (
                 <div className="preview-pane preview-pane-pending">
