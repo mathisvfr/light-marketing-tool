@@ -1,7 +1,7 @@
 const { supabase } = require('../db/client');
 const { encryptValue, decryptValue } = require('./crypto');
 
-const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://graph.buffer.com';
+const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://api.buffer.com';
 const SUPPORTED_PROVIDERS = ['buffer'];
 const INTEGRATION_KEY_PREFIX = 'integration_';
 

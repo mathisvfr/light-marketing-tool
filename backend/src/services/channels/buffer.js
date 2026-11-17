@@ -1,8 +1,8 @@
 const { getCredential } = require('../integrations');
 
-// Buffer's GraphQL API lives on graph.buffer.com. Override via env if Buffer
+// Buffer's GraphQL API lives on api.buffer.com (graph.buffer.com answers 401 "Please use api.buffer.com" since Nov 2026). Override via env if Buffer
 // moves the endpoint.
-const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://graph.buffer.com';
+const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://api.buffer.com';
 
 function getEnvMetadata() {
   return {

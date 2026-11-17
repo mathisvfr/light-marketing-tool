@@ -10,7 +10,7 @@ const { notifyAfterCommit } = require('./notifications');
 // spacing, hard cap of 50 rows per pass. Buffer schema has no bulk-by-id
 // query as of probe (see plan risks section for the probe result).
 
-const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://graph.buffer.com';
+const BUFFER_API_URL = process.env.BUFFER_API_URL || 'https://api.buffer.com';
 const POLL_MAX_ROWS = 3;
 const POLL_SPACING_MS = 3000;
 
