@@ -39,6 +39,8 @@ useful for the next agent picking up work. Move fully-completed rows below the
 
 | 15 | Feedback-fixes 17-11: briefing-upload manager, vacature draftId verlies (vertaling/criticus), approve-checklist, publish route-volgorde | `main` | done (2026-11-17) | `backend/src/routes/uploads.js`, `backend/src/routes/publish.js`, `backend/src/routes/drafts.js`, `frontend/src/pages/VacaturePlaatsen.jsx`, `frontend/src/pages/ContentWachtrij.jsx` | claude (this session) | Backend 102/102, build groen. Lint: 2 bestaande fouten in WebsiteTeksten.jsx (niet van deze taak). Nog niet gecommit/gedeployed. |
 
+| 16 | website_texts zichtbaar maken op website: anon-leesrecht (RLS) + light-website pagina's SSR i.p.v. prerender | `main` | done (2026-11-25) | `backend/src/db/migrations/038_website_texts_anon_read.sql` (new); light-website: `far-flare/src/pages/{404,algemene-voorwaarden,contact,diensten,over-ons,privacy,ziekteverzuim}.astro`, `far-flare/src/middleware.ts` (new), `far-flare/src/layouts/Base.astro` | claude (this session) | Website las 0 van 75 overrides (geen anon SELECT-policy); 7 pagina's werden bij build gerenderd zonder Supabase-keys. 038 toegepast op productie-DB via psql. Website c0cbea0 + aeefd4b live (ook locale-fallback 302→200). E2E getest met tijdelijke ru-override: zichtbaar na 52s, daarna verwijderd. |
+
 ## Archive
 
 <!-- Move completed rows here once older than a week. Nothing yet. -->
